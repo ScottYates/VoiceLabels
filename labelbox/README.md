@@ -119,11 +119,13 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under
 | Do this | To |
 |---|---|
 | **Hold** the TALK button (or **Hold to talk** on screen), speak, release | Record. The TALK light stays on while it listens and blinks while it works. F1 starts and stops recording from the keyboard |
+| **Tap** TALK, then straight away **press and hold** it again (screen or deck button), speak, release | Clear the text and start over. The status says "Cleared. Listening…" |
 | Type in the text box | Fix any words. The preview updates as you type |
 | **Hold** the PRINT button (on screen or on the deck) for 3 seconds | Print. A green bar sweeps across PRINT and counts down; let go early to cancel. The PRINT light blinks while you hold. Ctrl+P or Ctrl+Enter print straight away |
 | Tap **⟳ Rotate**, or press F4 | Switch landscape / portrait |
 | Tap **Clear**, or press Esc | Clear the text |
 | Tap **⚙ Setup** | Open the Setup screen (below) |
+| **Press and hold** on the text box or the label preview for 1.5 seconds | Turn the screen off now, like the screen saver. Tap to wake it |
 
 **Setup screen.** Tap **Done** or press Esc to return.
 
@@ -160,6 +162,8 @@ Everything adjustable is in `config.py`, with comments. The most common changes:
 | `MIC_NAME` | Text in the microphone's name. The app finds it on any USB port; `./run.sh stt.py --list` shows the names |
 | `KEYTERMS` | Words the speech model should favor (part numbers, names, jargon), spelled as you want them printed |
 | `SCREEN_BLANK_SECONDS` | Seconds of inactivity before the screen goes dark (0 = never) |
+| `LONG_PRESS_BLANK_SECONDS` | How long to hold on the text box or preview to turn the screen off (0 = never) |
+| `DOUBLE_TAP_SECONDS` | How soon after a tap on TALK a press and hold counts as "clear and start over" |
 | `BRIGHTNESS_LEVELS` | The brightness choices on the Setup screen, in percent |
 
 ## Testing without the hardware

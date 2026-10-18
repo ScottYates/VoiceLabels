@@ -7,6 +7,8 @@
 Keys: F1 talk (press to start, press again to stop)   F2 date on/off
       F3 QR on/off   F4 landscape/portrait   Ctrl+P or Ctrl+Enter print
       Esc clear text   Ctrl+Shift+Q quit
+Touch: tap TALK then press and hold it again = clear and start over;
+       press and hold the text box or preview = screen off
 """
 
 from __future__ import annotations
@@ -170,6 +172,11 @@ class App:
         # Screen blanking: any touch, click or key counts as activity.
         self._last_activity = time.monotonic()
         self._blank_overlay = None
+        self._talk_down_at = 0.0
+        self._last_talk_tap = -10.0
+        self._lp_jobs = []
+        self._lp_origin = None
+        self._lp_status = None
         self.root.bind_all("<ButtonPress>", lambda e: self._note_activity(), add="+")
         self.root.bind_all("<KeyPress>", lambda e: self._wake(), add="+")
         if config.SCREEN_BLANK_SECONDS:
@@ -208,8 +215,8 @@ class App:
         self.talk_btn = tk.Button(body, text="● Hold to talk", bg=PANEL, fg=FG,
                                   activebackground=PANEL, activeforeground=FG, **big)
         self.talk_btn.grid(row=0, column=0, sticky="nsew", padx=(0, pad), pady=(0, gap))
-        self.talk_btn.bind("<ButtonPress-1>", lambda e: self.start_recording())
-        self.talk_btn.bind("<ButtonRelease-1>", lambda e: self.stop_recording())
+        self.talk_btn.bind("<ButtonPress-1>", lambda e: self.talk_press())
+        self.talk_btn.bind("<ButtonRelease-1>", lambda e: self.talk_release())
         self.print_btn = HoldButton(body, "PRINT", font(30, True), config.PRINT_HOLD_SECONDS,
                                     on_fire=self.print_label, on_start=self._print_hold_start,
                                     on_cancel=self._print_hold_cancel)
@@ -253,6 +260,11 @@ class App:
                                     bg=INPUT_BG, fg=MUTED, font=font(19), anchor="nw",
                                     justify="left", wraplength=1)
         self.placeholder.bind("<Button-1>", lambda e: self.text.focus_set())
+        # Press and hold on either box turns the screen off.
+        for w in (self.text, self.placeholder, self.canvas):
+            w.bind("<ButtonPress-1>", self._long_press_start, add="+")
+            w.bind("<B1-Motion>", self._long_press_move, add="+")
+            w.bind("<ButtonRelease-1>", self._long_press_cancel, add="+")
         self.text.bind("<Configure>", lambda e: (
             self.placeholder.configure(wraplength=max(50, e.width - 30)),
             self.status.configure(wraplength=max(100, e.width - 4))))
@@ -504,10 +516,27 @@ class App:
             self.placeholder.place(x=12, y=10)
 
     # ----------------------------------------------------------- recording
+    def talk_press(self):
+        """TALK went down (screen or physical button). A tap followed quickly by
+        a press and hold clears the text and starts over."""
+        now = time.monotonic()
+        fresh = now - self._last_talk_tap <= getattr(config, "DOUBLE_TAP_SECONDS", 0.6)
+        self._talk_down_at = now
+        self._last_talk_tap = -10.0
+        self.start_recording(fresh=fresh)
+
+    def talk_release(self):
+        held = time.monotonic() - self._talk_down_at
+        if held < config.MIN_TALK_SECONDS:
+            self.stop_recording(cancel=True)        # a tap: too short to be speech
+            self._last_talk_tap = time.monotonic()
+        else:
+            self.stop_recording()
+
     def toggle_recording(self):
         self.stop_recording() if self.recording else self.start_recording()
 
-    def start_recording(self):
+    def start_recording(self, fresh: bool = False):
         if self.recording or self.busy:
             return
         if not self.stt.ready:
@@ -517,12 +546,15 @@ class App:
         if self.date_text.get() == self._auto_date:
             self._auto_date = today()
             self.date_text.set(self._auto_date)
+        if fresh:
+            self._set_text("")                     # start over: nothing to go back to
         self.recording = True
         self._before_recording = self.text.get("1.0", "end-1c")
         self.stt.begin()
         self.button.led_on()
         self.talk_btn.configure(bg=REC, activebackground=REC, text="● Listening…")
-        self.set_status("Listening… release to finish", REC)
+        self.set_status("Cleared. Listening… release to finish" if fresh
+                        else "Listening… release to finish", REC)
 
     def stop_recording(self, cancel: bool = False):
         if not self.recording:
@@ -658,6 +690,41 @@ class App:
         self._blank_overlay = cover
         self._display_power(False)
 
+    def _long_press_start(self, e):
+        self._long_press_cancel()
+        secs = getattr(config, "LONG_PRESS_BLANK_SECONDS", 0)
+        if not secs or self.recording or self.busy:
+            return
+        self._lp_origin = (e.x_root, e.y_root)
+        self._lp_status = (self.status.cget("text"), self.status.cget("fg"))
+        self._lp_jobs = [
+            self.root.after(int(min(0.6, secs / 2) * 1000),
+                            lambda: self.set_status("Keep holding to turn the screen off", MUTED)),
+            self.root.after(int(secs * 1000), self._long_press_fire),
+        ]
+
+    def _long_press_move(self, e):
+        # Dragging (e.g. selecting text) is not a long press.
+        if self._lp_origin and (abs(e.x_root - self._lp_origin[0]) > 15
+                                or abs(e.y_root - self._lp_origin[1]) > 15):
+            self._long_press_cancel()
+
+    def _long_press_cancel(self, _e=None):
+        jobs, self._lp_jobs = self._lp_jobs, []
+        for job in jobs:
+            self.root.after_cancel(job)
+        if jobs and self._lp_status:
+            self.set_status(*self._lp_status)       # put back the message it replaced
+        self._lp_origin = self._lp_status = None
+
+    def _long_press_fire(self):
+        self._lp_jobs = []
+        if self._lp_status:
+            self.set_status(*self._lp_status)
+        self._lp_origin = self._lp_status = None
+        if self._blank_overlay is None and not self.recording and not self.busy:
+            self._blank()
+
     def _wake(self):
         self._note_activity()
         if self._blank_overlay is not None:
@@ -717,13 +784,10 @@ class App:
                 self.set_status("Didn't catch that. Try again", ACCENT)
         elif kind == "hw_press":
             self._wake()
-            self.start_recording()
+            self.talk_press()
         elif kind == "hw_release":
             self._note_activity()
-            if val < config.MIN_TALK_SECONDS:
-                self.stop_recording(cancel=True)        # too short to be speech
-            else:
-                self.stop_recording()
+            self.talk_release()
         elif kind == "print_press":
             self._wake()
             self.print_btn.begin()

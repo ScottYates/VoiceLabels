@@ -128,6 +128,11 @@ class PushToTalk:
     def begin(self):
         if not self.ready or self._listening:
             return
+        # A quick tap stops the mic in the background; let that finish first so
+        # it can't stop this new recording (tap, then press and hold).
+        stopper = getattr(self, "_stopper", None)
+        if stopper is not None and stopper.is_alive():
+            stopper.join(timeout=3)
         with self._lock:
             self._lines, self._partial = [], ""
             self._listening = True
@@ -160,7 +165,8 @@ class PushToTalk:
             return
         with self._lock:
             self._listening = False
-        threading.Thread(target=self._stop_quietly, daemon=True).start()
+        self._stopper = threading.Thread(target=self._stop_quietly, daemon=True)
+        self._stopper.start()
 
     def _stop_quietly(self):
         try:

@@ -45,6 +45,9 @@ PRINT_LED_PIN = 23            # GPIO23 (pin 16), LED - to GND (pin 25); None if 
 PRINT_HOLD_SECONDS = 3.0      # default hold time for PRINT (screen or button)
 PRINT_HOLD_CHOICES = [0, 1, 2, 3, 5]   # choices on the Setup screen; 0 = no hold
 MIN_TALK_SECONDS = 0.35       # shorter presses of TALK are ignored
+# Tap TALK, then press and hold it again within this many seconds: clear the
+# text and start over (screen button or physical button).
+DOUBLE_TAP_SECONDS = 0.6
 
 # --- Speech ---------------------------------------------------------------
 LANGUAGE = "en"
@@ -69,3 +72,6 @@ SCREEN_BLANK_SECONDS = 300
 # Brightness choices on the Setup screen, in percent. The choice is
 # remembered in settings.json and put back after the screen blanks.
 BRIGHTNESS_LEVELS = [25, 50, 75, 100]
+# Press and hold on the text box or the label preview this long to turn the
+# screen off right away (0 = off).
+LONG_PRESS_BLANK_SECONDS = 1.5
