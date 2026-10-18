@@ -698,6 +698,8 @@ def main():
     app = App(root, dry_run=args.dry_run, screen=screen)
     if os.environ.get("LABELBOX_SHOW_SETUP"):      # for screenshots while testing
         root.after(300, app.open_setup)
+    if os.environ.get("LABELBOX_TEXT"):            # pre-filled label, for screenshots
+        root.after(300, lambda: app._set_text(os.environ["LABELBOX_TEXT"]))
     try:
         root.mainloop()
     finally:

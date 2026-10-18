@@ -94,6 +94,10 @@ After the reboot, the app opens fullscreen. Press **Ctrl+Shift+Q** to quit to th
 
 ## Using it
 
+| Main screen | Setup screen |
+|---|---|
+| <img src="docs/screen.png" alt="Main screen" width="400"> | <img src="docs/setup.png" alt="Setup screen" width="400"> |
+
 The main screen has **Hold to talk** (top left) and **PRINT** (top right). The label preview and status message are below on the left. The text box is on the right, with **⟳ Rotate**, **Clear** and **⚙ Setup** under it.
 
 | Do this | To |
