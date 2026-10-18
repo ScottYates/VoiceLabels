@@ -97,7 +97,7 @@ After the reboot, the app opens fullscreen.
 The Pi boots straight into Voice Labels with no desktop behind it. If the app crashes or closes, it restarts within a couple of seconds.
 
 - **To get to the desktop:** open **⚙ Setup**, tap **Exit to desktop**, then tap it again to confirm, or press **Ctrl+Shift+Q**.
-- **To go back to the app:** double-click the **Voice Labels** icon on the desktop (it's also in the menu), or reboot.
+- **To go back to the app:** tap the **printer button in the taskbar**, or double-click the **Voice Labels** icon on the desktop (it's also in the menu), or reboot. These buttons work without kiosk mode too; to add them on their own, run `bash kiosk/launchers.sh` (no sudo).
 - **To turn kiosk mode off** (boot to the desktop and start the app there instead): `sudo bash kiosk/uninstall-kiosk.sh`. To turn it back on: `sudo bash kiosk/install-kiosk.sh`.
 
 Logs: `journalctl -u labelbox -f`.

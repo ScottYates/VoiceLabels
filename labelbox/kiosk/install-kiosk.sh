@@ -12,24 +12,11 @@ echo "== Kiosk service for $USER_NAME in $DIR"
 sed -e "s#@USER@#$USER_NAME#g" -e "s#@DIR@#$DIR#g" "$DIR/kiosk/labelbox.service" \
     > /etc/systemd/system/labelbox.service
 sed "s#@USER@#$USER_NAME#g" "$DIR/kiosk/labelbox.rules" > /etc/polkit-1/rules.d/50-labelbox.rules
-chmod +x "$DIR/kiosk/session.sh" "$DIR/run.sh"
+chmod +x "$DIR/kiosk/session.sh" "$DIR/kiosk/launch.sh" "$DIR/run.sh"
 
-echo "== Desktop: stop auto-starting the app there, add a Voice Labels icon"
+echo "== Desktop: stop auto-starting the app there, add Voice Labels buttons"
 rm -f "$HOME_DIR/.config/autostart/labelbox.desktop"
-LAUNCHER="[Desktop Entry]
-Type=Application
-Name=Voice Labels
-Comment=Leave the desktop and go back to the label printer
-Exec=systemctl start labelbox.service
-Icon=printer
-Terminal=false
-Categories=Utility;"
-for f in "$HOME_DIR/.local/share/applications/labelbox.desktop" "$HOME_DIR/Desktop/labelbox.desktop"; do
-    install -d -o "$USER_NAME" -g "$USER_NAME" "$(dirname "$f")"
-    printf '%s\n' "$LAUNCHER" > "$f"
-    chown "$USER_NAME:$USER_NAME" "$f"
-    chmod +x "$f"
-done
+runuser -u "$USER_NAME" -- env HOME="$HOME_DIR" bash "$DIR/kiosk/launchers.sh"
 
 echo "== Boot to the kiosk instead of the desktop"
 systemctl daemon-reload
