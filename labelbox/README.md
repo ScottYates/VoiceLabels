@@ -58,7 +58,7 @@ No resistor is needed on the switches; the Pi's internal pull-ups are used. The 
    ```
    If you used the second connector, add `,dsi0` to the end of that line.
 
-The screen is landscape (800×480). The app detects this and puts the label preview on the left, with the text, options and buttons on the right. On a tall screen it stacks them instead.
+The screen is landscape (800×480). The app detects this and puts the text box on the left and the label preview on the right. On a tall screen it stacks them instead.
 
 ## Microphone setup (gooseneck USB mic)
 
@@ -108,7 +108,7 @@ Logs: `journalctl -u labelbox -f`.
 |---|---|
 | <img src="docs/screen.png" alt="Main screen" width="400"> | <img src="docs/setup.png" alt="Setup screen" width="400"> |
 
-The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the **label preview** on the left shows the label exactly as it will print, drawn on its backing paper. The dark **text box** on the right is where you edit the words. The status message sits under the preview, and **⟳ Rotate**, **Clear** and **⚙ Setup** sit under the text box.
+The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **⟳ Rotate**, **Clear** and **⚙ Setup** sit under the preview.
 
 | Do this | To |
 |---|---|

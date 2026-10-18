@@ -222,47 +222,45 @@ class App:
         cap_font, cap_bold = font(15), font(15, True)
 
         cap = tk.Frame(body, bg=BG)
-        cap.grid(row=1, column=0, sticky="ew", padx=(0, pad))
+        cap.grid(row=1, column=1, sticky="ew")
         tk.Label(cap, text="LABEL PREVIEW", bg=BG, fg=MUTED, font=cap_bold,
                  anchor="w").pack(side="left")
         self.size_caption = tk.Label(cap, text="", bg=BG, fg=MUTED, font=cap_font, anchor="e")
         self.size_caption.pack(side="right")
         tcap = tk.Frame(body, bg=BG)
-        tcap.grid(row=1, column=1, sticky="ew")
+        tcap.grid(row=1, column=0, sticky="ew", padx=(0, pad))
         tk.Label(tcap, text="TEXT", bg=BG, fg=MUTED, font=cap_bold,
                  anchor="w").pack(side="left")
         tk.Label(tcap, text="type here to edit", bg=BG, fg=MUTED, font=cap_font,
                  anchor="e").pack(side="right")
 
-        # Left box: the label drawn on its backing paper.
+        # Right box: the label drawn on its backing paper.
         self.canvas = tk.Canvas(body, bg=LINER, width=1, height=1, highlightthickness=2,
                                 highlightbackground=INPUT_EDGE)
-        self.canvas.grid(row=2, column=0, sticky="nsew", padx=(0, pad))
+        self.canvas.grid(row=2, column=1, sticky="nsew")
         self.canvas.bind("<Configure>", lambda e: self.schedule_preview())
 
-        # Right box: a dark input, so it can't be mistaken for the white label.
+        # Left box: a dark input, so it can't be mistaken for the white label.
         self.text = tk.Text(body, width=1, height=1, wrap="word", font=font(22),
                             bg=INPUT_BG, fg=FG, insertbackground=FG, insertwidth=3,
                             undo=True, relief="flat", padx=10, pady=8,
                             highlightthickness=2, highlightbackground=INPUT_EDGE,
                             highlightcolor=ACCENT, selectbackground=ACCENT,
                             selectforeground="#000000")
-        self.text.grid(row=2, column=1, sticky="nsew")
+        self.text.grid(row=2, column=0, sticky="nsew", padx=(0, pad))
         self.text.bind("<<Modified>>", self._text_changed)
         self.placeholder = tk.Label(self.text, text="Hold to talk, or type the label text",
                                     bg=INPUT_BG, fg=MUTED, font=font(19), anchor="nw",
                                     justify="left", wraplength=1)
         self.placeholder.bind("<Button-1>", lambda e: self.text.focus_set())
-        self.text.bind("<Configure>", lambda e: self.placeholder.configure(
-            wraplength=max(50, e.width - 30)))
+        self.text.bind("<Configure>", lambda e: (
+            self.placeholder.configure(wraplength=max(50, e.width - 30)),
+            self.status.configure(wraplength=max(100, e.width - 4))))
 
         # Bottom row: status message (left), Rotate / Clear / Setup (right).
         self.status = tk.Label(body, text="", bg=BG, fg=FG, font=font(22, True),
                                anchor="w", justify="left")
         self.status.grid(row=3, column=0, sticky="ew", padx=(0, pad), pady=(gap, 0))
-        self.canvas.bind("<Configure>", lambda e: (
-            self.status.configure(wraplength=max(100, e.width - 4)), self.schedule_preview()),
-            add="")
         row = tk.Frame(body, bg=BG)
         row.grid(row=3, column=1, sticky="ew", pady=(gap, 0))
         btn = dict(font=font(20, True), relief="flat", bd=0, highlightthickness=0,
