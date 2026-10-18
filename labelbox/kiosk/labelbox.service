@@ -1,0 +1,30 @@
+# Voice Labels kiosk: runs the app full-screen at boot without a desktop.
+# Installed by kiosk/install-kiosk.sh (@USER@ and @DIR@ are filled in there).
+[Unit]
+Description=Voice Labels kiosk
+After=systemd-user-sessions.service plymouth-quit-wait.service sound.target
+Conflicts=getty@tty1.service lightdm.service
+
+[Service]
+User=@USER@
+PAMName=login
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+UtmpIdentifier=tty1
+UtmpMode=user
+WorkingDirectory=@DIR@
+Environment=XDG_SESSION_TYPE=wayland
+ExecStartPre=+/usr/bin/chvt 1
+# labwc is a small window manager; -S ends it when session.sh ends.
+ExecStart=/usr/bin/labwc -C @DIR@/kiosk/labwc -S @DIR@/kiosk/session.sh
+# If the window manager itself stops, start it again. (session.sh restarts the app.)
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

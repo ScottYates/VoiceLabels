@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<!-- Window manager settings for the kiosk: no title bars, nothing else running. -->
+<labwc_config>
+  <windowRules>
+    <windowRule identifier="*" serverDecoration="no" />
+  </windowRules>
+</labwc_config>

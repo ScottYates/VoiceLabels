@@ -24,10 +24,11 @@ def dummies():
         "pi_parts": box(-45.6, 30, pi_y0 + 2, pi_y1 - 2, C.PCB_BACK_Z + 9.6, C.PCB_BACK_Z + 9.6 + 16.5),
         "usb_plugs": box(-45.6 - 40, -45.6, pi_y0 + 2, pi_y1 - 2, C.PCB_BACK_Z + 10, C.PCB_BACK_Z + 26),
         "usb_c": box(31.4 - 6, 31.4 + 6, pi_y1, pi_y1 + 26, C.PCB_BACK_Z + 9, C.PCB_BACK_Z + 17),
-        "mic_socket": (lambda m: m.mirror([1, 0, 0]) if C.MIC_SIDE == "right" else m)(box(C.W / 2 - C.WALL - 36, C.W / 2 - C.WALL + 1.5,
-                          C.PCB_Y0 + C.SOCKET_Y_ON_PCB - C.SOCKET_H / 2,
-                          C.PCB_Y0 + C.SOCKET_Y_ON_PCB + C.SOCKET_H / 2,
-                          C.SOCKET_Z - C.SOCKET_W / 2, C.SOCKET_Z + C.SOCKET_W / 2)),
+        # mic plug body on its way in through the side wall to the port
+        "mic_plug": (lambda m: m.mirror([1, 0, 0]) if C.MIC_SIDE == "right" else m)(
+            box(48.0, C.W / 2 + 10, C.mic_port_yz()[0] - C.MIC_PLUG_W / 2,
+                C.mic_port_yz()[0] + C.MIC_PLUG_W / 2,
+                C.mic_port_yz()[1] - C.MIC_PLUG_T / 2, C.mic_port_yz()[1] + C.MIC_PLUG_T / 2)),
     }
     return d
 
@@ -98,6 +99,6 @@ if __name__ == "__main__":
     # Inside view: housing without back plate, with stand-ins
     inside = [(asm["housing"], case_col)] + [(dw[k], c) for k, c in (
         ("board", (0.15, 0.25, 0.6)), ("pi", (0.1, 0.5, 0.2)), ("pi_parts", (0.6, 0.6, 0.6)),
-        ("usb_plugs", (0.2, 0.2, 0.2)), ("usb_c", (0.95, 0.95, 0.95)), ("mic_socket", (0.1, 0.1, 0.1)))]
+        ("usb_plugs", (0.2, 0.2, 0.2)), ("usb_c", (0.95, 0.95, 0.95)), ("mic_plug", (0.1, 0.1, 0.1)))]
     render(inside, "view_inside.png", 30, 150, "Inside the housing (back removed)")
     print("renders written")

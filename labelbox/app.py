@@ -39,6 +39,10 @@ MUTED = "#a4a7ad"
 ACCENT = "#f0b232"
 REC = "#e5484d"
 OK = "#3fb950"
+INPUT_BG = "#14161a"      # text box: darker than the panel, unlike the white label
+INPUT_EDGE = "#4a4f57"
+LINER = "#c9b98f"         # label backing paper in the preview
+LABEL_GHOST = "#d9d6cc"   # neighbouring labels on the roll
 
 
 def today() -> str:
@@ -197,7 +201,6 @@ class App:
         body.pack(fill="both", expand=True, padx=pad, pady=pad)
         body.columnconfigure(0, weight=11, uniform="c")
         body.columnconfigure(1, weight=9, uniform="c")
-        body.rowconfigure(1, weight=1)
 
         # Top row: the two main actions, same height and font.
         big = dict(font=font(30, True), relief="flat", bd=0, highlightthickness=0,
@@ -212,22 +215,56 @@ class App:
                                     on_cancel=self._print_hold_cancel)
         self.print_btn.grid(row=0, column=1, sticky="nsew", pady=(0, gap))
 
-        # Left: preview with the status message under it.
-        left = tk.Frame(body, bg=BG)
-        left.grid(row=1, column=0, sticky="nsew", padx=(0, pad))
-        self.status = tk.Label(left, text="", bg=BG, fg=FG, font=font(22, True),
-                               anchor="w", justify="left")
-        self.status.pack(side="bottom", fill="x", pady=(gap, 0))
-        left.bind("<Configure>", lambda e: self.status.configure(wraplength=max(100, e.width - 4)))
-        self.canvas = tk.Canvas(left, bg=BG, highlightthickness=0)
-        self.canvas.pack(side="top", fill="both", expand=True)
+        # Rows below the top buttons: captions, the two boxes (same height),
+        # then the status message beside Rotate / Clear / Setup.
+        body.rowconfigure(1, weight=0)
+        body.rowconfigure(2, weight=1)
+        cap_font, cap_bold = font(15), font(15, True)
+
+        cap = tk.Frame(body, bg=BG)
+        cap.grid(row=1, column=0, sticky="ew", padx=(0, pad))
+        tk.Label(cap, text="LABEL PREVIEW", bg=BG, fg=MUTED, font=cap_bold,
+                 anchor="w").pack(side="left")
+        self.size_caption = tk.Label(cap, text="", bg=BG, fg=MUTED, font=cap_font, anchor="e")
+        self.size_caption.pack(side="right")
+        tcap = tk.Frame(body, bg=BG)
+        tcap.grid(row=1, column=1, sticky="ew")
+        tk.Label(tcap, text="TEXT", bg=BG, fg=MUTED, font=cap_bold,
+                 anchor="w").pack(side="left")
+        tk.Label(tcap, text="type here to edit", bg=BG, fg=MUTED, font=cap_font,
+                 anchor="e").pack(side="right")
+
+        # Left box: the label drawn on its backing paper.
+        self.canvas = tk.Canvas(body, bg=LINER, width=1, height=1, highlightthickness=2,
+                                highlightbackground=INPUT_EDGE)
+        self.canvas.grid(row=2, column=0, sticky="nsew", padx=(0, pad))
         self.canvas.bind("<Configure>", lambda e: self.schedule_preview())
 
-        # Right: text box, then Rotate / Clear / Setup.
-        right = tk.Frame(body, bg=BG)
-        right.grid(row=1, column=1, sticky="nsew")
-        row = tk.Frame(right, bg=BG)
-        row.pack(side="bottom", fill="x", pady=(gap, 0))
+        # Right box: a dark input, so it can't be mistaken for the white label.
+        self.text = tk.Text(body, width=1, height=1, wrap="word", font=font(22),
+                            bg=INPUT_BG, fg=FG, insertbackground=FG, insertwidth=3,
+                            undo=True, relief="flat", padx=10, pady=8,
+                            highlightthickness=2, highlightbackground=INPUT_EDGE,
+                            highlightcolor=ACCENT, selectbackground=ACCENT,
+                            selectforeground="#000000")
+        self.text.grid(row=2, column=1, sticky="nsew")
+        self.text.bind("<<Modified>>", self._text_changed)
+        self.placeholder = tk.Label(self.text, text="Hold to talk, or type the label text",
+                                    bg=INPUT_BG, fg=MUTED, font=font(19), anchor="nw",
+                                    justify="left", wraplength=1)
+        self.placeholder.bind("<Button-1>", lambda e: self.text.focus_set())
+        self.text.bind("<Configure>", lambda e: self.placeholder.configure(
+            wraplength=max(50, e.width - 30)))
+
+        # Bottom row: status message (left), Rotate / Clear / Setup (right).
+        self.status = tk.Label(body, text="", bg=BG, fg=FG, font=font(22, True),
+                               anchor="w", justify="left")
+        self.status.grid(row=3, column=0, sticky="ew", padx=(0, pad), pady=(gap, 0))
+        self.canvas.bind("<Configure>", lambda e: (
+            self.status.configure(wraplength=max(100, e.width - 4)), self.schedule_preview()),
+            add="")
+        row = tk.Frame(body, bg=BG)
+        row.grid(row=3, column=1, sticky="ew", pady=(gap, 0))
         btn = dict(font=font(20, True), relief="flat", bd=0, highlightthickness=0,
                    pady=round(18 * s), bg=PANEL, fg=FG, activebackground=PANEL,
                    activeforeground=FG, cursor="hand2")
@@ -237,11 +274,6 @@ class App:
             row.columnconfigure(col, weight=1, uniform="b")
             tk.Button(row, text=label, command=cmd, **btn).grid(
                 row=0, column=col, sticky="nsew", padx=(0 if col == 0 else gap, 0))
-        self.text = tk.Text(right, width=1, height=3, wrap="word", font=font(22),
-                            bg="#ffffff", fg="#000000", insertwidth=3, undo=True,
-                            relief="flat", padx=8, pady=6)
-        self.text.pack(side="top", fill="both", expand=True)
-        self.text.bind("<<Modified>>", self._text_changed)
 
         self._build_setup()
         self.text.focus_set()
@@ -265,10 +297,14 @@ class App:
 
         tk.Label(p, text="Setup", bg=BG, fg=FG, font=font(30, True), anchor="w").grid(
             row=0, column=0, columnspan=2, sticky="w", padx=pad, pady=(pad, gap))
-        tk.Button(p, text="Done", command=self.close_setup,
+        top = tk.Frame(p, bg=BG)
+        top.grid(row=0, column=1, sticky="e", padx=pad, pady=(pad, gap))
+        self.exit_btn = tk.Button(top, text="Exit to desktop", command=self.exit_to_desktop,
+                                  **dict(big, padx=round(24 * s)))
+        self.exit_btn.pack(side="left", padx=(0, gap))
+        tk.Button(top, text="Done", command=self.close_setup,
                   **dict(big, bg=ACCENT, fg="#000000", activebackground="#ffd36b",
-                         activeforeground="#000000", padx=round(40 * s))).grid(
-            row=0, column=1, sticky="e", padx=pad, pady=(pad, gap))
+                         activeforeground="#000000", padx=round(40 * s))).pack(side="left")
 
         # Date and QR: a big on/off button plus the text to print.
         self._toggles = {}
@@ -343,6 +379,36 @@ class App:
         self._refresh_brightness_buttons()
         self._refresh_hold_buttons()
 
+    def exit_to_desktop(self):
+        """First tap arms the button; a second tap within 4 s leaves the app."""
+        if not getattr(self, "_exit_armed", False):
+            self._exit_armed = True
+            self.exit_btn.configure(text="Tap again to exit", bg=REC, activebackground=REC,
+                                    fg="#ffffff", activeforeground="#ffffff")
+            self.root.after(4000, self._disarm_exit)
+            return
+        self._disarm_exit()
+        if os.environ.get("LABELBOX_KIOSK"):
+            # Starting the desktop stops the kiosk service (they conflict).
+            r = subprocess.run(["systemctl", "--no-block", "start", "lightdm.service"],
+                               capture_output=True, text=True)
+            if r.returncode != 0:
+                self.close_setup()
+                self.set_status("Couldn't start the desktop: "
+                                + (r.stderr.strip() or "systemctl failed"), REC)
+        else:
+            self.root.destroy()                         # running on the desktop already
+
+    def _quit_now(self):
+        """Ctrl+Shift+Q: go straight to the desktop (or quit if already there)."""
+        self._exit_armed = True
+        self.exit_to_desktop()
+
+    def _disarm_exit(self):
+        self._exit_armed = False
+        self.exit_btn.configure(text="Exit to desktop", bg=PANEL, activebackground=PANEL,
+                                fg=FG, activeforeground=FG)
+
     def close_setup(self):
         self.setup_panel.place_forget()
         self.text.focus_set()
@@ -379,7 +445,7 @@ class App:
             "<Control-Return>": lambda e: self.print_label(),
             "<Escape>": lambda e: (self.close_setup() if self.setup_panel.winfo_ismapped()
                                    else self.clear()),
-            "<Control-Q>": lambda e: self.root.destroy(),  # Ctrl+Shift+Q
+            "<Control-Q>": lambda e: self._quit_now(),     # Ctrl+Shift+Q
         }
         for seq, fn in keys.items():
             # Bind on the text box too, and stop Tk's built-in text bindings.
@@ -418,20 +484,26 @@ class App:
             self.set_status(f"Preview error: {e}", REC)
             return
         cw, ch = max(self.canvas.winfo_width(), 50), max(self.canvas.winfo_height(), 50)
-        pad = 18
-        scale = min((cw - 2 * pad) / img.width, (ch - 2 * pad) / img.height)
-        size = (max(1, int(img.width * scale)), max(1, int(img.height * scale)))
-        shown = img.convert("L").resize(size, Image.LANCZOS)
+        pad, gap = 14, 10
+        scale = min((cw - 2 * pad - 2 * gap) / img.width, (ch - 2 * pad) / img.height)
+        w, h = max(1, int(img.width * scale)), max(1, int(img.height * scale))
+        shown = img.convert("L").resize((w, h), Image.LANCZOS)
         self._preview_photo = ImageTk.PhotoImage(shown)
-        self.canvas.delete("all")
-        x, y = cw // 2, ch // 2
-        self.canvas.create_rectangle(x - size[0] // 2 + 5, y - size[1] // 2 + 5,
-                                     x + size[0] // 2 + 5, y + size[1] // 2 + 5,
-                                     fill="#000000", outline="")
-        self.canvas.create_image(x, y, image=self._preview_photo)
-        self.canvas.create_text(cw - 6, ch - 4, anchor="se", fill=MUTED,
-                                font=("DejaVu Sans", 11),
-                                text='3" × 2"' if self.orientation.get() == "landscape" else '2" × 3"')
+        c = self.canvas
+        c.delete("all")
+        x0, y0 = (cw - w) // 2, (ch - h) // 2
+        # Draw it as a label on a roll: the box is the backing paper, with the
+        # neighbouring labels peeking in at the sides.
+        for nx in (x0 - gap - w, x0 + w + gap):
+            c.create_rectangle(nx, y0, nx + w, y0 + h, fill=LABEL_GHOST, outline="")
+        c.create_image(x0, y0, image=self._preview_photo, anchor="nw")
+        self.size_caption.configure(
+            text='3 × 2 in' if self.orientation.get() == "landscape" else '2 × 3 in')
+        # Placeholder in the text box when it's empty.
+        if self.text.get("1.0", "end-1c").strip():
+            self.placeholder.place_forget()
+        else:
+            self.placeholder.place(x=12, y=10)
 
     # ----------------------------------------------------------- recording
     def toggle_recording(self):

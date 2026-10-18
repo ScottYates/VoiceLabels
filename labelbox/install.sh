@@ -28,16 +28,8 @@ print("Microphone:", s.mic_name or "not found (plug in the USB mic)")
 s.close()
 PY
 
-echo "== Start automatically when the Pi boots to the desktop"
-mkdir -p ~/.config/autostart
-cat > ~/.config/autostart/labelbox.desktop <<DESKTOP
-[Desktop Entry]
-Type=Application
-Name=Voice Labels
-Exec=$APP_DIR/run.sh
-Path=$APP_DIR
-X-GNOME-Autostart-enabled=true
-DESKTOP
+echo "== Start the app at boot (kiosk mode, no desktop)"
+sudo bash kiosk/install-kiosk.sh
 
 echo
-echo "Done. Reboot (sudo reboot) so the group changes and autostart take effect."
+echo "Done. Reboot (sudo reboot) to start Voice Labels."

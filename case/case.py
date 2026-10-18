@@ -34,21 +34,23 @@ STACK = 8.25                   # glass front to back of the board
 WINDOW_MARGIN = 1.0            # window larger than the visible area by this
 WINDOW_CHAMFER = 1.5
 
-SIDE_GAP = 22.0                # room beside the board for USB plugs, mic socket
+SIDE_GAP = 22.0                # room beside the board for USB plugs
 TOP_GAP = 12.0                 # room above the board for the power cable to bend
 INNER_DEPTH = 40.0             # front plate to back plate (Pi + plugs)
 BACK_T = 2.5                   # back plate thickness
 CORNER_R = 5.0
 
-# Mic: the USB extension's female end sits in a sleeve in a side wall, with
-# the mic plugged in from outside. The Pi's USB ports also face the user's
-# right, so on that side the socket sits above the Pi, clear of its plugs.
-MIC_SIDE = "right"                # "right" or "left", as seen from the front
-SOCKET_W, SOCKET_H = 18.0, 10.0   # female end housing (W along depth, H across)
-SOCKET_CLR = 0.3
-SOCKET_Y_ON_PCB = 83.0            # height of socket centre above board bottom
-SOCKET_Z = 26.0                   # depth of socket centre from the front face
-SLEEVE_LEN = 12.0
+# Mic: it plugs straight into one of the Pi's USB ports through an opening in
+# the side wall. The Pi's ports face the user's right, near the bottom of the
+# case (the GPIO header is at the bottom). The opening lines up with the
+# outer port of the stack nearest the GPIO header.
+MIC_SIDE = "right"                # side the Pi's USB ports face, seen from the front
+PI_STANDOFF = 8.0                 # gap between the screen board and the Pi board
+PI_TOP_EDGE = 31.69               # Pi board top edge, mm below the screen board top
+MIC_PORT_FROM_GPIO = 9.0          # USB stack centre, mm in from the Pi's GPIO edge
+MIC_PORT_ABOVE_PI = 12.8          # outer port centre above the Pi board's top face
+MIC_PLUG_W, MIC_PLUG_T = 19.0, 10.0   # mic plug body: width (up-down) x thickness
+MIC_HOLE_CLR = 3.0                # extra room around the plug body
 
 # Base and deck
 RECLINE = 20.0                 # screen tilt back from vertical, degrees
@@ -107,6 +109,15 @@ def text_cross_section(s, size):
     return cs.translate([-(x0 + x1) / 2, -(y0 + y1) / 2])
 
 # ------------------------------------------------------------------ housing
+def mic_port_yz():
+    """Height (print Y) and depth (print Z) of the mic's USB port centre."""
+    pi_top = PCB_Y0 + PCB_H - PI_TOP_EDGE        # Pi board edge toward the case top
+    pi_gpio_edge = pi_top - 56.0                  # GPIO edge, toward the case bottom
+    y = pi_gpio_edge + MIC_PORT_FROM_GPIO
+    z = PCB_BACK_Z + PI_STANDOFF + 1.6 + MIC_PORT_ABOVE_PI
+    return y, z
+
+
 def housing():
     outer = rrect(W, H, CORNER_R).translate([0, H / 2]).extrude(DEPTH)
     inner = box(-INNER_W / 2, INNER_W / 2, WALL, WALL + INNER_H, FRONT, DEPTH + 1)
@@ -141,27 +152,16 @@ def housing():
     # Clamp bosses beside the board.
     bosses = [cyl(3.5, STACK, sx * CLAMP_X, y, FRONT) for sx in (-1, 1) for y in CLAMP_YS]
 
-    # Mic socket sleeve with a 45-degree gusset underneath (printable).
-    sy = PCB_Y0 + SOCKET_Y_ON_PCB
-    hw, hh = (SOCKET_W + SOCKET_CLR) / 2, (SOCKET_H + SOCKET_CLR) / 2
-    # Built on the +X wall (user-left), then mirrored for the right side.
-    wall_x = W / 2 - WALL
-    sleeve_outer = Manifold.batch_hull([
-        box(wall_x - SLEEVE_LEN, wall_x + 0.1, sy - hh - 2, sy + hh + 2,
-            SOCKET_Z - hw - 2, SOCKET_Z + hw + 2),
-        box(wall_x - 0.1, wall_x + 0.1, sy - hh - 2, sy + hh + 2,
-            SOCKET_Z - hw - 2 - SLEEVE_LEN, SOCKET_Z + hw + 2),
-    ])
-    mic_mirror = MIC_SIDE == "right"            # user-right is print -X
-    if mic_mirror:
-        sleeve_outer = sleeve_outer.mirror([1, 0, 0])
-    shell = union([shell] + rails + ribs + bosses + [sleeve_outer])
-    socket_hole = box(wall_x - SLEEVE_LEN - 1, W / 2 + 1, sy - hh, sy + hh,
-                      SOCKET_Z - hw, SOCKET_Z + hw)
-    if mic_mirror:
-        socket_hole = socket_hole.mirror([1, 0, 0])
+    shell = union([shell] + rails + ribs + bosses)
 
-    holes = [socket_hole]
+    # Mic opening: a tall rectangle lined up with the Pi's USB port.
+    my, mz = mic_port_yz()
+    hy, hz = (MIC_PLUG_W + MIC_HOLE_CLR) / 2, (MIC_PLUG_T + MIC_HOLE_CLR) / 2
+    mic_hole = box(W / 2 - WALL - 1, W / 2 + 1, my - hy, my + hy, mz - hz, mz + hz)
+    if MIC_SIDE == "right":                     # user-right is print -X
+        mic_hole = mic_hole.mirror([1, 0, 0])
+
+    holes = [mic_hole]
     # Back-plate screw pilots (from the back rim, 10 mm deep).
     for sx in (-1, 1):
         for y in (WALL + RIB / 2, WALL + INNER_H - RIB / 2):
@@ -199,7 +199,7 @@ KO_W = 7.0                      # breakaway tab width (cable up to ~6 mm)
 KO_DEPTH = 10.0                 # how far the notch reaches in from the back rim
 KO_SLIT = 0.5
 KO_WEB = 0.8                    # thickness left at the hinge (2 perimeters)
-KNOCKOUT_YS = [WALL + RIB + 9.0,                      # low: printer cable
+KNOCKOUT_YS = [PCB_Y0 + 52.0,                         # low: printer cable
                WALL + INNER_H - RIB - 6.0]            # high: power cable
 
 def back_plate():

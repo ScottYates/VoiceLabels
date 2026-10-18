@@ -64,7 +64,7 @@ The screen is landscape (800×480). The app detects this and puts the label prev
 
 The mic works out of the box on the Pi. Distance matters more than anything else for accuracy: quiet or distant audio is the main cause of wrong words.
 
-- **Placement:** the Pi's USB ports face the back, so use a short USB extension cable (or a panel-mount USB port) to bring the mic out to the front of the enclosure next to the big button. Bend the gooseneck toward where people stand, within about 30cm (1 ft) of their mouth.
+- **Placement:** in the printed case, the mic plugs straight into the Pi through the opening in the right side wall. Bend the gooseneck toward where people stand, within about 30 cm (1 ft) of their mouth.
 - **Mute button:** the mic has its own mute. If every recording comes back as "Didn't catch that," check that it isn't muted.
 - **Noise:** the mic picks up sound from all sides, so keep it away from fans. The printer only runs after recording, so it won't interfere.
 - **Gain:** open a terminal, run `alsamixer`, press F6 to choose the USB mic, press F4 for capture controls, and raise the Mic level to about 80–90%. Run `sudo alsactl store` to keep the setting after reboots.
@@ -83,14 +83,24 @@ If you would rather use CUPS (for example, to also print from other computers), 
 1. Flash **Raspberry Pi OS (64-bit, with desktop)** with Raspberry Pi Imager. Set the Wi-Fi network, username and SSH in the Imager settings.
 2. Connect the display as described in Display setup.
 3. Copy the `labelbox` folder to the Pi, for example to `/home/<you>/labelbox`.
-4. Run the installer while the Pi is online. It installs packages, downloads the speech model (one time), gives your user access to the printer and GPIO, and sets the app to start at boot:
+4. Run the installer while the Pi is online. It installs packages, downloads the speech model (one time), gives your user access to the printer and GPIO, and sets the Pi to boot straight into the app (kiosk mode, below):
    ```
    cd ~/labelbox
    bash install.sh
    sudo reboot
    ```
 
-After the reboot, the app opens fullscreen. Press **Ctrl+Shift+Q** to quit to the desktop.
+After the reboot, the app opens fullscreen.
+
+### Kiosk mode
+
+The Pi boots straight into Voice Labels with no desktop behind it. If the app crashes or closes, it restarts within a couple of seconds.
+
+- **To get to the desktop:** open **⚙ Setup**, tap **Exit to desktop**, then tap it again to confirm, or press **Ctrl+Shift+Q**.
+- **To go back to the app:** double-click the **Voice Labels** icon on the desktop (it's also in the menu), or reboot.
+- **To turn kiosk mode off** (boot to the desktop and start the app there instead): `sudo bash kiosk/uninstall-kiosk.sh`. To turn it back on: `sudo bash kiosk/install-kiosk.sh`.
+
+Logs: `journalctl -u labelbox -f`.
 
 ## Using it
 
@@ -98,7 +108,7 @@ After the reboot, the app opens fullscreen. Press **Ctrl+Shift+Q** to quit to th
 |---|---|
 | <img src="docs/screen.png" alt="Main screen" width="400"> | <img src="docs/setup.png" alt="Setup screen" width="400"> |
 
-The main screen has **Hold to talk** (top left) and **PRINT** (top right). The label preview and status message are below on the left. The text box is on the right, with **⟳ Rotate**, **Clear** and **⚙ Setup** under it.
+The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the **label preview** on the left shows the label exactly as it will print, drawn on its backing paper. The dark **text box** on the right is where you edit the words. The status message sits under the preview, and **⟳ Rotate**, **Clear** and **⚙ Setup** sit under the text box.
 
 | Do this | To |
 |---|---|
@@ -118,6 +128,7 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). The l
 | **Copies − / +** | How many labels each PRINT makes |
 | **Brightness 25 / 50 / 75 / 100%** | Screen brightness. Remembered across restarts |
 | **Print hold Off / 1 / 2 / 3 / 5 s** | How long PRINT must be held. Off prints on a tap. Remembered across restarts |
+| **Exit to desktop** | Leave the app for the Raspberry Pi desktop. Tap twice to confirm |
 
 The screen goes dark after 5 minutes with no touch, key or button press. Tap it to wake it; that first tap only wakes the screen and never presses a button. Pressing TALK while the screen is dark wakes it and starts recording; PRINT wakes it and starts the hold. The screen comes back at the brightness you chose.
 
@@ -166,8 +177,8 @@ The window is 800×480 by default to match the Hosyond screen. Add `--size 720x1
 | "No permission for /dev/usb/lp0" | The installer adds you to the `lp` group; reboot so it takes effect |
 | Labels print across two labels, or skip one | Calibrate the printer again (see Setting up the printer) |
 | Print is faint | Raise `PRINT_DARKNESS`, or check that the labels are direct-thermal (scratch one with a fingernail; it should leave a dark mark) |
-| "Microphone not found" | Plug the mic into any USB port, or the case's side socket, and press TALK again; the app looks for it each time. If you use a different mic, set `MIC_NAME` to part of its name (`./run.sh stt.py --list`) |
-| App doesn't start at boot | Add the `Exec=` line from `~/.config/autostart/labelbox.desktop` to `~/.config/labwc/autostart` |
+| "Microphone not found" | Plug the mic into any USB port and press TALK again; the app looks for it each time. If you use a different mic, set `MIC_NAME` to part of its name (`./run.sh stt.py --list`) |
+| App doesn't start at boot | Check the kiosk service: `systemctl status labelbox` and `journalctl -u labelbox -b`. Run `sudo bash kiosk/install-kiosk.sh` again if it's missing |
 | A deck button does nothing | Check the wiring against the table above. The status line says "Hold the Talk button (or press F1)" when the app can't see the TALK button |
 
 ## Files
@@ -182,3 +193,5 @@ The window is 800×480 by default to match the Hosyond screen. Add `--size 720x1
 | `hardware.py` | The deck buttons and their lights |
 | `config.py` | All settings |
 | `install.sh` | One-time setup on the Pi |
+| `run.sh` | Starts the app (or another script) with the right environment |
+| `kiosk/` | Boot-to-app service, its window-manager settings, and install/uninstall scripts |

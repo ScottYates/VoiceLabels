@@ -22,13 +22,13 @@ Speech recognition runs entirely on the Pi with [Moonshine](https://github.com/m
 | Folder | Contents |
 |---|---|
 | [`labelbox/`](labelbox/) | The app: touchscreen editor with a live label preview, push-to-talk speech, date and QR code options, Zebra ZPL printing, screen blanking, and a Setup screen. [Setup and usage guide](labelbox/README.md) |
-| [`case/`](case/) | A 3D-printable desk console: the reclined screen housing, a button deck for TALK and PRINT, a side mic socket, and snap-out cable tabs. Includes print-ready STLs and the parametric Python model. [Printing and assembly guide](case/README.md) |
+| [`case/`](case/) | A 3D-printable desk console: the reclined screen housing, a button deck for TALK and PRINT, an opening for the mic to plug straight into the Pi, and snap-out cable tabs. Includes print-ready STLs and the parametric Python model. [Printing and assembly guide](case/README.md) |
 
 ## Hardware
 
 - Raspberry Pi 5 (4 GB), 27 W USB-C supply, Active Cooler, 32 GB microSD
 - Hosyond 7" DSI touchscreen, 800×480
-- USB gooseneck microphone (C G CHANGEEK CGS-M1) and a 1 ft USB extension
+- USB gooseneck microphone (C G CHANGEEK CGS-M1)
 - Two 30 mm arcade buttons with 5 V LEDs
 - Zebra GK420d or GC420d direct-thermal printer (USB), 2×3" labels
 - Compact wireless keyboard
@@ -43,4 +43,4 @@ bash install.sh
 sudo reboot
 ```
 
-The app starts full-screen after the reboot. See [labelbox/README.md](labelbox/README.md) for wiring, printer setup and settings.
+The Pi then boots straight into the app (kiosk mode); Setup has an Exit to desktop button. See [labelbox/README.md](labelbox/README.md) for wiring, printer setup and settings.
