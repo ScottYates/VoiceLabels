@@ -5,12 +5,12 @@ A stand-alone voice-to-label printer built on a Raspberry Pi 5. Hold **TALK** an
 Speech recognition runs entirely on the Pi with [Moonshine](https://github.com/moonshine-ai/moonshine), so there's no cloud service, no fee, and no internet needed after setup.
 
 <p align="center">
-  <img src="case/docs/case-front.png" alt="The printed case: a 7-inch screen reclined above a dark deck with a red TALK button and a yellow PRINT button" width="520">
+  <img src="case/docs/case-front.png" alt="The printed case: a 7-inch screen reclined above a dark deck with a red TALK button and a green PRINT button" width="520">
 </p>
 
 | Main screen | Setup screen |
 |---|---|
-| <img src="labelbox/docs/screen.png" alt="Main screen: Hold to talk and PRINT buttons across the top, the label preview on the left, the text box on the right" width="400"> | <img src="labelbox/docs/setup.png" alt="Setup screen: Date and QR toggles with text fields, copies, brightness and print hold buttons" width="400"> |
+| <img src="labelbox/docs/screen.png" alt="Main screen: Hold to talk and PRINT buttons across the top, the text box on the left, the label preview on the right" width="400"> | <img src="labelbox/docs/setup.png" alt="Setup screen: Date and QR toggles with text fields, copies, brightness and print hold buttons" width="400"> |
 
 <p align="center">
   <img src="labelbox/docs/sample-label.png" alt="A sample 3 by 2 inch label with text, a QR code and the date" width="300"><br>
