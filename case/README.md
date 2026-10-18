@@ -1,8 +1,8 @@
 # Voice Labels case
 
 <p align="center">
-  <img src="docs/case-front.png" alt="Front: reclined screen housing above the button deck" width="420">
-  <img src="docs/case-back.png" alt="Back: vented back plate, with the mic opening low in the right side wall" width="400">
+  <img src="docs/case-front.png?v=2" alt="Front: reclined screen housing above the button deck" width="420">
+  <img src="docs/case-back.png?v=2" alt="Back: vented back plate, with the mic opening low in the right side wall" width="400">
 </p>
 
 A desk console for the voice label printer: the 7" screen (with the Pi on its back) sits in a housing reclined 20°. In front of it is a sloped deck with the **TALK** (left) and **PRINT** (right) buttons. The mic plugs straight into one of the Pi's USB ports through a tall opening in the right side wall. Cables leave through snap-out tabs on either side.

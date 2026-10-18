@@ -106,7 +106,7 @@ Logs: `journalctl -u labelbox -f`.
 
 | Main screen | Setup screen |
 |---|---|
-| <img src="docs/screen.png" alt="Main screen" width="400"> | <img src="docs/setup.png" alt="Setup screen" width="400"> |
+| <img src="docs/screen.png?v=2" alt="Main screen" width="400"> | <img src="docs/setup.png" alt="Setup screen" width="400"> |
 
 The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **⟳ Rotate**, **Clear** and **⚙ Setup** sit under the preview.
 
