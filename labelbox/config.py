@@ -1,0 +1,71 @@
+"""Settings for the voice label printer. Edit these to match your hardware."""
+
+# --- Label geometry -------------------------------------------------------
+DPI = 203                     # Zebra GK420d / GC420d print head resolution
+LABEL_WIDTH_IN = 2.0          # width across the print head (the 2" side)
+LABEL_LENGTH_IN = 3.0         # length in the feed direction (the 3" side)
+
+# "landscape" = text reads along the 3" side (label is 3" wide x 2" tall)
+# "portrait"  = text reads along the 2" side (label is 2" wide x 3" tall)
+ORIENTATION = "landscape"
+
+# Landscape labels are rotated before printing. If text comes out upside
+# down, change 90 to 270.
+LANDSCAPE_ROTATE_DEG = 90
+
+MARGIN_DOTS = 14              # blank border around the label (~0.07")
+
+# --- Fonts ----------------------------------------------------------------
+FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+FONT_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+TEXT_MAX_PX = 140             # biggest the main text is allowed to get
+TEXT_MIN_PX = 16              # smallest before the text is cut off
+DATE_PX = 30
+
+# --- Date -----------------------------------------------------------------
+DATE_FORMAT = "%b %d, %Y"     # e.g. "Oct 16, 2026". Try "%m/%d/%Y" or "%Y-%m-%d"
+DATE_DEFAULT_ON = True
+
+# --- QR code --------------------------------------------------------------
+QR_DEFAULT_ON = False
+QR_SIZE_FRACTION = 0.62       # QR side as a fraction of the label's short side
+
+# --- Printer --------------------------------------------------------------
+# Either write straight to the USB device (simplest), or name a CUPS raw queue.
+PRINTER_DEVICE = "/dev/usb/lp0"
+CUPS_QUEUE = None             # e.g. "zebra" to print with `lp -d zebra -o raw`
+PRINT_DARKNESS = 15           # 0-30, Zebra ~SD setting; raise if print is faint
+PRINT_SPEED_IPS = 3           # slower = crisper
+
+# --- Physical buttons and their lights (BCM pin numbers) ------------------
+TALK_BUTTON_PIN = 17          # GPIO17 (pin 11) to GND (pin 9)
+TALK_LED_PIN = 27             # GPIO27 (pin 13), LED - to GND (pin 14); None if unused
+PRINT_BUTTON_PIN = 22         # GPIO22 (pin 15) to GND (pin 20)
+PRINT_LED_PIN = 23            # GPIO23 (pin 16), LED - to GND (pin 25); None if unused
+PRINT_HOLD_SECONDS = 3.0      # default hold time for PRINT (screen or button)
+PRINT_HOLD_CHOICES = [0, 1, 2, 3, 5]   # choices on the Setup screen; 0 = no hold
+MIN_TALK_SECONDS = 0.35       # shorter presses of TALK are ignored
+
+# --- Speech ---------------------------------------------------------------
+LANGUAGE = "en"
+# The microphone is the input device whose name contains this text, on
+# whichever USB port it's plugged into. Run `./run.sh stt.py --list` to see names.
+MIC_NAME = "USB"
+RECORD_MODE = "replace"       # "replace" the text, or "append" to it
+TAIL_SECONDS = 0.35           # keep listening this long after release
+
+# Words the speech model should favor. Add part numbers, names and jargon you
+# say often, spelled and capitalized exactly as you want them on the label.
+# No commas inside a term. Restart the app after editing.
+KEYTERMS = [
+    "Bin", "M3", "M4", "M5", "M6", "M8",
+]
+
+# --- Screen ---------------------------------------------------------------
+FULLSCREEN = True
+# Turn the display off after this many seconds with no touch, key or button
+# press (0 = never). The first touch on a dark screen only wakes it.
+SCREEN_BLANK_SECONDS = 300
+# Brightness choices on the Setup screen, in percent. The choice is
+# remembered in settings.json and put back after the screen blanks.
+BRIGHTNESS_LEVELS = [25, 50, 75, 100]
