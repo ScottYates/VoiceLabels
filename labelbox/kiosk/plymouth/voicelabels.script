@@ -1,0 +1,19 @@
+# Voice Labels boot splash: the logo centred and scaled to fit, on the app's
+# background colour. Shown from early boot until the app takes over.
+Window.SetBackgroundTopColor(0.118, 0.122, 0.133);
+Window.SetBackgroundBottomColor(0.118, 0.122, 0.133);
+
+sw = Window.GetWidth();
+sh = Window.GetHeight();
+img = Image("splash.png");
+s = Math.Min(sw / img.GetWidth(), sh / img.GetHeight());
+w = Math.Int(img.GetWidth() * s);
+h = Math.Int(img.GetHeight() * s);
+logo = Sprite(img.Scale(w, h));
+logo.SetPosition(Math.Int((sw - w) / 2), Math.Int((sh - h) / 2), 0);
+
+# Keep messages (e.g. disk checks) small, near the bottom.
+msg = Sprite();
+msg.SetPosition(Math.Int(sw * 0.05), Math.Int(sh * 0.92), 10);
+fun message_callback(text) { msg.SetImage(Image.Text(text, 0.6, 0.63, 0.65)); }
+Plymouth.SetMessageFunction(message_callback);

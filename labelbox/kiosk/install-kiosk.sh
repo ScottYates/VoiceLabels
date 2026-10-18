@@ -18,6 +18,8 @@ echo "== Desktop: stop auto-starting the app there, add Voice Labels buttons"
 rm -f "$HOME_DIR/.config/autostart/labelbox.desktop"
 runuser -u "$USER_NAME" -- env HOME="$HOME_DIR" bash "$DIR/kiosk/launchers.sh"
 
+bash "$DIR/kiosk/install-splash.sh"
+
 echo "== Boot to the kiosk instead of the desktop"
 systemctl daemon-reload
 systemctl enable labelbox.service

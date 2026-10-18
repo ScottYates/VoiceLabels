@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -20 280 260" width="280" height="260"><g id="mark">
+  <!-- speech bubble that is also a label -->
+  <path d="M38 0 H202 A38 38 0 0 1 240 38 V122 A38 38 0 0 1 202 160 H92 L46 200 L56 160 H38 A38 38 0 0 1 0 122 V38 A38 38 0 0 1 38 0 Z" fill="#f0b232"/>
+  <!-- sound wave -->
+  <g stroke="#1e1f22" stroke-width="12" stroke-linecap="round" fill="none">
+    <line x1="40" y1="68" x2="40" y2="92"/>
+    <line x1="62" y1="50" x2="62" y2="110"/>
+    <line x1="84" y1="34" x2="84" y2="126"/>
+    <line x1="106" y1="54" x2="106" y2="106"/>
+  </g>
+  <!-- ...turning into lines of text -->
+  <g stroke="#1e1f22" stroke-width="12" stroke-linecap="round" fill="none">
+    <line x1="134" y1="54" x2="202" y2="54"/>
+    <line x1="134" y1="80" x2="190" y2="80"/>
+    <line x1="134" y1="106" x2="174" y2="106"/>
+  </g>
+  <!-- the two buttons -->
+  <circle cx="190" cy="132" r="0" fill="none"/>
+</g>
+</svg>

@@ -97,10 +97,16 @@ After the reboot, the app opens fullscreen.
 The Pi boots straight into Voice Labels with no desktop behind it. If the app crashes or closes, it restarts within a couple of seconds.
 
 - **To get to the desktop:** open **⚙ Setup**, tap **Exit to desktop**, then tap it again to confirm, or press **Ctrl+Shift+Q**.
-- **To go back to the app:** tap the **printer button in the taskbar**, or double-click the **Voice Labels** icon on the desktop (it's also in the menu), or reboot. These buttons work without kiosk mode too; to add them on their own, run `bash kiosk/launchers.sh` (no sudo).
+- **To go back to the app:** tap the **Voice Labels button in the taskbar**, or double-click the **Voice Labels** icon on the desktop (it's also in the menu), or reboot. These buttons work without kiosk mode too; to add them on their own, run `bash kiosk/launchers.sh` (no sudo).
 - **To turn kiosk mode off** (boot to the desktop and start the app there instead): `sudo bash kiosk/uninstall-kiosk.sh`. To turn it back on: `sudo bash kiosk/install-kiosk.sh`.
 
 Logs: `journalctl -u labelbox -f`.
+
+### Boot logo
+
+From power-on, the screen shows the Voice Labels logo instead of the Raspberry Pi splash, with no boot text, and the logo stays up until the app appears. `install-kiosk.sh` sets this up. To set it up on its own: `sudo bash kiosk/install-splash.sh`, then reboot. To get the Raspberry Pi splash back: `sudo plymouth-set-default-theme -R pix`.
+
+`kiosk/launchers.sh` also makes the logo the desktop wallpaper.
 
 ## Using it
 
@@ -194,4 +200,5 @@ The window is 800×480 by default to match the Hosyond screen. Add `--size 720x1
 | `config.py` | All settings |
 | `install.sh` | One-time setup on the Pi |
 | `run.sh` | Starts the app (or another script) with the right environment |
-| `kiosk/` | Boot-to-app service, its window-manager settings, and install/uninstall scripts |
+| `kiosk/` | Boot-to-app service, boot logo, desktop launchers, and install/uninstall scripts |
+| `assets/` | Logo, app icon and boot splash (SVG sources and PNGs) |

@@ -10,7 +10,7 @@ Type=Application
 Name=Voice Labels
 Comment=Open the label printer app
 Exec=$DIR/kiosk/launch.sh
-Icon=printer
+Icon=$DIR/assets/icon.png
 Terminal=false
 Categories=Utility;"
 
@@ -43,4 +43,18 @@ if ! grep -q '^launchers=' "$PANEL" 2>/dev/null; then
 fi
 grep -q '^launchers=.*\blabelbox\b' "$PANEL" || sed -i 's/^launchers=.*/& labelbox/' "$PANEL"
 
-echo "Voice Labels added to the taskbar, the menu and the desktop."
+# Desktop wallpaper: the Voice Labels logo (matches the boot splash).
+WP="$HOME/.config/pcmanfm/default/desktop-items-0.conf"
+mkdir -p "$(dirname "$WP")"
+if [ ! -f "$WP" ]; then
+    cp /etc/xdg/pcmanfm/default/desktop-items-0.conf "$WP" 2>/dev/null || printf '[*]\n' > "$WP"
+fi
+setkey() { if grep -q "^$1=" "$WP"; then sed -i "s|^$1=.*|$1=$2|" "$WP"; else sed -i "/^\[\*\]/a $1=$2" "$WP"; fi; }
+setkey wallpaper "$DIR/assets/splash.png"
+setkey wallpaper_mode center
+setkey wallpaper_common 1
+setkey desktop_bg "#1e1e1f1f2222"
+setkey desktop_shadow "#1e1e1f1f2222"
+pkill -f "[p]cmanfm --desktop" || true    # restarts itself with the new settings
+
+echo "Voice Labels added to the taskbar, the menu and the desktop, and set as the wallpaper."

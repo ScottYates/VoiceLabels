@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Voice Labels
+Description=Voice Labels logo while the Pi starts
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/voicelabels
+ScriptFile=/usr/share/plymouth/themes/voicelabels/voicelabels.script

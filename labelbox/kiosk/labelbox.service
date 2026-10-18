@@ -2,8 +2,11 @@
 # Installed by kiosk/install-kiosk.sh (@USER@ and @DIR@ are filled in there).
 [Unit]
 Description=Voice Labels kiosk
-After=systemd-user-sessions.service plymouth-quit-wait.service sound.target
-Conflicts=getty@tty1.service lightdm.service
+After=systemd-user-sessions.service plymouth-start.service sound.target
+# Take over from the boot splash ourselves (like a display manager does), so the
+# logo stays on screen until the kiosk draws the same logo.
+Conflicts=getty@tty1.service lightdm.service plymouth-quit.service
+OnFailure=plymouth-quit.service
 
 [Service]
 User=@USER@
@@ -19,6 +22,7 @@ UtmpIdentifier=tty1
 UtmpMode=user
 WorkingDirectory=@DIR@
 Environment=XDG_SESSION_TYPE=wayland
+ExecStartPre=+-/usr/bin/plymouth quit --retain-splash
 ExecStartPre=+/usr/bin/chvt 1
 # labwc is a small window manager; -S ends it when session.sh ends.
 ExecStart=/usr/bin/labwc -C @DIR@/kiosk/labwc -S @DIR@/kiosk/session.sh

@@ -1,3 +1,5 @@
+<p align="center"><img src="labelbox/assets/logo.png" alt="Voice Labels: speak it, check it, print it" width="480"></p>
+
 # Voice Labels
 
 A stand-alone voice-to-label printer built on a Raspberry Pi 5. Hold **TALK** and say what the label should read. Fix any words on the keyboard or touchscreen, check the preview, then hold **PRINT** to print a 2×3" label on a Zebra thermal printer.
