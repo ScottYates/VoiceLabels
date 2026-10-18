@@ -759,8 +759,24 @@ def main():
     root.title("Voice Labels")
     if config.FULLSCREEN and not args.windowed:
         screen = (root.winfo_screenwidth(), root.winfo_screenheight())
+        root.geometry(f"{screen[0]}x{screen[1]}+0+0")
         root.attributes("-fullscreen", True)
         root.configure(cursor="none")
+
+        # Started from the desktop, the window manager sometimes ignores the
+        # first fullscreen request (e.g. while a launch dialog has focus).
+        # Check once the window is up and ask again if it isn't full size.
+        def ensure_fullscreen(tries):
+            if not root.winfo_ismapped():
+                root.after(300, ensure_fullscreen, tries)
+                return
+            if root.winfo_width() < screen[0] - 2 or root.winfo_height() < screen[1] - 2:
+                root.attributes("-fullscreen", False)
+                root.after(50, lambda: (root.attributes("-fullscreen", True),
+                                        root.lift(), root.focus_force()))
+            if tries > 1:
+                root.after(1500, ensure_fullscreen, tries - 1)
+        root.after(500, ensure_fullscreen, 4)
     else:
         w, h = (int(v) for v in args.size.lower().split("x"))
         screen = (w, h)
