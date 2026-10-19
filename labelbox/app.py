@@ -308,6 +308,8 @@ class App:
             row=0, column=0, columnspan=2, sticky="w", padx=pad, pady=(pad, gap))
         top = tk.Frame(p, bg=BG)
         top.grid(row=0, column=1, sticky="e", padx=pad, pady=(pad, gap))
+        self.protect_label = tk.Label(top, text="", bg=BG, font=font(15, True), justify="right")
+        self.protect_label.pack(side="left", padx=(0, pad))
         self.exit_btn = tk.Button(top, text="Exit to desktop", command=self.exit_to_desktop,
                                   **dict(big, padx=round(24 * s)))
         self.exit_btn.pack(side="left", padx=(0, gap))
@@ -387,6 +389,13 @@ class App:
         self.setup_panel.lift()
         self._refresh_brightness_buttons()
         self._refresh_hold_buttons()
+        text, color = {
+            "on": ("Safe to unplug", OK),
+            "pending": ("Safe to unplug\nafter a restart", MUTED),
+            "ending": ("Unplug protection\nends at restart", ACCENT),
+            "off": ("Shut down before\nunplugging", MUTED),
+        }[self.protection_state()]
+        self.protect_label.configure(text=text, fg=color)
 
     def exit_to_desktop(self):
         """First tap arms the button; a second tap within 4 s leaves the app."""
@@ -643,19 +652,53 @@ class App:
     def _backlights() -> list:
         return sorted(glob.glob("/sys/class/backlight/*"))
 
+    # With power-off protection on (kiosk/protect.sh), the main storage is
+    # read-only and anything written to it is lost at restart, so settings are
+    # also kept on the boot partition through a small root helper.
+    BOOT_SETTINGS = Path("/boot/firmware/voicelabels-settings.json")
+    SAVE_HELPER = "/usr/local/sbin/voicelabels-save-settings"
+
     def _load_settings(self) -> dict:
-        try:
-            return json.loads(self.SETTINGS_FILE.read_text())
-        except (OSError, ValueError):
-            return {}
+        for f in (self.BOOT_SETTINGS, self.SETTINGS_FILE):
+            try:
+                data = json.loads(f.read_text())
+                if isinstance(data, dict):
+                    return data
+            except (OSError, ValueError):
+                continue
+        return {}
 
     def _save_settings(self, **changes):
         data = self._load_settings()
         data.update(changes)
-        try:
-            self.SETTINGS_FILE.write_text(json.dumps(data, indent=2))
+        text = json.dumps(data, indent=2)
+        tmp = self.SETTINGS_FILE.with_suffix(".tmp")
+        try:                                   # write, flush to disk, then swap in
+            with open(tmp, "w") as fh:
+                fh.write(text)
+                fh.flush()
+                os.fsync(fh.fileno())
+            os.replace(tmp, self.SETTINGS_FILE)
         except OSError:
             pass
+        if os.path.exists(self.SAVE_HELPER):
+            try:
+                subprocess.run(["sudo", "-n", self.SAVE_HELPER], input=text.encode(),
+                               timeout=10, capture_output=True)
+            except Exception:  # noqa: BLE001
+                pass
+
+    @staticmethod
+    def protection_state() -> str:
+        """'on' (safe to unplug), 'pending' (on after a restart), or 'off'."""
+        try:
+            now = "overlayroot=tmpfs" in Path("/proc/cmdline").read_text()
+            conf = "overlayroot=tmpfs" in Path("/boot/firmware/cmdline.txt").read_text()
+        except OSError:
+            return "off"
+        if now:
+            return "on" if conf else "ending"
+        return "pending" if conf else "off"
 
     def _apply_brightness(self):
         pct = max(1, min(100, int(self.brightness)))

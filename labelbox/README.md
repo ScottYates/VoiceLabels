@@ -108,6 +108,20 @@ From power-on, the screen shows the Voice Labels logo instead of the Raspberry P
 
 `kiosk/launchers.sh` also makes the logo the desktop wallpaper.
 
+### Power-off protection (safe to unplug)
+
+Normally a Pi should be shut down before its power is cut, or the SD card can be damaged. Protection removes that risk: the SD card's main partition becomes read-only and every change is kept in memory instead, so you can unplug it at any moment. Your settings (brightness, print hold) are saved to the boot partition, so they still survive restarts.
+
+```
+sudo bash kiosk/protect.sh on       # then: sudo reboot
+sudo bash kiosk/protect.sh off      # then: sudo reboot
+bash kiosk/protect.sh status
+```
+
+The top of the Setup screen shows whether it's safe to unplug.
+
+While protection is on, anything else you change is lost at the next restart: app updates, installed packages, files in your home folder. To update, turn protection off, restart, make the changes, then turn it back on. Set up everything else (kiosk mode, the boot logo) before turning protection on.
+
 ## Using it
 
 | Main screen | Setup screen |
