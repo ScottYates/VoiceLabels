@@ -12,7 +12,7 @@ Speech recognition runs entirely on the Pi with [Moonshine](https://github.com/m
 
 | Main screen | Setup screen |
 |---|---|
-| <img src="labelbox/docs/screen.png?v=2" alt="Main screen: Hold to talk and PRINT buttons across the top, the text box on the left, the label preview on the right" width="400"> | <img src="labelbox/docs/setup.png" alt="Setup screen: Date and QR toggles with text fields, copies, brightness and print hold buttons" width="400"> |
+| <img src="labelbox/docs/screen.png?v=3" alt="Main screen: Hold to talk and PRINT buttons across the top, the text box on the left, the label preview on the right" width="400"> | <img src="labelbox/docs/setup.png?v=2" alt="Setup screen: Date and QR toggles with text fields, copies, brightness and print hold buttons" width="400"> |
 
 <p align="center">
   <img src="labelbox/docs/sample-label.png" alt="A sample 3 by 2 inch label with text, a QR code and the date" width="300"><br>

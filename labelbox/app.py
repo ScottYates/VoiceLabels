@@ -28,6 +28,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 
 import config
+import icons
 import printer
 from hardware import Button
 from render import LabelSpec, for_printer, render
@@ -55,9 +56,11 @@ class PowerTile(tk.Canvas):
     """A large square-ish tile: drawn icon, label and a short note, all inside.
     Tapping calls on_tap; the owner switches it between normal and armed."""
 
-    def __init__(self, master, kind, label, note, font_big, font_note, on_tap, accent):
+    def __init__(self, master, kind, label, note, font_big, font_note, on_tap, accent,
+                 icon=None, icon_armed=None):
         super().__init__(master, bg=BG, highlightthickness=0, bd=0, cursor="hand2")
         self.kind, self.label, self.note = kind, label, note
+        self.icon, self.icon_armed = icon, icon_armed
         self.font_big, self.font_note, self.accent = font_big, font_note, accent
         self.armed_text = None
         self.bind("<Configure>", lambda e: self.draw())
@@ -85,7 +88,9 @@ class PowerTile(tk.Canvas):
         icon_col = "#ffffff" if armed else self.accent
         cx, cy, r = w / 2, h * 0.34, min(w, h) * 0.16
         lw = max(4, int(r / 5))
-        if self.kind == "shutdown":                      # power symbol
+        if self.icon is not None:
+            self.create_image(cx, cy, image=self.icon_armed if armed else self.icon)
+        elif self.kind == "shutdown":                      # power symbol
             self.create_arc(cx - r, cy - r, cx + r, cy + r, start=120, extent=300,
                             style="arc", outline=icon_col, width=lw)
             self.create_line(cx, cy - r * 1.15, cx, cy - r * 0.15, fill=icon_col, width=lw,
@@ -122,9 +127,12 @@ class HoldButton(tk.Canvas):
     """
 
     def __init__(self, master, text, font, seconds, on_fire, on_start=None,
-                 on_cancel=None, bg=ACCENT, fill=OK, fg="#000000"):
+                 on_cancel=None, bg=ACCENT, fill=OK, fg="#000000", icon=None):
         super().__init__(master, highlightthickness=0, bd=0, bg=bg, height=1, cursor="hand2")
         self.text, self.font, self.seconds = text, font, seconds
+        self.icon = icon                                  # a PhotoImage drawn left of the label
+        import tkinter.font as tkfont
+        self._measure = tkfont.Font(font=font).measure
         self.on_fire, self.on_start, self.on_cancel = on_fire, on_start, on_cancel
         self.bg, self.fill, self.fg = bg, fill, fg
         self._t0 = None
@@ -139,7 +147,15 @@ class HoldButton(tk.Canvas):
         self.create_rectangle(0, 0, w, h, fill=self.bg, width=0)
         if p > 0:
             self.create_rectangle(0, 0, int(w * min(p, 1.0)), h, fill=self.fill, width=0)
-        self.create_text(w // 2, h // 2, text=label or self.text, font=self.font, fill=self.fg)
+        text = label or self.text
+        if self.icon is None:
+            self.create_text(w // 2, h // 2, text=text, font=self.font, fill=self.fg)
+            return
+        iw, gap = self.icon.width(), max(8, self.icon.width() // 3)
+        total = iw + gap + self._measure(text)
+        x0 = (w - total) // 2
+        self.create_image(x0 + iw // 2, h // 2, image=self.icon)
+        self.create_text(x0 + iw + gap, h // 2, text=text, font=self.font, fill=self.fg, anchor="w")
 
     def begin(self):
         if self._t0 is not None:
@@ -259,6 +275,7 @@ class App:
             size = max(9, round(pt * s))
             return ("DejaVu Sans", size, "bold") if bold else ("DejaVu Sans", size)
         self._font = font
+        self._icon_cache = {}
 
         pad = max(6, round(14 * s))
         gap = max(4, round(9 * s))
@@ -273,14 +290,16 @@ class App:
         # Top row: the two main actions, same height and font.
         big = dict(font=font(30, True), relief="flat", bd=0, highlightthickness=0,
                    pady=round(30 * s), cursor="hand2")
-        self.talk_btn = tk.Button(body, text="● Hold to talk", bg=PANEL, fg=FG,
+        self.talk_btn = tk.Button(body, text=" Hold to talk", bg=PANEL, fg=FG,
+                                  image=self.icon("mic", FG, 30), compound="left",
                                   activebackground=PANEL, activeforeground=FG, **big)
         self.talk_btn.grid(row=0, column=0, sticky="nsew", padx=(0, pad), pady=(0, gap))
         self.talk_btn.bind("<ButtonPress-1>", lambda e: self.talk_press())
         self.talk_btn.bind("<ButtonRelease-1>", lambda e: self.talk_release())
         self.print_btn = HoldButton(body, "PRINT", font(30, True), config.PRINT_HOLD_SECONDS,
                                     on_fire=self.print_label, on_start=self._print_hold_start,
-                                    on_cancel=self._print_hold_cancel)
+                                    on_cancel=self._print_hold_cancel,
+                                    icon=self.icon("printer", "#000000", 30))
         self.print_btn.grid(row=0, column=1, sticky="nsew", pady=(0, gap))
 
         # Rows below the top buttons: captions, the two boxes (same height),
@@ -339,19 +358,19 @@ class App:
         btn = dict(font=font(20, True), relief="flat", bd=0, highlightthickness=0,
                    pady=round(18 * s), bg=PANEL, fg=FG, activebackground=PANEL,
                    activeforeground=FG, cursor="hand2")
-        for col, (label, cmd) in enumerate([("⟳ Rotate", self.toggle_orientation),
-                                            ("Clear", self.clear),
-                                            ("⚙ Setup", self.open_setup)]):
+        for col, (label, ic, cmd) in enumerate([(" Rotate", "rotate", self.toggle_orientation),
+                                                (" Clear", "clear", self.clear),
+                                                (" Setup", "gear", self.open_setup)]):
             row.columnconfigure(col, weight=1, uniform="b")
-            tk.Button(row, text=label, command=cmd, **btn).grid(
-                row=0, column=col, sticky="nsew", padx=(0 if col == 0 else gap, 0))
+            tk.Button(row, text=label, command=cmd, image=self.icon(ic, FG, 20), compound="left",
+                      **btn).grid(row=0, column=col, sticky="nsew", padx=(0 if col == 0 else gap, 0))
 
         self._build_setup()
         self.text.focus_set()
 
     # --------------------------------------------------------------- setup
     def _build_setup(self):
-        """A full-window panel, hidden until ⚙ Setup is tapped."""
+        """A full-window panel, hidden until Setup is tapped."""
         s, font, gap = self._s, self._font, self._gap
         pad = max(8, round(18 * s))
         p = tk.Frame(self.root, bg=BG)
@@ -375,11 +394,12 @@ class App:
         top.grid(row=0, column=1, sticky="e", padx=pad, pady=(pad, gap))
         self.protect_label = tk.Label(top, text="", bg=BG, font=font(15, True), justify="right")
         self.protect_label.pack(side="left", padx=(0, pad))
-        tk.Button(top, text="Power", command=self.open_power,
-                  **dict(big, padx=round(30 * s))).pack(side="left", padx=(0, gap))
-        tk.Button(top, text="Done", command=self.close_setup,
+        tk.Button(top, text=" Power", command=self.open_power, image=self.icon("power", FG, 24),
+                  compound="left", **dict(big, padx=round(26 * s))).pack(side="left", padx=(0, gap))
+        tk.Button(top, text=" Done", command=self.close_setup, image=self.icon("check", "#000000", 24),
+                  compound="left",
                   **dict(big, bg=ACCENT, fg="#000000", activebackground="#ffd36b",
-                         activeforeground="#000000", padx=round(40 * s))).pack(side="left")
+                         activeforeground="#000000", padx=round(30 * s))).pack(side="left")
 
         # Date and QR: a big on/off button plus the text to print.
         self._toggles = {}
@@ -387,7 +407,7 @@ class App:
                 [("Date", self.show_date, self.date_text), ("QR", self.show_qr, self.qr_text)],
                 start=1):
             t = tk.Checkbutton(p, text=name, variable=var, indicatoron=False,
-                               offrelief="flat", selectcolor=OK, width=7, **big)
+                               offrelief="flat", selectcolor=OK, **big)
             t.grid(row=r_, column=0, sticky="nsew", padx=(pad, gap), pady=(0, gap))
             tk.Entry(p, textvariable=text_var, **entry).grid(
                 row=r_, column=1, sticky="nsew", padx=(0, pad), pady=(0, gap))
@@ -398,7 +418,8 @@ class App:
                                                  padx=(0, pad), pady=(0, gap))
 
         # Copies: − n +
-        tk.Label(p, text="Copies", **label).grid(row=4, column=0, sticky="w",
+        tk.Label(p, text=" Copies", image=self.icon("copies", MUTED, 20), compound="left",
+                 **label).grid(row=4, column=0, sticky="w",
                                                 padx=(pad, gap), pady=(0, gap))
         cp = tk.Frame(p, bg=BG)
         cp.grid(row=4, column=1, sticky="nsw", padx=(0, pad), pady=(0, gap))
@@ -409,7 +430,8 @@ class App:
         tk.Button(cp, text="+", command=lambda: self._bump_copies(1), **step).pack(side="left", fill="y")
 
         # Brightness: one button per level, the current one highlighted.
-        tk.Label(p, text="Brightness", **label).grid(row=5, column=0, sticky="w",
+        tk.Label(p, text=" Brightness", image=self.icon("sun", MUTED, 20), compound="left",
+                 **label).grid(row=5, column=0, sticky="w",
                                                     padx=(pad, gap), pady=(0, gap))
         br = tk.Frame(p, bg=BG)
         br.grid(row=5, column=1, sticky="nsew", padx=(0, pad), pady=(0, gap))
@@ -422,7 +444,8 @@ class App:
             self._bright_btns[lv] = b
         # Print hold: how long PRINT must be held.
         p.rowconfigure(6, weight=1, uniform="rows")
-        tk.Label(p, text="Print hold", **label).grid(row=6, column=0, sticky="w",
+        tk.Label(p, text=" Print hold", image=self.icon("timer", MUTED, 20), compound="left",
+                 **label).grid(row=6, column=0, sticky="w",
                                                     padx=(pad, gap), pady=(0, pad))
         ph = tk.Frame(p, bg=BG)
         ph.grid(row=6, column=1, sticky="nsew", padx=(0, pad), pady=(0, pad))
@@ -452,9 +475,10 @@ class App:
         p.rowconfigure(2, weight=1)
         tk.Label(p, text="Power", bg=BG, fg=FG, font=font(30, True), anchor="w").grid(
             row=0, column=0, columnspan=2, sticky="w", padx=pad, pady=(pad, gap))
-        tk.Button(p, text="Back", command=self.close_power,
+        tk.Button(p, text=" Back", command=self.close_power, image=self.icon("back", "#000000", 24),
+                  compound="left",
                   **dict(big, bg=ACCENT, fg="#000000", activebackground="#ffd36b",
-                         activeforeground="#000000", padx=round(40 * self._s))).grid(
+                         activeforeground="#000000", padx=round(30 * self._s))).grid(
             row=0, column=2, sticky="e", padx=pad, pady=(pad, gap))
         self.power_note = tk.Label(p, text="", bg=BG, fg=MUTED, font=font(16, True), anchor="w",
                                    justify="left")
@@ -466,8 +490,11 @@ class App:
         row.rowconfigure(0, weight=1)
         for i, (key, (lab, _, note)) in enumerate(self.POWER_ACTIONS.items()):
             row.columnconfigure(i, weight=1, uniform="tile")
+            ic = {"restart": "rotate", "shutdown": "power", "desktop": "monitor"}[key]
             t = PowerTile(row, key, lab, note, font(24, True), font(14),
-                          lambda k=key: self._power_tap(k), accents[key])
+                          lambda k=key: self._power_tap(k), accents[key],
+                          icon=self.icon(ic, accents[key], 84),
+                          icon_armed=self.icon(ic, "#ffffff", 84))
             t.grid(row=0, column=i, sticky="nsew", padx=gap // 2)
             self._power_btns[key] = t
         self._power_armed = None
@@ -583,10 +610,20 @@ class App:
         self.text.focus_set()
         self.schedule_preview()
 
+    def icon(self, name, color=FG, pt=24):
+        """A PhotoImage icon sized to sit beside text of `pt` points."""
+        px = max(18, round(pt * 2.0 * self._s))
+        key = (name, color, px)
+        if key not in self._icon_cache:
+            self._icon_cache[key] = ImageTk.PhotoImage(icons.icon_image(name, px, color))
+        return self._icon_cache[key]
+
     def _refresh_toggles(self):
         for name, (t, var) in self._toggles.items():
             on = var.get()
-            t.configure(text=("✓ " if on else "") + name,
+            ic = {"Date": "calendar", "QR": "qr"}.get(name, "check")
+            t.configure(text=" " + name, image=self.icon(ic, "#000000" if on else FG, 24),
+                        compound="left",
                         fg="#000000" if on else FG,
                         activeforeground="#000000" if on else FG,
                         activebackground=OK if on else PANEL)
@@ -712,7 +749,7 @@ class App:
         self._before_recording = self.text.get("1.0", "end-1c")
         self.stt.begin()
         self.button.led_on()
-        self.talk_btn.configure(bg=REC, activebackground=REC, text="● Listening…")
+        self.talk_btn.configure(bg=REC, activebackground=REC, text=" Listening…")
         self.set_status("Cleared. Listening… release to finish" if fresh
                         else "Listening… release to finish", REC)
 
@@ -720,7 +757,7 @@ class App:
         if not self.recording:
             return
         self.recording = False
-        self.talk_btn.configure(bg=PANEL, activebackground=PANEL, text="● Hold to talk")
+        self.talk_btn.configure(bg=PANEL, activebackground=PANEL, text=" Hold to talk")
         if cancel:
             self.stt.cancel()
             self.button.led_off()
