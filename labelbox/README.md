@@ -14,7 +14,7 @@ Each label has three parts, and the screen preview is the exact image that gets 
 - **Date** (optional): today's date by default; you can type any date or note in its place.
 - **QR code** (optional): encodes the label text, or anything you type in the QR field (a URL, part number, etc.).
 
-Labels can be **landscape** (3" wide, the default) or **portrait** (2" wide). Tap ⟳ or press F4 to switch.
+Labels can be **landscape** (3" wide, the default) or **portrait** (2" wide). Tap **Rotate** or press F4 to switch.
 
 ## Parts
 
