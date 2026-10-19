@@ -17,7 +17,7 @@ Assembled size: about **215 W × 145 D × 170 H mm**. Every part fits the Snapma
 | `stl/2_back_plate.stl` | Flat | 215 × 120 × 2.5 | Vents over the Pi |
 | `stl/3_clamp_x4.stl` | Flat | four tabs | Hold the screen board in the housing |
 | `stl/4_base.stl` | As exported: floor down | 215 × 140 × 58 | Use a brim if the corners lift |
-| `stl/5_deck.stl` | As exported: top face down | 215 × 63 × 3 | TALK and PRINT are engraved 0.6 mm deep. Fill with a second colour on the U1, or paint. Around each button hole the plate is thinned to 2 mm from underneath so the buttons' snap-in clips can grip |
+| `stl/5_deck.stl` | As exported: top face up | 215 × 63 × 3 | TALK and PRINT are engraved 0.6 mm deep in the top, so they form in the last layers and stay crisp. For coloured letters, add a filament change at 2.4 mm on the U1, or paint them. Around each button hole the plate is thinned to 2 mm from underneath so the buttons' snap-in clips can grip |
 
 Suggested settings: PLA or PETG, 0.4 mm nozzle, 0.2 mm layers, 3 walls, 15–20% gyroid infill, no supports.
 

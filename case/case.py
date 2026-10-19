@@ -344,7 +344,7 @@ def build():
         "2_back_plate": bp,
         "3_clamp_x4": union([cl.translate([i * 18, 0, 0]) for i in range(4)]),
         "4_base": b,
-        "5_deck": d.mirror([0, 0, 1]),                    # top face on the bed
+        "5_deck": d,                                      # top face up: labels print last, crisp
     }
     report = {}
     for name, m in parts.items():
