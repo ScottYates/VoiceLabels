@@ -161,7 +161,6 @@ class App:
         )
 
         self.set_status("Loading speech model…", MUTED)
-        self.button.led_blink()
         threading.Thread(target=self._load_model, daemon=True).start()
 
         for var in (self.show_date, self.show_qr, self.date_text, self.qr_text, self.orientation):
@@ -567,7 +566,7 @@ class App:
             self._set_text(self._before_recording)
             return
         self.busy = True
-        self.button.led_blink()
+        self.button.led_on()                       # stays on until the words are in
         self.set_status("Transcribing…", MUTED)
         self.stt.end()
 
@@ -612,7 +611,7 @@ class App:
         except (tk.TclError, ValueError):
             copies = 1
         self.busy = True
-        self.button.led_blink()
+        self.print_hw.led_on()                     # stays on until the label is sent
         self.set_status("Printing…", MUTED)
 
         def work():
@@ -763,7 +762,7 @@ class App:
 
     def _handle(self, kind, val):
         if kind == "ready":
-            self.button.led_off()
+            self.button.led_flash(2)                   # ready
             hint = "Hold the button and speak" if self.button.available else "Hold the Talk button (or press F1) and speak"
             if not self.stt.mic_name:
                 self.set_status("Microphone not found. Plug in the USB mic.", REC)
@@ -775,11 +774,12 @@ class App:
             self._set_text(self._merge(val))
         elif kind == "final":
             self.busy = False
-            self.button.led_off()
             if val:
+                self.button.led_flash(2)               # done
                 self._set_text(self._merge(val))
                 self.set_status("Edit if needed, then print", OK)
             else:
+                self.button.led_off()
                 self._set_text(self._before_recording)
                 self.set_status("Didn't catch that. Try again", ACCENT)
         elif kind == "hw_press":
@@ -796,8 +796,7 @@ class App:
             self.print_btn.end()
         elif kind == "printed":
             self.busy = False
-            self.button.led_off()
-            self.print_hw.led_off()
+            self.print_hw.led_flash(2)                 # done
             self.set_status(val, OK)
         elif kind == "print_error":
             self.busy = False

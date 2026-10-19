@@ -42,7 +42,7 @@ class Button:
         self._down_at = None
         self.on_release(held)
 
-    # Light states: on, off, blink (slow or fast)
+    # Light states: on, off, blink (slow or fast), flash a few times then off
     def led_on(self):
         if self._led:
             self._led.on()
@@ -55,3 +55,8 @@ class Button:
         if self._led:
             t = 0.07 if fast else 0.15
             self._led.blink(on_time=t, off_time=t)
+
+    def led_flash(self, times: int = 2):
+        """Blink a few times, then stay off (used to say "done")."""
+        if self._led:
+            self._led.blink(on_time=0.15, off_time=0.15, n=times, background=True)

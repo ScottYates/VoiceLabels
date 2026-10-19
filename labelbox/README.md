@@ -118,10 +118,10 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under
 
 | Do this | To |
 |---|---|
-| **Hold** the TALK button (or **Hold to talk** on screen), speak, release | Record. The TALK light stays on while it listens and blinks while it works. F1 starts and stops recording from the keyboard |
+| **Hold** the TALK button (or **Hold to talk** on screen), speak, release | Record. The TALK light stays on while it listens and works out the words, then blinks twice when the text is in (it also blinks twice when the app is ready at startup). F1 starts and stops recording from the keyboard |
 | **Tap** TALK, then straight away **press and hold** it again (screen or deck button), speak, release | Clear the text and start over. The status says "Cleared. Listening…" |
 | Type in the text box | Fix any words. The preview updates as you type |
-| **Hold** the PRINT button (on screen or on the deck) for 3 seconds | Print. A green bar sweeps across PRINT and counts down; let go early to cancel. The PRINT light blinks while you hold. Ctrl+P or Ctrl+Enter print straight away |
+| **Hold** the PRINT button (on screen or on the deck) for 3 seconds | Print. A green bar sweeps across PRINT and counts down; let go early to cancel. The PRINT light blinks while you hold, stays on while printing, then blinks twice when done. Ctrl+P or Ctrl+Enter print straight away |
 | Tap **⟳ Rotate**, or press F4 | Switch landscape / portrait |
 | Tap **Clear**, or press Esc | Clear the text |
 | Tap **⚙ Setup** | Open the Setup screen (below) |
