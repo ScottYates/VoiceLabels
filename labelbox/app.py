@@ -51,6 +51,68 @@ def today() -> str:
     return dt.date.today().strftime(config.DATE_FORMAT)
 
 
+class PowerTile(tk.Canvas):
+    """A large square-ish tile: drawn icon, label and a short note, all inside.
+    Tapping calls on_tap; the owner switches it between normal and armed."""
+
+    def __init__(self, master, kind, label, note, font_big, font_note, on_tap, accent):
+        super().__init__(master, bg=BG, highlightthickness=0, bd=0, cursor="hand2")
+        self.kind, self.label, self.note = kind, label, note
+        self.font_big, self.font_note, self.accent = font_big, font_note, accent
+        self.armed_text = None
+        self.bind("<Configure>", lambda e: self.draw())
+        self.bind("<ButtonRelease-1>", lambda e: on_tap())
+
+    def set_armed(self, text):
+        self.armed_text = text
+        self.draw()
+
+    @staticmethod
+    def _rrect(c, x0, y0, x1, y1, r, **kw):
+        pts = [x0 + r, y0, x1 - r, y0, x1, y0, x1, y0 + r, x1, y1 - r, x1, y1,
+               x1 - r, y1, x0 + r, y1, x0, y1, x0, y1 - r, x0, y0 + r, x0, y0]
+        return c.create_polygon(pts, smooth=True, **kw)
+
+    def draw(self):
+        self.delete("all")
+        w, h = self.winfo_width(), self.winfo_height()
+        if w < 20 or h < 20:
+            return
+        armed = self.armed_text is not None
+        bg = REC if armed else PANEL
+        self._rrect(self, 2, 2, w - 2, h - 2, 18, fill=bg, outline="")
+        fg = "#ffffff" if armed else FG
+        icon_col = "#ffffff" if armed else self.accent
+        cx, cy, r = w / 2, h * 0.34, min(w, h) * 0.16
+        lw = max(4, int(r / 5))
+        if self.kind == "shutdown":                      # power symbol
+            self.create_arc(cx - r, cy - r, cx + r, cy + r, start=120, extent=300,
+                            style="arc", outline=icon_col, width=lw)
+            self.create_line(cx, cy - r * 1.15, cx, cy - r * 0.15, fill=icon_col, width=lw,
+                             capstyle="round")
+        elif self.kind == "restart":                     # circular arrow
+            self.create_arc(cx - r, cy - r, cx + r, cy + r, start=110, extent=290,
+                            style="arc", outline=icon_col, width=lw)
+            import math as _m
+            a = _m.radians(110)
+            ex, ey = cx + r * _m.cos(a), cy - r * _m.sin(a)
+            s_ = r * 0.55
+            self.create_polygon(ex - s_ * 0.2, ey - s_ * 0.55, ex + s_ * 0.85, ey - s_ * 0.05,
+                                ex - s_ * 0.2, ey + s_ * 0.6, fill=icon_col, outline="")
+        else:                                            # monitor (desktop)
+            self.create_rectangle(cx - r * 1.25, cy - r * 0.9, cx + r * 1.25, cy + r * 0.6,
+                                  outline=icon_col, width=lw)
+            self.create_line(cx, cy + r * 0.6, cx, cy + r * 1.05, fill=icon_col, width=lw)
+            self.create_line(cx - r * 0.6, cy + r * 1.1, cx + r * 0.6, cy + r * 1.1,
+                             fill=icon_col, width=lw, capstyle="round")
+        main = self.armed_text if armed else self.label
+        self.create_text(cx, h * 0.66, text=main, fill=fg, font=self.font_big, justify="center",
+                         width=w - 24)
+        if not armed:
+            self.create_text(cx, h * 0.87, text=self.note, fill=MUTED, font=self.font_note,
+                             justify="center", width=w - 24)
+
+
 class HoldButton(tk.Canvas):
     """A button that must be held for `seconds` before it fires.
 
@@ -313,9 +375,8 @@ class App:
         top.grid(row=0, column=1, sticky="e", padx=pad, pady=(pad, gap))
         self.protect_label = tk.Label(top, text="", bg=BG, font=font(15, True), justify="right")
         self.protect_label.pack(side="left", padx=(0, pad))
-        self.exit_btn = tk.Button(top, text="Exit to desktop", command=self.exit_to_desktop,
-                                  **dict(big, padx=round(24 * s)))
-        self.exit_btn.pack(side="left", padx=(0, gap))
+        tk.Button(top, text="Power", command=self.open_power,
+                  **dict(big, padx=round(30 * s))).pack(side="left", padx=(0, gap))
         tk.Button(top, text="Done", command=self.close_setup,
                   **dict(big, bg=ACCENT, fg="#000000", activebackground="#ffd36b",
                          activeforeground="#000000", padx=round(40 * s))).pack(side="left")
@@ -374,6 +435,96 @@ class App:
             b.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else gap, 0))
             self._hold_btns[sec] = b
         self._refresh_toggles()
+        self._build_power(big, pad, gap, font)
+
+    # ------------------------------------------------------------ power panel
+    POWER_ACTIONS = {   # key: (label, armed label, note)
+        "restart": ("Restart", "Tap again\nto restart", "Back in about a minute"),
+        "shutdown": ("Shut down", "Tap again\nto shut down", "Switch back on to start"),
+        "desktop": ("Desktop", "Tap again\nto exit", "The app icon brings it back"),
+    }
+
+    def _build_power(self, big, pad, gap, font):
+        """Restart / Shut down / Exit to desktop, each needing a second tap."""
+        p = tk.Frame(self.root, bg=BG)
+        self.power_panel = p
+        p.columnconfigure((0, 1, 2), weight=1, uniform="pw")
+        p.rowconfigure(2, weight=1)
+        tk.Label(p, text="Power", bg=BG, fg=FG, font=font(30, True), anchor="w").grid(
+            row=0, column=0, columnspan=2, sticky="w", padx=pad, pady=(pad, gap))
+        tk.Button(p, text="Back", command=self.close_power,
+                  **dict(big, bg=ACCENT, fg="#000000", activebackground="#ffd36b",
+                         activeforeground="#000000", padx=round(40 * self._s))).grid(
+            row=0, column=2, sticky="e", padx=pad, pady=(pad, gap))
+        self.power_note = tk.Label(p, text="", bg=BG, fg=MUTED, font=font(16, True), anchor="w",
+                                   justify="left")
+        self.power_note.grid(row=1, column=0, columnspan=3, sticky="w", padx=pad, pady=(0, gap))
+        self._power_btns = {}
+        accents = {"restart": ACCENT, "shutdown": REC, "desktop": MUTED}
+        row = tk.Frame(p, bg=BG)                     # equal spacing, so all tiles match
+        row.grid(row=2, column=0, columnspan=3, sticky="nsew", padx=pad - gap // 2, pady=(0, pad))
+        row.rowconfigure(0, weight=1)
+        for i, (key, (lab, _, note)) in enumerate(self.POWER_ACTIONS.items()):
+            row.columnconfigure(i, weight=1, uniform="tile")
+            t = PowerTile(row, key, lab, note, font(24, True), font(14),
+                          lambda k=key: self._power_tap(k), accents[key])
+            t.grid(row=0, column=i, sticky="nsew", padx=gap // 2)
+            self._power_btns[key] = t
+        self._power_armed = None
+
+    def open_power(self):
+        self._power_armed = None
+        self._refresh_power_buttons()
+        state = self.protection_state()
+        self.power_note.configure(text={
+            "on": "Safe to unplug at any time.",
+            "pending": "Unplug protection starts after a restart.",
+            "ending": "Unplug protection ends at the next restart.",
+            "off": "Shut down before unplugging.",
+        }[state], fg=OK if state == "on" else MUTED)
+        self.power_panel.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self.power_panel.lift()
+
+    def close_power(self):
+        self._power_armed = None
+        self.power_panel.place_forget()
+
+    def _refresh_power_buttons(self):
+        for key, t in self._power_btns.items():
+            t.set_armed(self.POWER_ACTIONS[key][1] if key == self._power_armed else None)
+
+    def _power_tap(self, key):
+        """First tap arms the button for 4 s; a second tap does it."""
+        if self._power_armed != key:
+            self._power_armed = key
+            self._refresh_power_buttons()
+            token = object()
+            self._power_token = token
+            self.root.after(4000, lambda: (self._power_token is token and self._power_armed == key
+                                           and (setattr(self, "_power_armed", None),
+                                                self._refresh_power_buttons())))
+            return
+        self._power_armed = None
+        self._refresh_power_buttons()
+        if key == "desktop":
+            self._exit_armed = True
+            self.exit_to_desktop()
+            return
+        verb, msg = (("reboot", "Restarting…") if key == "restart"
+                     else ("poweroff", "Shutting down… wait for the screen to go dark"))
+        self.button.led_off()
+        self.print_hw.led_off()
+        try:
+            subprocess.run(["sync"], timeout=20)
+            r = subprocess.run(["systemctl", verb], capture_output=True, text=True, timeout=20)
+            ok = r.returncode == 0
+            err = r.stderr.strip()
+        except Exception as e:  # noqa: BLE001
+            ok, err = False, str(e)
+        if ok:
+            self.power_note.configure(text=msg, fg=ACCENT)
+        else:
+            self.power_note.configure(text="Couldn't do that: " + (err or "systemctl failed")[:120], fg=REC)
 
     def set_print_hold(self, seconds):
         self.print_btn.seconds = float(seconds)
@@ -404,17 +555,16 @@ class App:
     def exit_to_desktop(self):
         """First tap arms the button; a second tap within 4 s leaves the app."""
         if not getattr(self, "_exit_armed", False):
-            self._exit_armed = True
-            self.exit_btn.configure(text="Tap again to exit", bg=REC, activebackground=REC,
-                                    fg="#ffffff", activeforeground="#ffffff")
-            self.root.after(4000, self._disarm_exit)
+            self.open_setup()
+            self.open_power()
             return
-        self._disarm_exit()
+        self._exit_armed = False
         if os.environ.get("LABELBOX_KIOSK"):
             # Starting the desktop stops the kiosk service (they conflict).
             r = subprocess.run(["systemctl", "--no-block", "start", "lightdm.service"],
                                capture_output=True, text=True)
             if r.returncode != 0:
+                self.close_power()
                 self.close_setup()
                 self.set_status("Couldn't start the desktop: "
                                 + (r.stderr.strip() or "systemctl failed"), REC)
@@ -426,12 +576,9 @@ class App:
         self._exit_armed = True
         self.exit_to_desktop()
 
-    def _disarm_exit(self):
-        self._exit_armed = False
-        self.exit_btn.configure(text="Exit to desktop", bg=PANEL, activebackground=PANEL,
-                                fg=FG, activeforeground=FG)
-
     def close_setup(self):
+        if hasattr(self, "power_panel"):
+            self.close_power()
         self.setup_panel.place_forget()
         self.text.focus_set()
         self.schedule_preview()
@@ -925,6 +1072,8 @@ def main():
     app = App(root, dry_run=args.dry_run, screen=screen)
     if os.environ.get("LABELBOX_SHOW_SETUP"):      # for screenshots while testing
         root.after(300, app.open_setup)
+    if os.environ.get("LABELBOX_SHOW_POWER"):
+        root.after(400, lambda: (app.open_setup(), app.open_power()))
     if os.environ.get("LABELBOX_TEXT"):            # pre-filled label, for screenshots
         root.after(300, lambda: app._set_text(os.environ["LABELBOX_TEXT"]))
     try:

@@ -1,5 +1,6 @@
 // Let @USER@ switch between the Voice Labels kiosk and the desktop without a
-// password (used by "Exit to desktop" and the desktop's Voice Labels icon).
+// password (used by "Exit to desktop" and the desktop's Voice Labels icon),
+// and restart or shut down the Pi from the app's Power panel.
 polkit.addRule(function (action, subject) {
     if (action.id == "org.freedesktop.systemd1.manage-units" &&
         subject.user == "@USER@") {
@@ -9,5 +10,15 @@ polkit.addRule(function (action, subject) {
             (verb == "start" || verb == "stop" || verb == "restart")) {
             return polkit.Result.YES;
         }
+    }
+});
+
+polkit.addRule(function (action, subject) {
+    if (subject.user == "@USER@" &&
+        (action.id == "org.freedesktop.login1.reboot" ||
+         action.id == "org.freedesktop.login1.reboot-multiple-sessions" ||
+         action.id == "org.freedesktop.login1.power-off" ||
+         action.id == "org.freedesktop.login1.power-off-multiple-sessions")) {
+        return polkit.Result.YES;
     }
 });

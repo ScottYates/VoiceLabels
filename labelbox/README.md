@@ -96,7 +96,7 @@ After the reboot, the app opens fullscreen.
 
 The Pi boots straight into Voice Labels with no desktop behind it. If the app crashes or closes, it restarts within a couple of seconds.
 
-- **To get to the desktop:** open **⚙ Setup**, tap **Exit to desktop**, then tap it again to confirm, or press **Ctrl+Shift+Q**.
+- **To get to the desktop:** open **⚙ Setup**, tap **Power**, then tap **Desktop** twice, or press **Ctrl+Shift+Q**.
 - **To go back to the app:** tap the **Voice Labels button in the taskbar**, or double-click the **Voice Labels** icon on the desktop (it's also in the menu), or reboot. These buttons work without kiosk mode too; to add them on their own, run `bash kiosk/launchers.sh` (no sudo).
 - **To turn kiosk mode off** (boot to the desktop and start the app there instead): `sudo bash kiosk/uninstall-kiosk.sh`. To turn it back on: `sudo bash kiosk/install-kiosk.sh`.
 
@@ -150,7 +150,7 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under
 | **Copies − / +** | How many labels each PRINT makes |
 | **Brightness 25 / 50 / 75 / 100%** | Screen brightness. Remembered across restarts |
 | **Print hold Off / 1 / 2 / 3 / 5 s** | How long PRINT must be held. Off prints on a tap. Remembered across restarts |
-| **Exit to desktop** | Leave the app for the Raspberry Pi desktop. Tap twice to confirm |
+| **Power** | Opens three tiles: **Restart**, **Shut down**, and **Desktop** (leave the app for the Raspberry Pi desktop). Tap a tile once and it turns red; tap it again to go ahead. The top line says whether it's safe to just unplug |
 | Under the title | The Pi's name and current IP address, for connecting to it over the network |
 
 The screen goes dark after 5 minutes with no touch, key or button press. Tap it to wake it; that first tap only wakes the screen and never presses a button. Pressing TALK while the screen is dark wakes it and starts recording; PRINT wakes it and starts the hold. The screen comes back at the brightness you chose.
