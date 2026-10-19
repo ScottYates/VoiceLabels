@@ -160,7 +160,7 @@ class App:
             on_release=lambda held: self.events.put(("print_release", held)),
         )
 
-        self.set_status("Loading speech model…", MUTED)
+        self.set_status("Initializing…", MUTED)
         threading.Thread(target=self._load_model, daemon=True).start()
 
         for var in (self.show_date, self.show_qr, self.date_text, self.qr_text, self.orientation):
@@ -822,7 +822,7 @@ class App:
                 return
             self.set_status(hint, FG)
         elif kind == "progress":
-            self.set_status(f"Downloading speech model… {val:.0%}", MUTED)
+            self.set_status(f"Initializing… {val:.0%}", MUTED)
         elif kind == "partial" and self.recording:
             self._set_text(self._merge(val))
         elif kind == "final":
