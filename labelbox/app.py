@@ -304,8 +304,11 @@ class App:
         label = dict(bg=BG, fg=MUTED, font=font(20, True), anchor="w")
         entry = dict(font=font(24), relief="flat")
 
-        tk.Label(p, text="Setup", bg=BG, fg=FG, font=font(30, True), anchor="w").grid(
-            row=0, column=0, columnspan=2, sticky="w", padx=pad, pady=(pad, gap))
+        head = tk.Frame(p, bg=BG)
+        head.grid(row=0, column=0, columnspan=2, sticky="w", padx=pad, pady=(pad, gap))
+        tk.Label(head, text="Setup", bg=BG, fg=FG, font=font(30, True), anchor="w").pack(anchor="w")
+        self.net_label = tk.Label(head, text="", bg=BG, fg=MUTED, font=font(15, True), anchor="w")
+        self.net_label.pack(anchor="w")
         top = tk.Frame(p, bg=BG)
         top.grid(row=0, column=1, sticky="e", padx=pad, pady=(pad, gap))
         self.protect_label = tk.Label(top, text="", bg=BG, font=font(15, True), justify="right")
@@ -396,6 +399,7 @@ class App:
             "off": ("Shut down before\nunplugging", MUTED),
         }[self.protection_state()]
         self.protect_label.configure(text=text, fg=color)
+        self.net_label.configure(text=self.network_text())
 
     def exit_to_desktop(self):
         """First tap arms the button; a second tap within 4 s leaves the app."""
@@ -693,6 +697,27 @@ class App:
                                timeout=10, capture_output=True)
             except Exception:  # noqa: BLE001
                 pass
+
+    @staticmethod
+    def network_text() -> str:
+        """'labelbox · 192.168.1.20', or a note when there's no network."""
+        import socket
+        host = socket.gethostname()
+        ip = None
+        try:                       # the address used to reach the network (sends nothing)
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sk:
+                sk.connect(("192.0.2.1", 9))
+                ip = sk.getsockname()[0]
+        except OSError:
+            pass
+        if not ip or ip.startswith("127."):
+            try:
+                ips = subprocess.run(["hostname", "-I"], capture_output=True, text=True,
+                                     timeout=3).stdout.split()
+                ip = next((a for a in ips if "." in a and not a.startswith("127.")), None)
+            except Exception:  # noqa: BLE001
+                ip = None
+        return f"{host} · {ip}" if ip else f"{host} · no network"
 
     @staticmethod
     def protection_state() -> str:
