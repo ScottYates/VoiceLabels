@@ -167,7 +167,8 @@ Everything adjustable is in `config.py`, with comments. The most common changes:
 | Setting | What it does |
 |---|---|
 | `ORIENTATION` | Default layout: `"landscape"` or `"portrait"` |
-| `LANDSCAPE_ROTATE_DEG` | Change 90 to 270 if landscape labels print upside down |
+| `LABEL_WIDTH_IN`, `LABEL_LENGTH_IN` | How the labels sit in the printer: width across the print head, and length along the feed. 3 and 2 for a 3 × 2" roll loaded wide side across |
+| `LANDSCAPE_ROTATE_DEG` | Change 90 to 270 if labels whose layout is turned to fit the roll (portrait on a wide roll) print upside down |
 | `DATE_FORMAT` | `"%b %d, %Y"` = Oct 16, 2026; `"%m/%d/%Y"` = 10/16/2026 |
 | `DATE_DEFAULT_ON`, `QR_DEFAULT_ON` | Whether date / QR are on when the app starts |
 | `PRINT_DARKNESS` | 0–30. Raise if the print is faint |

@@ -2,15 +2,19 @@
 
 # --- Label geometry -------------------------------------------------------
 DPI = 203                     # Zebra GK420d / GC420d print head resolution
-LABEL_WIDTH_IN = 2.0          # width across the print head (the 2" side)
-LABEL_LENGTH_IN = 3.0         # length in the feed direction (the 3" side)
+# How the labels sit in the printer. Measure across the printer (side to side
+# under the print head) and along the feed (the way the labels come out).
+LABEL_WIDTH_IN = 3.0          # across the print head
+LABEL_LENGTH_IN = 2.0         # along the feed
 
 # "landscape" = text reads along the 3" side (label is 3" wide x 2" tall)
 # "portrait"  = text reads along the 2" side (label is 2" wide x 3" tall)
 ORIENTATION = "landscape"
 
-# Landscape labels are rotated before printing. If text comes out upside
-# down, change 90 to 270.
+# When the label's layout doesn't match how the roll is loaded (e.g. a
+# portrait label on a roll that is wider than it is long), the image is turned
+# a quarter turn before printing. If that text comes out upside down, change
+# 90 to 270.
 LANDSCAPE_ROTATE_DEG = 90
 
 MARGIN_DOTS = 14              # blank border around the label (~0.07")

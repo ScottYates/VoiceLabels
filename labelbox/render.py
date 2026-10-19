@@ -22,8 +22,9 @@ class LabelSpec:
 
 
 def canvas_size(orientation: str) -> tuple[int, int]:
-    short = round(config.LABEL_WIDTH_IN * config.DPI)    # 406
-    long = round(config.LABEL_LENGTH_IN * config.DPI)    # 609
+    a = round(config.LABEL_WIDTH_IN * config.DPI)
+    b = round(config.LABEL_LENGTH_IN * config.DPI)
+    short, long = min(a, b), max(a, b)                     # 406, 609 for 2 x 3"
     return (long, short) if orientation == "landscape" else (short, long)
 
 
@@ -168,7 +169,8 @@ def render(spec: LabelSpec) -> Image.Image:
 
 
 def for_printer(img: Image.Image, orientation: str) -> Image.Image:
-    """Rotate so the image is 2" wide across the print head."""
-    if orientation == "landscape":
-        return img.rotate(config.LANDSCAPE_ROTATE_DEG, expand=True)
-    return img
+    """Turn the label so its width matches the labels' width across the print head."""
+    across = round(config.LABEL_WIDTH_IN * config.DPI)
+    if img.width == across or config.LABEL_WIDTH_IN == config.LABEL_LENGTH_IN:
+        return img
+    return img.rotate(config.LANDSCAPE_ROTATE_DEG, expand=True)
