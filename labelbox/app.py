@@ -556,6 +556,7 @@ class App:
             self.date_text.set(self._auto_date)
         if fresh:
             self._set_text("")                     # start over: nothing to go back to
+        self._status_before = (self.status.cget("text"), self.status.cget("fg"))
         self.recording = True
         self._before_recording = self.text.get("1.0", "end-1c")
         self.stt.begin()
@@ -573,6 +574,11 @@ class App:
             self.stt.cancel()
             self.button.led_off()
             self._set_text(self._before_recording)
+            # Put back the message from before the tap, not "Listening…".
+            text, color = getattr(self, "_status_before", ("", FG))
+            if not text or text.startswith(("Listening", "Cleared")):
+                text, color = self._idle_hint(), FG
+            self.set_status(text, color)
             return
         self.busy = True
         self.button.led_on()                       # stays on until the words are in
@@ -802,6 +808,10 @@ class App:
         except queue.Empty:
             pass
         self.root.after(50, self._poll)
+
+    def _idle_hint(self) -> str:
+        return ("Hold the button and speak" if self.button.available
+                else "Hold the Talk button (or press F1) and speak")
 
     def _handle(self, kind, val):
         if kind == "ready":
