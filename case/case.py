@@ -8,6 +8,9 @@ Parts (each exported in its print orientation, no supports needed):
   3. clamp x4     small tabs that hold the screen board in the housing
   4. base         console with the button deck in front and the housing seat
   5. deck         flat button plate with TALK / PRINT labels
+  6. power_pod    closed box behind the base for the USB power brick, with a
+                  switched, fused IEC power socket in its back wall
+  7. pod_lid      screw-on lid for the power pod
 
 Coordinates for the housing ("print" frame): X across, Y up the face,
 Z depth (0 = front face on the bed). Viewed from the FRONT, user-right = -X.
@@ -194,6 +197,10 @@ def housing():
             holes.append(box(hinge_in[0], hinge_in[1], y0, y1, z0 - 0.01, z0 + 1.2))
     return shell - union(holes)
 
+USBC_X = 31.4                   # Pi USB-C port across the housing (print X)
+USBC_NOTCH_W = 7.5              # cable notch in the back plate (cable up to ~6.5 mm)
+USBC_NOTCH_D = 10.0             # notch depth below the inside top of the housing
+
 BASE_SCREW_Z = [10.0, 26.0]     # depth positions of the housing-to-base screws
 KO_W = 7.0                      # breakaway tab width (cable up to ~6 mm)
 KO_DEPTH = 10.0                 # how far the notch reaches in from the back rim
@@ -208,6 +215,10 @@ def back_plate():
     for sx in (-1, 1):
         for y in (WALL + RIB / 2, WALL + INNER_H - RIB / 2):
             cut.append(cyl(CLEAR_R, BACK_T + 2, sx * RIB_X, y, -1))
+    # Notch at the top edge for the USB-C power cable (from the power pod up
+    # the back to the Pi's USB-C port, which points up at the top of the case).
+    cut.append(box(USBC_X - USBC_NOTCH_W / 2, USBC_X + USBC_NOTCH_W / 2,
+                   WALL + INNER_H - USBC_NOTCH_D, H + 1, -1, BACK_T + 1))
     # Vent slots over the Pi.
     for i in range(9):
         y = PCB_Y0 + 22 + i * 7
@@ -227,25 +238,79 @@ HOUSING_DEPTH = DEPTH + BACK_T
 DOWN_BACK = np.array([math.cos(RA), -math.sin(RA)])  # housing depth direction (y, z)
 UP_FACE = np.array([math.sin(RA), math.cos(RA)])     # housing height direction (y, z)
 B = E + HOUSING_DEPTH * DOWN_BACK                    # housing back-bottom edge
-BASE_LEN = B[0] + B[1] / T(math.radians(REAR_SLOPE))
+BASE_LEN = B[0] + B[1] / T(math.radians(REAR_SLOPE))   # without the power pod
 
-def profile_xs(points):
-    """Extrude a (y, z) side profile across the base width (world X)."""
+# ------------------------------------------------------------------ power pod
+# The USB power brick lives in a closed box behind the base, under the
+# screen's lean. Mains comes in through a switched, fused IEC C14 socket
+# (e.g. Amazon B0C2GHJGW2) in its back wall; inside, the cut-off socket end
+# of a short 2-prong extension cord feeds the brick.
+POWER_POD = True
+PSU_L, PSU_H, PSU_T = 63.5, 63.5, 31.75   # brick: prong axis (X), height (Z), thickness (Y)
+PSU_CLR = 0.8                      # room around the brick
+POD_WALL = 2.4
+TONGUE_T = 3.0                     # base floor extension the pod screws down onto
+POD_GAP_V = 0.5                    # pod front to the base's rear wall
+POD_GAP_S = 3.0                    # pod front to the screen's back plate (screw heads)
+INLET_CUT = (47.6, 27.8)           # IEC socket panel cutout (W x H)
+INLET_SCREW_SPACING = 40.0         # its two screws, above and below the cutout
+INLET_DEPTH = 38.0                 # body + terminals behind the panel
+INLET_X = -68.0                    # socket centre across the pod (world X, user-right +)
+INLET_PANEL_T = 2.0                # back wall thinned to this around the socket (snap clips)
+BRICK_X0 = -5.0                    # brick's prong end (world X); prongs face -X
+LID_T = 2.4
+
+def pod_geometry():
+    z0 = TONGUE_T
+    yf = B[0] + POD_GAP_V                                  # vertical part of the front
+    c = POD_GAP_S / math.cos(RA)
+    slant = lambda z: B[0] + c + (z - B[1]) * T(RA)       # front, parallel to the back plate
+    z_v = B[1] + (yf - B[0] - c) / T(RA)                  # where the slant leaves the vertical
+    front = lambda z: yf if z <= z_v else slant(z)        # outer front at height z
+    brick_z1 = z0 + POD_WALL + PSU_H + PSU_CLR
+    z_top = brick_z1 + 1.5                                 # top of the walls (lid sits on it)
+    front_in_top = front(z_top) + POD_WALL / math.cos(RA)
+    brick_y0 = front_in_top + PSU_CLR
+    brick_y1 = brick_y0 + PSU_T
+    yb = brick_y1 + PSU_CLR + POD_WALL                     # outer back
+    return dict(z0=z0, yf=yf, z_v=z_v, front=front, z_top=z_top, yb=yb,
+                brick=(BRICK_X0, BRICK_X0 + PSU_L, brick_y0, brick_y1,
+                       z0 + POD_WALL, z0 + POD_WALL + PSU_H))
+
+POD = pod_geometry()
+TOTAL_LEN = POD["yb"] if POWER_POD else BASE_LEN
+
+def profile_xs(points, width=None):
+    """Extrude a (y, z) side profile across the base width (world X), centred."""
+    width = W if width is None else width
     pts = list(points)
     area = sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(pts, pts[1:] + pts[:1]))
     if area < 0:
         pts = pts[::-1]                                  # manifold wants CCW
     cs = CrossSection([pts])
     # CrossSection is in (u, v); extrude along +Z then rotate so u->Y, v->Z, Z->X.
-    return cs.extrude(W).rotate([90, 0, 90]).translate([-W / 2, 0, 0])
+    return cs.extrude(width).rotate([90, 0, 90]).translate([-width / 2, 0, 0])
+
+def pod_screw_points():
+    """Screws up through the base tongue into pads in the pod floor (world x, y)."""
+    g = POD
+    xb0, xb1, yb0, yb1, _, _ = g["brick"]
+    ymid = (g["yf"] + g["yb"]) / 2
+    return [(-(W / 2 - 12), ymid), (W / 2 - 12, ymid),
+            ((xb0 + xb1) / 2 - 22, g["yf"] + 7), (INLET_X + 30, g["yf"] + 7)]
 
 def base():
-    prof = [(0, 0), (0, FRONT_H), (DECK_LEN, FRONT_H + DECK_LEN * T(DA)),
-            (DECK_LEN, E[1]), (B[0], B[1]), (BASE_LEN, 0)]
+    if POWER_POD:   # straight rear wall under the housing; the pod sits behind it
+        prof = [(0, 0), (0, FRONT_H), (DECK_LEN, FRONT_H + DECK_LEN * T(DA)),
+                (DECK_LEN, E[1]), (B[0], B[1]), (B[0], 0)]
+    else:
+        prof = [(0, 0), (0, FRONT_H), (DECK_LEN, FRONT_H + DECK_LEN * T(DA)),
+                (DECK_LEN, E[1]), (B[0], B[1]), (BASE_LEN, 0)]
     solid = profile_xs(prof)
-    # Inner cavity: open top, keeps floor, front wall and rear slope wall.
-    rs = math.radians(REAR_SLOPE)
-    y_rear_inner = BASE_LEN - BASE_WALL / math.sin(rs)
+    # Inner cavity: open top, keeps floor, front wall and rear wall.
+    rs = math.radians(90.0 if POWER_POD else REAR_SLOPE)
+    rear_outer = B[0] if POWER_POD else BASE_LEN
+    y_rear_inner = rear_outer - BASE_WALL / math.sin(rs)
     top = 400
     cav = [(BASE_WALL, BASE_WALL), (y_rear_inner - BASE_WALL / T(rs), BASE_WALL),
            (y_rear_inner - top / T(rs), top), (BASE_WALL, top)]
@@ -282,11 +347,104 @@ def base():
     body = union([body] + adds)
     # Trim everything to the outside profile (pillars and posts stay inside).
     body = body ^ solid
+    rear_feet_y = BASE_LEN - 22
+    if POWER_POD:
+        # Floor tongue under the pod, with countersunk screws up into the pod.
+        body = body + box(-W / 2, W / 2, B[0] - 1, TOTAL_LEN, 0, TONGUE_T)
+        for x, y in pod_screw_points():
+            cuts.append(cyl(CLEAR_R, TONGUE_T + 2, x, y, -1))
+            cuts.append(Manifold.cylinder(1.8, HEAD_R + 0.3, CLEAR_R, SEG).translate([x, y, -0.01]))
+        rear_feet_y = TOTAL_LEN - 14
     # Feet recesses under the floor.
     for x in (-W / 2 + 16, W / 2 - 16):
-        for y in (16, BASE_LEN - 22):
+        for y in (16, rear_feet_y):
             cuts.append(cyl(6.5, 1.2, x, y, -0.2))
     return body - union(cuts), deck_posts
+
+def power_pod():
+    """Closed box for the brick, modelled in world coordinates (print as is)."""
+    g = POD
+    w = POD_WALL
+    z0, z_top, yb, yf = g["z0"], g["z_top"], g["yb"], g["yf"]
+    front = g["front"]
+    outer = profile_xs([(yf, z0), (yf, g["z_v"]), (front(z_top), z_top), (yb, z_top), (yb, z0)])
+    # Inside: walls of thickness w (the slanted part measured square to its face).
+    c_in = POD_GAP_S / math.cos(RA) + w / math.cos(RA)
+    slant_in = lambda z: B[0] + c_in + (z - B[1]) * T(RA)
+    yf_in = yf + w
+    z_vi = B[1] + (yf_in - B[0] - c_in) / T(RA)
+    zi0 = z0 + w
+    zt = z_top + 5
+    inner = profile_xs([(yf_in, zi0), (yf_in, z_vi), (slant_in(zt), zt), (yb - w, zt), (yb - w, zi0)],
+                       W - 2 * w)
+    pod = outer - inner
+    fin = lambda z: yf_in if z <= z_vi else slant_in(z)
+
+    adds, cuts = [], []
+    xb0, xb1, yb0, yb1, zb0, zb1 = g["brick"]
+    # Floor pads for the screws from below (blind holes: nothing reaches the inside air).
+    for x, y in pod_screw_points():
+        adds.append(cyl(5.0, 6.0, x, y, zi0 - 0.01))
+        cuts.append(cyl(PILOT_R, w + 6.0 - 1.0, x, y, z0 - 0.01))
+    # Lid screw bosses in the four inside corners.
+    lid_pts = pod_lid_points()
+    for x, y in lid_pts:
+        adds.append(cyl(4.5, z_top - zi0, x, y, zi0))
+        cuts.append(cyl(PILOT_R, 11, x, y, z_top - 10))
+    # Brick locators: a low rib in front of it and a short stop past its cable end.
+    adds.append(box(xb0 + 6, xb1 - 6, yb0 - 3.0 - PSU_CLR, yb0 - PSU_CLR, zi0, zi0 + 5))
+    # IEC socket in the back wall: cutout, two screw holes, wall thinned around it.
+    iw, ih = INLET_CUT
+    izc = zi0 + 5 + INLET_SCREW_SPACING / 2 + 2       # keep the lower screw clear of the floor
+    cuts.append(box(INLET_X - iw / 2, INLET_X + iw / 2, yb - w - 1, yb + 1, izc - ih / 2, izc + ih / 2))
+    for dz in (-INLET_SCREW_SPACING / 2, INLET_SCREW_SPACING / 2):
+        cuts.append(cyl(1.75, 10, 0, 0, -5).rotate([90, 0, 0]).translate([INLET_X, yb, izc + dz]))
+    cuts.append(box(INLET_X - iw / 2 - 6, INLET_X + iw / 2 + 6, yb - w - 1, yb - INLET_PANEL_T,
+                    izc - ih / 2 - 3, izc + ih / 2 + 3))
+    # Zip-tie anchors (a bar with a tunnel) for the cord socket and the cords.
+    for x, y in [(xb0 - 20, (yb0 + yb1) / 2), (INLET_X + 30, g["yf"] + 16),
+                 (xb1 + 22, yb1 - 6)]:
+        adds.append(box(x - 5, x + 5, y - 4, y + 4, zi0, zi0 + 6))
+        cuts.append(box(x - 6, x + 6, y - 2, y + 2, zi0 + 1.2, zi0 + 3.8))
+    # USB-C cable exit: notch in the top of the front wall, closed by the lid.
+    nx = min(max(-USBC_X, xb1 + 8), W / 2 - 20)    # near the Pi's USB-C, clear of the brick
+    cuts.append(box(nx - 4, nx + 4, g["front"](z_top) - 5, fin(z_top) + 6, z_top - 7, z_top + 1))
+    # Vent slots in the back wall above the cable coil (away from the mains side).
+    for i in range(6):
+        x = xb1 + 6 + i * 6
+        if x + 2.5 < W / 2 - 14:
+            cuts.append(box(x, x + 2.5, yb - w - 1, yb + 1, z_top - 30, z_top - 8))
+    pod = union([pod] + adds) - union(cuts)
+    return pod
+
+def pod_lid_points():
+    g = POD
+    yfront = g["front"](g["z_top"]) + POD_WALL / math.cos(RA) + 5.0
+    yback = g["yb"] - POD_WALL - 5.0
+    xs = (-(W / 2 - POD_WALL - 5.0), W / 2 - POD_WALL - 5.0)
+    return [(x, y) for x in xs for y in (yfront, yback)]
+
+def pod_lid():
+    g = POD
+    y0, y1 = g["front"](g["z_top"]), g["yb"]
+    lid = box(-W / 2, W / 2, y0, y1, 0, LID_T)
+    cuts = []
+    for x, y in pod_lid_points():
+        cuts.append(cyl(CLEAR_R, LID_T + 2, x, y, -1))
+        cuts.append(cyl(HEAD_R, 2, x, y, LID_T - 1.2))
+    # Vent slots over the brick and cable coil only (never over the mains side).
+    xb0, xb1, yb0, yb1, _, _ = g["brick"]
+    for i in range(10):
+        x = xb0 + 4 + i * 6
+        if x + 2.5 < W / 2 - 14:
+            cuts.append(box(x, x + 2.5, yb0 + 4, yb1 - 4, -1, LID_T + 1))
+    # A lip under the lid that keeps it centred (and the brick pressed down).
+    w = POD_WALL
+    yi0, yi1 = y0 + w / math.cos(RA) + 0.4, y1 - w - 0.4
+    ring = (box(-W / 2 + w + 0.4, W / 2 - w - 0.4, yi0, yi1, -2.0, 0.01)
+            - box(-W / 2 + w + 2.4, W / 2 - w - 2.4, yi0 + 2, yi1 - 2, -3, 1))
+    ring = ring - union([cyl(5.5, 4, x, y, -3) for x, y in pod_lid_points()])   # clear the bosses
+    return (lid + ring) - union(cuts)
 
 def deck(deck_posts):
     L = DECK_LEN / math.cos(DA)               # length along the slope
@@ -346,6 +504,9 @@ def build():
         "4_base": b,
         "5_deck": d,                                      # top face up: labels print last, crisp
     }
+    if POWER_POD:
+        parts["6_power_pod"] = power_pod()                # as modelled: floor down
+        parts["7_pod_lid"] = pod_lid().mirror([0, 0, 1])  # top face down, lip up
     report = {}
     for name, m in parts.items():
         m = place_on_bed(m)
@@ -358,6 +519,9 @@ def build():
     bpw = housing_world(bp.translate([0, 0, DEPTH]))
     dw = deck_world(d)
     asm = {"housing": hw, "back_plate": bpw, "base": b, "deck": dw}
+    if POWER_POD:
+        asm["power_pod"] = power_pod()
+        asm["pod_lid"] = pod_lid().translate([0, 0, POD["z_top"]])
     return report, asm, s_mid
 
 if __name__ == "__main__":
@@ -370,7 +534,12 @@ if __name__ == "__main__":
         for j in range(i + 1, len(names)):
             v = (asm[names[i]] ^ asm[names[j]]).volume()
             print(f"overlap {names[i]} / {names[j]}: {v:.1f} mm^3")
-    import pickle
+    if POWER_POD:
+        xb0, xb1, yb0, yb1, zb0, zb1 = POD["brick"]
+        brick = box(xb0, xb1, yb0, yb1, zb0, zb1)
+        print(f"brick vs pod: {(brick ^ asm['power_pod']).volume():.1f} mm^3,"
+              f" brick vs lid: {(brick ^ asm['pod_lid']).volume():.1f} mm^3")
+        print("pod: front y %.1f, back y %.1f, top z %.1f" % (POD["yf"], POD["yb"], POD["z_top"]))
     allm = union(list(asm.values()))
     x0, y0, z0, x1, y1, z1 = allm.bounding_box()
     print(f"assembled size: {x1-x0:.0f} W x {y1-y0:.0f} D x {z1-z0:.0f} H mm")
