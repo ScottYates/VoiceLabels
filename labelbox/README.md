@@ -128,7 +128,7 @@ While protection is on, anything else you change is lost at the next restart: ap
 |---|---|
 | <img src="docs/screen.png?v=3" alt="Main screen" width="400"> | <img src="docs/setup.png?v=2" alt="Setup screen" width="400"> |
 
-The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **⟳ Rotate**, **Clear** and **⚙ Setup** sit under the preview.
+The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **Rotate**, **Clear** and **Setup** sit under the preview. Every button has an icon beside its label.
 
 | Do this | To |
 |---|---|
@@ -217,6 +217,7 @@ The window is 800×480 by default to match the Hosyond screen. Add `--size 720x1
 | `stt.py` | Push-to-talk speech recognition with Moonshine |
 | `hardware.py` | The deck buttons and their lights |
 | `config.py` | All settings |
+| `icons.py` | The button icons, drawn with Pillow (run it to see them all on one sheet) |
 | `install.sh` | One-time setup on the Pi |
 | `run.sh` | Starts the app (or another script) with the right environment |
 | `kiosk/` | Boot-to-app service, boot logo, desktop launchers, and install/uninstall scripts |
