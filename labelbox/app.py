@@ -551,6 +551,8 @@ class App:
         if ok:
             self.power_note.configure(text=msg, fg=ACCENT)
         else:
+            if "authentication" in (err or "").lower():
+                err = "not allowed yet. Run once: sudo bash ~/labelbox/kiosk/allow-power.sh"
             self.power_note.configure(text="Couldn't do that: " + (err or "systemctl failed")[:120], fg=REC)
 
     def set_print_hold(self, seconds):

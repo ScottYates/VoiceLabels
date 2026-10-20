@@ -150,7 +150,7 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under
 | **Copies − / +** | How many labels each PRINT makes |
 | **Brightness 25 / 50 / 75 / 100%** | Screen brightness. Remembered across restarts |
 | **Print hold Off / 1 / 2 / 3 / 5 s** | How long PRINT must be held. Off prints on a tap. Remembered across restarts |
-| **Power** | Opens three tiles: **Restart**, **Shut down**, and **Desktop** (leave the app for the Raspberry Pi desktop). Tap a tile once and it turns red; tap it again to go ahead. The top line says whether it's safe to just unplug |
+| **Power** | Opens three tiles: **Restart**, **Shut down**, and **Desktop** (leave the app for the Raspberry Pi desktop). Tap a tile once and it turns red; tap it again to go ahead. The top line says whether it's safe to just unplug. Kiosk mode sets up the permission for Restart and Shut down; without kiosk mode, run `sudo bash kiosk/allow-power.sh` once |
 | Under the title | The Pi's name and current IP address, for connecting to it over the network |
 
 The screen goes dark after 5 minutes with no touch, key or button press. Tap it to wake it; that first tap only wakes the screen and never presses a button. Pressing TALK while the screen is dark wakes it and starts recording; PRINT wakes it and starts the hold. The screen comes back at the brightness you chose.
