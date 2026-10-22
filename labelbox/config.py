@@ -30,6 +30,14 @@ TEXT_MAX_PX = 140             # biggest the main text is allowed to get
 TEXT_MIN_PX = 16              # smallest before the text is cut off
 DATE_PX = 30
 
+# --- Icons ------------------------------------------------------------------
+# Icon sets searched online (Iconify). Solid, single-colour sets print best.
+# Browse them at https://icon-sets.iconify.design
+ICON_SETS = ["mdi", "material-symbols", "fa6-solid", "game-icons", "maki", "mingcute", "tabler"]
+ICON_TIMEOUT_SECONDS = 8
+ICON_POSITION = "left"        # where a new icon goes: "left", "right", "top" or "bottom"
+ICON_SIZE = "medium"          # "small", "medium" or "large"
+
 # --- Date -----------------------------------------------------------------
 DATE_FORMAT = "%b %d, %Y"     # e.g. "Oct 16, 2026". Try "%m/%d/%Y" or "%Y-%m-%d"
 DATE_DEFAULT_ON = True

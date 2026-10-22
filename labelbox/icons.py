@@ -139,6 +139,28 @@ def icon_image(name: str, size: int, color: str, w: float = 2.2) -> Image.Image:
         _rrect(d, k, 2.5, 3.5, 21.5, 16, 1.8, c, w)
         _line(d, k, [(12, 16.5), (12, 20)], c, w)
         _line(d, k, [(7.5, 20.8), (16.5, 20.8)], c, w)
+    elif name == "search":
+        _circle(d, k, 10.5, 10.5, 6.5, c, w)
+        _line(d, k, [(15.4, 15.4), (20.5, 20.5)], c, w + 0.4)
+    elif name == "bookmark":
+        _line(d, k, [(6, 21), (6, 4.5), (7.5, 3), (16.5, 3), (18, 4.5), (18, 21), (12, 16.5), (6, 21)], c, w)
+    elif name == "image":
+        _rrect(d, k, 3, 4, 21, 20, 2.2, c, w)
+        _line(d, k, [(4, 17.5), (9.5, 11.5), (13.5, 15.5), (16, 13), (20, 17)], c, w)
+        _dot(d, k, 15.5, 8.5, 1.8, c)
+    elif name == "trash":
+        _line(d, k, [(3.5, 6.5), (20.5, 6.5)], c, w)
+        _line(d, k, [(9, 6), (9.5, 3), (14.5, 3), (15, 6)], c, w)
+        _line(d, k, [(5.5, 6.5), (6.8, 20), (8, 21), (16, 21), (17.2, 20), (18.5, 6.5)], c, w)
+        _line(d, k, [(10, 10.5), (10, 17)], c, w)
+        _line(d, k, [(14, 10.5), (14, 17)], c, w)
+    elif name in ("arrow-left", "arrow-right", "arrow-up", "arrow-down"):
+        ang = {"arrow-right": 0, "arrow-down": 90, "arrow-left": 180, "arrow-up": 270}[name]
+        a = math.radians(ang)
+        ca, sa = math.cos(a), math.sin(a)
+        rot = lambda x, y: (12 + (x - 12) * ca - (y - 12) * sa, 12 + (x - 12) * sa + (y - 12) * ca)  # noqa: E731
+        _line(d, k, [rot(4, 12), rot(19.5, 12)], c, w)
+        _line(d, k, [rot(13.5, 6), rot(19.5, 12), rot(13.5, 18)], c, w)
     elif name in ("align-left", "align-center", "align-right"):
         for y, half in ((5, 8.5), (9.7, 5.5), (14.3, 8.5), (19, 5.5)):
             if name == "align-left":
@@ -154,7 +176,8 @@ def icon_image(name: str, size: int, color: str, w: float = 2.2) -> Image.Image:
 
 
 NAMES = ["mic", "printer", "rotate", "clear", "gear", "power", "check", "back", "monitor",
-         "calendar", "qr", "sun", "timer", "copies", "align-left", "align-center", "align-right"]
+         "calendar", "qr", "sun", "timer", "copies", "align-left", "align-center", "align-right",
+         "search", "bookmark", "image", "trash", "arrow-left", "arrow-up", "arrow-right", "arrow-down"]
 
 
 if __name__ == "__main__":       # contact sheet for checking the set

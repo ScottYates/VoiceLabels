@@ -1,3 +1,4 @@
 moonshine-voice
 qrcode
 pillow
+numpy

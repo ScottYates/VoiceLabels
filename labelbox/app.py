@@ -5,7 +5,7 @@
     python3 app.py --windowed   # not fullscreen (handy when testing)
 
 Keys: F1 talk (press to start, press again to stop)   F2 date on/off
-      F3 QR on/off   F4 landscape/portrait   F5 left/center/right
+      F3 QR on/off   F4 landscape/portrait   F5 left/center/right   F6 icon
       Ctrl+P or Ctrl+Enter print
       Esc clear text   Ctrl+Shift+Q quit
 Touch: tap TALK then press and hold it again = clear and start over;
@@ -32,6 +32,7 @@ import config
 import icons
 import printer
 from hardware import Button
+import iconlib
 from render import LabelSpec, for_printer, render
 from stt import PushToTalk
 from zpl import image_to_zpl
@@ -213,6 +214,10 @@ class App:
         self.qr_text = tk.StringVar(value="")
         self.orientation = tk.StringVar(value=config.ORIENTATION)
         self.align = tk.StringVar(value=config.TEXT_ALIGN)
+        self.icon_id = tk.StringVar(value="")
+        self.icon_pos = tk.StringVar(value=config.ICON_POSITION)
+        self.icon_size = tk.StringVar(value=config.ICON_SIZE)
+        self._voice_search = False
         self.copies = tk.IntVar(value=1)
 
         self._build_ui()
@@ -222,7 +227,12 @@ class App:
         self.print_btn.seconds = float(saved.get("print_hold", config.PRINT_HOLD_SECONDS))
         if saved.get("align") in self.ALIGNS:
             self.align.set(saved["align"])
+        if saved.get("icon_pos") in self.ICON_POSITIONS:
+            self.icon_pos.set(saved["icon_pos"])
+        if saved.get("icon_size") in self.ICON_SIZES:
+            self.icon_size.set(saved["icon_size"])
         self._refresh_align_buttons()
+        self._refresh_place_buttons()
         self._display_power(True)     # in case an earlier run left it blanked
         self._apply_brightness()
 
@@ -247,7 +257,7 @@ class App:
         threading.Thread(target=self._load_model, daemon=True).start()
 
         for var in (self.show_date, self.show_qr, self.date_text, self.qr_text, self.orientation,
-                    self.align):
+                    self.align, self.icon_id, self.icon_pos, self.icon_size):
             var.trace_add("write", lambda *_: self.schedule_preview())
         self.root.after(50, self._poll)
         self.schedule_preview()
@@ -361,17 +371,24 @@ class App:
         self.status.grid(row=3, column=0, sticky="ew", padx=(0, pad), pady=(gap, 0))
         row = tk.Frame(body, bg=BG)
         row.grid(row=3, column=1, sticky="ew", pady=(gap, 0))
-        btn = dict(font=font(20, True), relief="flat", bd=0, highlightthickness=0,
-                   pady=round(18 * s), bg=PANEL, fg=FG, activebackground=PANEL,
-                   activeforeground=FG, cursor="hand2")
-        for col, (label, ic, cmd) in enumerate([(" Rotate", "rotate", self.toggle_orientation),
-                                                (" Clear", "clear", self.clear),
-                                                (" Setup", "gear", self.open_setup)]):
+        btn = dict(font=font(15, True), relief="flat", bd=0, highlightthickness=0,
+                   pady=round(7 * s), bg=PANEL, fg=FG, activebackground=PANEL,
+                   activeforeground=FG, cursor="hand2", compound="top")
+        self._main_btns = {}
+        for col, (key, label, ic, cmd) in enumerate([
+                ("rotate", "Rotate", "rotate", self.toggle_orientation),
+                ("align", "Align", "align-left", self.cycle_align),
+                ("icon", "Icon", "image", self.open_icons),
+                ("clear", "Clear", "clear", self.clear),
+                ("setup", "Setup", "gear", self.open_setup)]):
             row.columnconfigure(col, weight=1, uniform="b")
-            tk.Button(row, text=label, command=cmd, image=self.icon(ic, FG, 20), compound="left",
-                      **btn).grid(row=0, column=col, sticky="nsew", padx=(0 if col == 0 else gap, 0))
+            b = tk.Button(row, text=label, command=cmd, image=self.icon(ic, FG, 17), **btn)
+            b.grid(row=0, column=col, sticky="nsew", padx=(0 if col == 0 else gap, 0))
+            self._main_btns[key] = b
 
         self._build_setup()
+        self._build_icons()
+        self._build_place()
         self.text.focus_set()
 
     # --------------------------------------------------------------- setup
@@ -479,6 +496,359 @@ class App:
             self._hold_btns[sec] = b
         self._refresh_toggles()
         self._build_power(big, pad, gap, font)
+
+    # ------------------------------------------------------------ icon search
+    ICON_COLS, ICON_ROWS = 7, 3
+    ICON_POSITIONS = ("left", "top", "right", "bottom")
+    ICON_SIZES = ("small", "medium", "large")
+
+    def _panel_button_style(self, pt=22):
+        s, font = self._s, self._font
+        return dict(font=font(pt, True), relief="flat", bd=0, highlightthickness=0,
+                    pady=round(14 * s), padx=round(18 * s), cursor="hand2", bg=PANEL, fg=FG,
+                    activebackground=PANEL, activeforeground=FG)
+
+    def _build_icons(self):
+        """Search screen: a search box, a grid of icons, page buttons."""
+        s, font, gap = self._s, self._font, self._gap
+        pad = max(8, round(14 * s))
+        big = self._panel_button_style()
+        p = tk.Frame(self.root, bg=BG)
+        self.icons_panel = p
+        self.icon_query = tk.StringVar()
+        self._icon_results, self._icon_svgs = [], {}
+        self._icon_mode, self._icon_pg, self._icon_gen = "saved", 0, 0
+        self._forget_mode = False
+        self._icon_photos = []
+
+        head = tk.Frame(p, bg=BG)
+        head.pack(fill="x", padx=pad, pady=(pad, gap // 2))
+        self.icon_entry = tk.Entry(head, textvariable=self.icon_query, font=font(26), relief="flat",
+                                   bg=INPUT_BG, fg=FG, insertbackground=FG, width=1,
+                                   highlightthickness=2, highlightbackground=INPUT_EDGE,
+                                   highlightcolor=ACCENT)
+        self.icon_entry.pack(side="left", fill="both", expand=True, padx=(0, gap))
+        self.icon_entry.bind("<Return>", lambda e: (self.icon_search(), "break")[1])
+        self.icon_entry.bind("<Escape>", lambda e: (self.close_icons(), "break")[1])
+        tk.Button(head, text=" Find", image=self.icon("search", FG, 22), compound="left",
+                  command=self.icon_search, **big).pack(side="left", padx=(0, gap))
+        self.saved_btn = tk.Button(head, text=" Saved", image=self.icon("bookmark", FG, 22),
+                                   compound="left", command=self.show_saved_icons, **big)
+        self.saved_btn.pack(side="left", padx=(0, gap))
+        tk.Button(head, text=" Back", image=self.icon("back", FG, 22), compound="left",
+                  command=self.close_icons, **big).pack(side="left")
+
+        self.icons_status = tk.Label(p, text="", bg=BG, fg=MUTED, font=font(16, True),
+                                     anchor="w", justify="left")
+        self.icons_status.pack(fill="x", padx=pad)
+
+        grid = tk.Frame(p, bg=BG)
+        grid.pack(fill="both", expand=True, padx=pad, pady=(gap // 2, 0))
+        self._blank_tile = ImageTk.PhotoImage(Image.new("RGB", (2, 2), BG))
+        self._icon_tiles = []
+        for r_ in range(self.ICON_ROWS):
+            grid.rowconfigure(r_, weight=1, uniform="ir")
+        for c_ in range(self.ICON_COLS):
+            grid.columnconfigure(c_, weight=1, uniform="ic")
+        for k in range(self.ICON_ROWS * self.ICON_COLS):
+            b = tk.Button(grid, image=self._blank_tile, bg=BG, activebackground="#e9e9e9",
+                          relief="flat", bd=0, highlightthickness=4, highlightbackground=BG,
+                          width=1, height=1, cursor="hand2",
+                          command=lambda k=k: self._icon_tile_tap(k))
+            b.grid(row=k // self.ICON_COLS, column=k % self.ICON_COLS, sticky="nsew",
+                   padx=(0 if k % self.ICON_COLS == 0 else gap, 0),
+                   pady=(0 if k < self.ICON_COLS else gap, 0))
+            self._icon_tiles.append(b)
+
+        foot = tk.Frame(p, bg=BG)
+        foot.pack(fill="x", padx=pad, pady=(gap, pad))
+        self.icon_prev = tk.Button(foot, text=" Prev", image=self.icon("arrow-left", FG, 20),
+                                   compound="left", command=lambda: self._icon_page(-1), **big)
+        self.icon_prev.pack(side="left")
+        self.icon_page_label = tk.Label(foot, text="", bg=BG, fg=MUTED, font=font(18, True))
+        self.icon_page_label.pack(side="left", padx=gap)
+        self.icon_next = tk.Button(foot, text="Next ", image=self.icon("arrow-right", FG, 20),
+                                   compound="right", command=lambda: self._icon_page(1), **big)
+        self.icon_next.pack(side="left")
+        self.forget_btn = tk.Button(foot, text=" Remove saved", image=self.icon("trash", FG, 20),
+                                    compound="left", command=self._toggle_forget, **big)
+        self.no_icon_btn = tk.Button(foot, text=" No icon", image=self.icon("clear", FG, 20),
+                                     compound="left", command=self.remove_icon, **big)
+
+    def _icons_note(self, msg, color=MUTED):
+        self.icons_status.configure(text=msg, fg=color)
+
+    def _icons_hint(self):
+        talk = "hold TALK and say it" if self.button.available else "or press F1 and say it"
+        return f"Type a word and tap Find, or {talk}"
+
+    def open_icons(self, force_search=False):
+        """Icon button: adjust the icon if there is one, otherwise pick one."""
+        if self.icon_id.get() and not force_search:
+            self.open_place()
+            return
+        self.close_place()
+        self.icons_panel.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self.icons_panel.lift()
+        self._forget_mode = False
+        if self.icon_id.get():
+            self.no_icon_btn.pack(side="right")
+        else:
+            self.no_icon_btn.pack_forget()
+        if self._icon_mode == "search" and self._icon_results:
+            self._render_icon_page()
+            self._icons_note(f"{len(self._icon_results)} icons for “{self.icon_query.get()}”. "
+                             "Tap one to put it on the label", MUTED)
+        else:
+            self.show_saved_icons()
+        self.icon_entry.focus_set()
+
+    def close_icons(self):
+        if self.recording and self._voice_search:
+            self.stop_recording(cancel=True)
+        self.icons_panel.place_forget()
+        self.text.focus_set()
+        self.schedule_preview()
+
+    def show_saved_icons(self):
+        self._icon_gen += 1
+        self._icon_mode, self._icon_pg = "saved", 0
+        self._icon_results = iconlib.library()
+        self._icon_svgs = {i: iconlib.local_svg(i) for i in self._icon_results}
+        if self._icon_results:
+            self.forget_btn.pack(side="right", padx=(self._gap, 0))
+            self._icons_note("Your saved icons: tap one to use it. To find a new one, "
+                             + self._icons_hint()[0].lower() + self._icons_hint()[1:], MUTED)
+        else:
+            self.forget_btn.pack_forget()
+            self._icons_note("No saved icons yet. " + self._icons_hint(), MUTED)
+        self._render_icon_page()
+
+    def icon_search(self):
+        q = " ".join(self.icon_query.get().split())
+        if not q:
+            self._icons_note(self._icons_hint(), ACCENT)
+            return
+        self._icon_gen += 1
+        gen = self._icon_gen
+        self._forget_mode = False
+        self.forget_btn.pack_forget()
+        self._icons_note(f"Searching for “{q}”…", MUTED)
+        per = self.ICON_COLS * self.ICON_ROWS
+
+        def work():
+            try:
+                ids = iconlib.search(q)
+                svgs = iconlib.fetch_many(ids[:per])
+                self.events.put(("icons_found", (gen, q, ids, svgs)))
+            except iconlib.IconError as e:
+                self.events.put(("icons_error", (gen, str(e))))
+            except Exception as e:  # noqa: BLE001
+                self.events.put(("icons_error", (gen, f"Search failed: {e}")))
+        threading.Thread(target=work, daemon=True).start()
+
+    def _icons_loaded(self, gen, q, ids, svgs):
+        if gen != self._icon_gen:
+            return
+        self._icon_mode, self._icon_pg = "search", 0
+        self._icon_results, self._icon_svgs = ids, dict(svgs)
+        if ids:
+            self._icons_note(f"{len(ids)} icons for “{q}”. Tap one to put it on the label", MUTED)
+        else:
+            self._icons_note(f"Nothing found for “{q}”. Try a simpler word", ACCENT)
+        self._render_icon_page()
+
+    def _icon_page(self, delta):
+        per = self.ICON_COLS * self.ICON_ROWS
+        pages = max(1, -(-len(self._icon_results) // per))
+        self._icon_pg = max(0, min(pages - 1, self._icon_pg + delta))
+        self._render_icon_page()
+        ids = self._icon_results[self._icon_pg * per:(self._icon_pg + 1) * per]
+        missing = [i for i in ids if not self._icon_svgs.get(i)]
+        if missing:
+            gen, pg = self._icon_gen, self._icon_pg
+
+            def work():
+                try:
+                    self.events.put(("icons_page", (gen, pg, iconlib.fetch_many(missing))))
+                except Exception as e:  # noqa: BLE001
+                    self.events.put(("icons_error", (gen, f"Couldn't load icons: {e}")))
+            threading.Thread(target=work, daemon=True).start()
+
+    def _icons_page_loaded(self, gen, pg, svgs):
+        if gen == self._icon_gen:
+            self._icon_svgs.update(svgs)
+            if pg == self._icon_pg:
+                self._render_icon_page()
+
+    def _render_icon_page(self):
+        per = self.ICON_COLS * self.ICON_ROWS
+        pages = max(1, -(-len(self._icon_results) // per))
+        px = max(40, round(84 * self._s))
+        self._icon_photos = []
+        cur = self.icon_id.get()
+        for k, b in enumerate(self._icon_tiles):
+            idx = self._icon_pg * per + k
+            iid = self._icon_results[idx] if idx < len(self._icon_results) else None
+            svg = self._icon_svgs.get(iid) if iid else None
+            pic = iconlib.thumb(iid, svg, px) if svg else None
+            if pic is None:
+                b.configure(image=self._blank_tile, bg=PANEL if iid else BG,
+                            state="normal" if iid else "disabled", highlightbackground=BG)
+                continue
+            photo = ImageTk.PhotoImage(pic.convert("RGB"))
+            self._icon_photos.append(photo)
+            edge = REC if self._forget_mode else (ACCENT if iid == cur else BG)
+            b.configure(image=photo, bg="#ffffff", state="normal", highlightbackground=edge)
+        for w in (self.icon_prev, self.icon_page_label, self.icon_next):
+            w.pack_forget()
+        if pages > 1:                               # Prev  2 / 5  Next
+            self.icon_prev.pack(side="left")
+            self.icon_page_label.pack(side="left", padx=self._gap)
+            self.icon_next.pack(side="left")
+            self.icon_page_label.configure(text=f"{self._icon_pg + 1} / {pages}")
+        self.icon_prev.configure(state="normal" if self._icon_pg > 0 else "disabled")
+        self.icon_next.configure(state="normal" if self._icon_pg < pages - 1 else "disabled")
+
+    def _toggle_forget(self):
+        self._forget_mode = not self._forget_mode
+        self.forget_btn.configure(bg=REC if self._forget_mode else PANEL,
+                                  activebackground=REC if self._forget_mode else PANEL,
+                                  text=" Done removing" if self._forget_mode else " Remove saved")
+        self._icons_note("Tap icons to remove them from your saved icons" if self._forget_mode
+                         else "Your saved icons. Tap one to use it", REC if self._forget_mode else MUTED)
+        self._render_icon_page()
+
+    def _icon_tile_tap(self, k):
+        per = self.ICON_COLS * self.ICON_ROWS
+        idx = self._icon_pg * per + k
+        if idx >= len(self._icon_results):
+            return
+        iid = self._icon_results[idx]
+        if self._forget_mode:
+            iconlib.forget(iid)
+            self._icon_results.remove(iid)
+            if not self._icon_results:
+                self._toggle_forget()
+                self.show_saved_icons()
+            else:
+                self._icon_pg = min(self._icon_pg, (len(self._icon_results) - 1) // per)
+                self._render_icon_page()
+            return
+        if not self._icon_svgs.get(iid):
+            return                                  # still downloading
+        self.icon_id.set(iid)
+        threading.Thread(target=lambda: self._save_icon(iid), daemon=True).start()
+        self.icons_panel.place_forget()
+        self.open_place()
+
+    def _save_icon(self, iid):
+        try:
+            iconlib.save(iid)
+        except Exception:  # noqa: BLE001
+            pass
+
+    def remove_icon(self):
+        self.icon_id.set("")
+        self.close_place()
+        self.close_icons()
+
+    # ------------------------------------------------------------ icon placement
+    def _build_place(self):
+        """Placement screen: the label in the middle with a button on each side
+        to move the icon there, plus icon size."""
+        s, font, gap = self._s, self._font, self._gap
+        pad = max(8, round(14 * s))
+        big = self._panel_button_style(20)
+        p = tk.Frame(self.root, bg=BG)
+        self.place_panel = p
+        p.columnconfigure(1, weight=1)
+        p.rowconfigure(1, weight=1)
+        self.place_canvas = tk.Canvas(p, bg=LINER, highlightthickness=0, width=1, height=1)
+        self.place_canvas.grid(row=1, column=1, sticky="nsew")
+        self.place_canvas.bind("<Configure>", lambda e: self.schedule_preview())
+        self._pos_btns = {}
+        spots = {"top": (0, 1, "n"), "bottom": (2, 1, "s"), "left": (1, 0, "w"), "right": (1, 2, "e")}
+        for pos, (r_, c_, side) in spots.items():
+            vertical = pos in ("top", "bottom")
+            b = tk.Button(p, text=pos.capitalize(), image=self.icon("arrow-" + {
+                "top": "up", "bottom": "down", "left": "left", "right": "right"}[pos], FG, 22),
+                compound="left" if vertical else "top",
+                command=lambda pos=pos: self.set_icon_pos(pos), **big)
+            b.grid(row=r_, column=c_, sticky="nsew",
+                   padx=(pad if pos == "left" else (gap if pos == "right" else 0),
+                         gap if pos == "left" else 0),
+                   pady=(pad if pos == "top" else (gap if pos == "bottom" else 0),
+                         gap if pos == "top" else (pad if pos == "bottom" else 0)))
+            self._pos_btns[pos] = b
+        side = tk.Frame(p, bg=BG)
+        side.grid(row=0, column=3, rowspan=3, sticky="nsew", padx=(gap, pad), pady=pad)
+        tk.Button(side, text=" Done", image=self.icon("check", "#000000", 22), compound="left",
+                  command=self.close_place,
+                  **dict(big, bg=ACCENT, fg="#000000", activebackground="#ffd36b",
+                         activeforeground="#000000")).pack(fill="x")
+        tk.Label(side, text="Icon size", bg=BG, fg=MUTED, font=font(16, True),
+                 anchor="w").pack(fill="x", pady=(gap * 2, gap // 2))
+        self._size_btns = {}
+        for sz in self.ICON_SIZES:
+            b = tk.Button(side, text=sz.capitalize(), command=lambda sz=sz: self.set_icon_size(sz),
+                          **big)
+            b.pack(fill="x", pady=(0, gap))
+            self._size_btns[sz] = b
+        tk.Button(side, text=" Remove", image=self.icon("trash", FG, 20), compound="left",
+                  command=self.remove_icon, **big).pack(side="bottom", fill="x")
+        tk.Button(side, text=" Change", image=self.icon("image", FG, 20), compound="left",
+                  command=lambda: self.open_icons(force_search=True),
+                  **big).pack(side="bottom", fill="x", pady=(0, gap))
+
+    def open_place(self):
+        if not self.icon_id.get():
+            self.open_icons(force_search=True)
+            return
+        self.place_panel.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self.place_panel.lift()
+        self._refresh_place_buttons()
+        self.schedule_preview()
+
+    def close_place(self):
+        if hasattr(self, "place_panel"):
+            self.place_panel.place_forget()
+        self.text.focus_set()
+        self.schedule_preview()
+
+    def set_icon_pos(self, pos):
+        if pos in self.ICON_POSITIONS:
+            self.icon_pos.set(pos)
+            self._save_settings(icon_pos=pos)
+            self._refresh_place_buttons()
+
+    def set_icon_size(self, size):
+        if size in self.ICON_SIZES:
+            self.icon_size.set(size)
+            self._save_settings(icon_size=size)
+            self._refresh_place_buttons()
+
+    def _refresh_place_buttons(self):
+        for group, cur in ((getattr(self, "_pos_btns", {}), self.icon_pos.get()),
+                           (getattr(self, "_size_btns", {}), self.icon_size.get())):
+            for key, b in group.items():
+                on = key == cur
+                col = "#000000" if on else FG
+                b.configure(bg=OK if on else PANEL, activebackground=OK if on else PANEL,
+                            fg=col, activeforeground=col)
+                if group is getattr(self, "_pos_btns", None):
+                    arrow = {"top": "up", "bottom": "down", "left": "left", "right": "right"}[key]
+                    b.configure(image=self.icon("arrow-" + arrow, col, 22))
+
+    def _draw_place_preview(self, img):
+        c = self.place_canvas
+        cw, ch = max(c.winfo_width(), 50), max(c.winfo_height(), 50)
+        pad = 12
+        scale = min((cw - 2 * pad) / img.width, (ch - 2 * pad) / img.height)
+        w, h = max(1, int(img.width * scale)), max(1, int(img.height * scale))
+        self._place_photo = ImageTk.PhotoImage(img.convert("L").resize((w, h), Image.LANCZOS))
+        c.delete("all")
+        c.create_image((cw - w) // 2, (ch - h) // 2, image=self._place_photo, anchor="nw")
 
     # ------------------------------------------------------------ power panel
     POWER_ACTIONS = {   # key: (label, armed label, note)
@@ -590,6 +960,9 @@ class App:
 
     def _refresh_align_buttons(self):
         cur = self.align.get()
+        if hasattr(self, "_main_btns") and cur in self.ALIGNS:
+            self._main_btns["align"].configure(image=self.icon("align-" + cur, FG, 17),
+                                               text=cur.capitalize())
         for a, b in getattr(self, "_align_btns", {}).items():
             on = a == cur
             col = "#000000" if on else FG
@@ -692,16 +1065,26 @@ class App:
             "<F3>": lambda e: self.show_qr.set(not self.show_qr.get()),
             "<F4>": lambda e: self.toggle_orientation(),
             "<F5>": lambda e: self.cycle_align(),
+            "<F6>": lambda e: self.open_icons(),
             "<Control-p>": lambda e: self.print_label(),
             "<Control-Return>": lambda e: self.print_label(),
-            "<Escape>": lambda e: (self.close_setup() if self.setup_panel.winfo_ismapped()
-                                   else self.clear()),
+            "<Escape>": lambda e: self._escape(),
             "<Control-Q>": lambda e: self._quit_now(),     # Ctrl+Shift+Q
         }
         for seq, fn in keys.items():
             # Bind on the text box too, and stop Tk's built-in text bindings.
             for w in (self.root, self.text):
                 w.bind(seq, lambda e, fn=fn: (fn(e), "break")[1])
+
+    def _escape(self):
+        if self.place_panel.winfo_ismapped():
+            self.close_place()
+        elif self.icons_panel.winfo_ismapped():
+            self.close_icons()
+        elif self.setup_panel.winfo_ismapped():
+            self.close_setup()
+        else:
+            self.clear()
 
     def set_status(self, msg: str, color: str = FG):
         self.status.configure(text=msg, fg=color)
@@ -721,6 +1104,9 @@ class App:
             qr_data=self.qr_text.get().strip(),
             orientation=self.orientation.get(),
             align=self.align.get(),
+            icon=self.icon_id.get(),
+            icon_pos=self.icon_pos.get(),
+            icon_size=self.icon_size.get(),
         )
 
     def schedule_preview(self):
@@ -749,6 +1135,8 @@ class App:
         for nx in (x0 - gap - w, x0 + w + gap):
             c.create_rectangle(nx, y0, nx + w, y0 + h, fill=LABEL_GHOST, outline="")
         c.create_image(x0, y0, image=self._preview_photo, anchor="nw")
+        if self.place_panel.winfo_ismapped():
+            self._draw_place_preview(img)
         self.size_caption.configure(
             text='3 × 2 in' if self.orientation.get() == "landscape" else '2 × 3 in')
         # Placeholder in the text box when it's empty.
@@ -788,7 +1176,11 @@ class App:
         if self.date_text.get() == self._auto_date:
             self._auto_date = today()
             self.date_text.set(self._auto_date)
-        if fresh:
+        self._voice_search = self.icons_panel.winfo_ismapped()
+        if self._voice_search:
+            self._query_before = self.icon_query.get()
+            self._icons_note("Listening… say what the icon should show, then let go", REC)
+        elif fresh:
             self._set_text("")                     # start over: nothing to go back to
         self._status_before = (self.status.cget("text"), self.status.cget("fg"))
         self.recording = True
@@ -807,6 +1199,11 @@ class App:
         if cancel:
             self.stt.cancel()
             self.button.led_off()
+            if self._voice_search:
+                self.icon_query.set(getattr(self, "_query_before", ""))
+                self._icons_note(self._icons_hint(), MUTED)
+                self._voice_search = False
+                return
             self._set_text(self._before_recording)
             # Put back the message from before the tap, not "Listening…".
             text, color = getattr(self, "_status_before", ("", FG))
@@ -1057,6 +1454,7 @@ class App:
         if self.recording:
             self.stop_recording(cancel=True)
         self._set_text("")
+        self.icon_id.set("")
         self.set_status("Hold the button and speak", FG)
 
     def _load_model(self):
@@ -1087,8 +1485,31 @@ class App:
             self.set_status(hint, FG)
         elif kind == "progress":
             self.set_status(f"Initializing… {val:.0%}", MUTED)
+        elif kind == "partial" and self.recording and self._voice_search:
+            self.icon_query.set(self._tidy(val))
         elif kind == "partial" and self.recording:
             self._set_text(self._merge(val))
+        elif kind == "final" and self._voice_search:
+            self.busy = False
+            self._voice_search = False
+            words = self._tidy(val or "").rstrip("?!")
+            if words:
+                self.button.led_flash(2)
+                self.icon_query.set(words)
+                self.icon_search()
+            else:
+                self.button.led_off()
+                self.icon_query.set(getattr(self, "_query_before", ""))
+                self._icons_note("Didn't catch that. Try again", ACCENT)
+        elif kind == "icons_found":
+            self._icons_loaded(*val)
+        elif kind == "icons_page":
+            self._icons_page_loaded(*val)
+        elif kind == "icons_error":
+            if val[0] == self._icon_gen:
+                self._icons_note(val[1], ACCENT)
+        elif kind == "icons_saved":
+            pass
         elif kind == "final":
             self.busy = False
             if val:
@@ -1166,6 +1587,14 @@ def main():
         root.after(300, app.open_setup)
     if os.environ.get("LABELBOX_SHOW_POWER"):
         root.after(400, lambda: (app.open_setup(), app.open_power()))
+    if os.environ.get("LABELBOX_ICON"):            # pre-chosen icon, for screenshots
+        root.after(350, lambda: app.icon_id.set(os.environ["LABELBOX_ICON"]))
+    if os.environ.get("LABELBOX_SHOW_ICONS"):
+        q = os.environ["LABELBOX_SHOW_ICONS"]
+        root.after(500, lambda: (app.open_icons(force_search=True),
+                                 q != "1" and (app.icon_query.set(q), app.icon_search())))
+    if os.environ.get("LABELBOX_SHOW_PLACE"):
+        root.after(600, app.open_place)
     if os.environ.get("LABELBOX_TEXT"):            # pre-filled label, for screenshots
         root.after(300, lambda: app._set_text(os.environ["LABELBOX_TEXT"]))
     try:

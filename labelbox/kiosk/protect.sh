@@ -3,8 +3,9 @@
 #
 # Turns on Raspberry Pi OS's overlay file system: the SD card's main partition
 # becomes read-only and every change goes to memory instead, so pulling the
-# power can't corrupt anything. Voice Labels' settings (brightness, print hold)
-# are saved to the boot partition so they survive restarts.
+# power can't corrupt anything. Voice Labels' settings (brightness, print hold,
+# alignment) and saved icons are kept on the boot partition so they survive
+# restarts.
 #
 #   sudo bash kiosk/protect.sh on       then restart
 #   sudo bash kiosk/protect.sh off      then restart (do this before updating
@@ -17,6 +18,7 @@ set -euo pipefail
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 USER_NAME="${SUDO_USER:-pi}"
 HELPER=/usr/local/sbin/voicelabels-save-settings
+ICON_HELPER=/usr/local/sbin/voicelabels-icon
 SUDOERS=/etc/sudoers.d/voicelabels
 BOOT_SETTINGS=/boot/firmware/voicelabels-settings.json
 
@@ -55,12 +57,40 @@ mv -f "$tmp" "$dest"
 sync /boot/firmware
 EOS
     chmod 755 "$HELPER"
-    echo "$USER_NAME ALL=(root) NOPASSWD: $HELPER" > "$SUDOERS"
+    cat > "$ICON_HELPER" <<'EOS'
+#!/bin/sh
+# Keep a saved Voice Labels icon on the boot partition (SVG on stdin).
+#   voicelabels-icon save NAME     voicelabels-icon remove NAME
+set -e
+dir=/boot/firmware/voicelabels-icons
+name="$2"
+case "$name" in ""|*[!a-z0-9_-]*) exit 2 ;; esac
+case "$1" in
+save)
+    mkdir -p "$dir"
+    tmp=$(mktemp "$dir/.vl-XXXXXX")
+    head -c 200000 > "$tmp"
+    if ! head -c 4 "$tmp" | grep -q '^<svg'; then rm -f "$tmp"; exit 1; fi
+    sync "$tmp"
+    mv -f "$tmp" "$dir/$name.svg"
+    sync "$dir" ;;
+remove)
+    rm -f "$dir/$name.svg"
+    sync "$dir" ;;
+*) exit 2 ;;
+esac
+EOS
+    chmod 755 "$ICON_HELPER"
+    printf '%s\n' "$USER_NAME ALL=(root) NOPASSWD: $HELPER" \
+                  "$USER_NAME ALL=(root) NOPASSWD: $ICON_HELPER" > "$SUDOERS"
     chmod 440 "$SUDOERS"
     visudo -cf "$SUDOERS" >/dev/null
     if [ -f "$DIR/settings.json" ] && [ ! -f "$BOOT_SETTINGS" ]; then
         "$HELPER" < "$DIR/settings.json" || true
     fi
+    for f in "$DIR"/icon-library/*.svg; do          # icons saved so far
+        [ -f "$f" ] && "$ICON_HELPER" save "$(basename "$f" .svg)" < "$f" || true
+    done
 
     echo "== Read-only main partition (overlay file system)"
     raspi-config nonint enable_overlayfs

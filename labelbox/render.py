@@ -20,6 +20,9 @@ class LabelSpec:
     qr_data: str = ""          # blank = use the label text
     orientation: str = config.ORIENTATION
     align: str = config.TEXT_ALIGN   # "left", "center" or "right"
+    icon: str = ""                   # Iconify id like "mdi:coffee"; blank = none
+    icon_pos: str = config.ICON_POSITION   # "left", "right", "top", "bottom"
+    icon_size: str = config.ICON_SIZE      # "small", "medium", "large"
 
 
 def canvas_size(orientation: str) -> tuple[int, int]:
@@ -130,6 +133,49 @@ def make_qr(data: str, size: int) -> Image.Image:
     return img.resize((img.width * scale, img.height * scale), Image.NEAREST)
 
 
+# --- icon -----------------------------------------------------------------
+
+ICON_SIZES = {"small": 0.5, "medium": 0.75, "large": 1.0}
+
+
+def icon_box(spec: LabelSpec, box, align: str, gap: int):
+    """Where the icon goes inside `box`, and what's left for the text.
+    Returns ((x, y, size), text_box_or_None)."""
+    x0, y0, x1, y1 = box
+    bw, bh = x1 - x0, y1 - y0
+    f = ICON_SIZES.get(spec.icon_size, 0.75)
+    if not spec.text.strip():                      # icon only: centre it
+        s = round(min(bw, bh) * (0.6 + 0.4 * f))
+        return (x0 + (bw - s) // 2, y0 + (bh - s) // 2, s), None
+    pos = spec.icon_pos if spec.icon_pos in ("left", "right", "top", "bottom") else "left"
+    if pos in ("left", "right"):
+        s = round(min(bh, bw * 0.6) * f)
+        y = y0 + (bh - s) // 2
+        if pos == "left":
+            return (x0, y, s), [x0 + s + gap, y0, x1, y1]
+        return (x1 - s, y, s), [x0, y0, x1 - s - gap, y1]
+    s = round(min(bw, bh * 0.6) * f)
+    x = round(_x_for(align, x0, x1, s))
+    if pos == "top":
+        return (x, y0, s), [x0, y0 + s + gap, x1, y1]
+    return (x, y1 - s, s), [x0, y0, x1, y1 - s - gap]
+
+
+def _place_icon(img, spec, box, align, gap):
+    (x, y, s), text_box = icon_box(spec, box, align, gap)
+    if s < 8:
+        return box
+    import iconlib                        # here so render works without the icon code
+
+    pic = iconlib.raster(spec.icon, s)
+    if pic is None:
+        return box
+    # Paste only the dark parts so the icon never blanks out anything under it.
+    mask = pic.point(lambda p: 255 if p < 128 else 0)
+    img.paste(0, (x, y), mask)
+    return text_box
+
+
 # --- main entry -----------------------------------------------------------
 
 def render(spec: LabelSpec) -> Image.Image:
@@ -160,7 +206,6 @@ def render(spec: LabelSpec) -> Image.Image:
             dx = _x_for(align, text_box[0], text_box[2], dw)
             draw.text((dx, h - m - date_h), spec.date_text, font=date_font, fill=0)
             text_box[3] = h - m - date_h - gap
-        _draw_text_block(draw, spec.text, tuple(text_box), align)
     else:
         # [ date ]
         # [ text ]
@@ -174,6 +219,9 @@ def render(spec: LabelSpec) -> Image.Image:
             qy = h - m - qr.height
             img.paste(qr, ((w - qr.width) // 2, qy))
             text_box[3] = qy - gap
+    if spec.icon:
+        text_box = _place_icon(img, spec, text_box, align, gap)
+    if text_box:
         _draw_text_block(draw, spec.text, tuple(text_box), align)
 
     # Hard black/white threshold (no dithering) keeps text edges clean.

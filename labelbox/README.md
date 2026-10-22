@@ -1,6 +1,6 @@
 # Voice Labels
 
-A stand-alone voice-to-label printer. Hold the button, say what the label should say, fix any words on the keyboard, check the preview, and print a 2×3" label. Speech recognition runs entirely on the Pi, so there are no fees and no internet needed after setup.
+A stand-alone voice-to-label printer. Hold the button, say what the label should say, fix any words on the keyboard, check the preview, and print a 2×3" label. Speech recognition runs entirely on the Pi, so there are no fees and no internet needed after setup. The only thing that goes online is searching for a new icon.
 
 ```
  hold button → speak → release → text appears → edit → preview updates → PRINT
@@ -8,13 +8,14 @@ A stand-alone voice-to-label printer. Hold the button, say what the label should
 
 ## What's on a label
 
-Each label has three parts, and the screen preview is the exact image that gets printed:
+Each label has up to four parts, and the screen preview is the exact image that gets printed:
 
 - **Text**: the spoken words, sized automatically to the largest font that fits.
 - **Date** (optional): today's date by default; you can type any date or note in its place.
 - **QR code** (optional): encodes the label text, or anything you type in the QR field (a URL, part number, etc.).
+- **Icon** (optional): a black-and-white picture beside, above or below the text. The text moves out of its way.
 
-Labels can be **landscape** (3" wide, the default) or **portrait** (2" wide). Tap **Rotate** or press F4 to switch.
+Labels can be **landscape** (3" wide, the default) or **portrait** (2" wide). Tap **Rotate** or press F4 to switch. Tap **Align** to line the text up left, center or right.
 
 ## Parts
 
@@ -34,6 +35,10 @@ Labels can be **landscape** (3" wide, the default) or **portrait** (2" wide). Ta
 ## Wiring the buttons
 
 Use the Pi's 40-pin header (physical pin numbers). TALK is the left button on the case deck, PRINT the right.
+
+<img src="docs/wiring.png" alt="Button wiring diagram" width="720">
+
+The diagram is drawn from the back of the screen with the Pi's header along the bottom, so TALK appears on the right. Pin 1 is the end of the header farthest from the USB ports. On each button, the light is the pair of terminals marked with arrows; the other pair is the switch, which can go either way round.
 
 | Wire | Pi pin |
 |---|---|
@@ -110,7 +115,7 @@ From power-on, the screen shows the Voice Labels logo instead of the Raspberry P
 
 ### Power-off protection (safe to unplug)
 
-Normally a Pi should be shut down before its power is cut, or the SD card can be damaged. Protection removes that risk: the SD card's main partition becomes read-only and every change is kept in memory instead, so you can unplug it at any moment. Your settings (brightness, print hold, alignment) are saved to the boot partition, so they still survive restarts.
+Normally a Pi should be shut down before its power is cut, or the SD card can be damaged. Protection removes that risk: the SD card's main partition becomes read-only and every change is kept in memory instead, so you can unplug it at any moment. Your settings (brightness, print hold, alignment, icon placement) and saved icons are kept on the boot partition, so they still survive restarts.
 
 ```
 sudo bash kiosk/protect.sh on       # then: sudo reboot
@@ -128,7 +133,7 @@ While protection is on, anything else you change is lost at the next restart: ap
 |---|---|
 | <img src="docs/screen.png?v=3" alt="Main screen" width="400"> | <img src="docs/setup.png?v=3" alt="Setup screen" width="400"> |
 
-The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **Rotate**, **Clear** and **Setup** sit under the preview. Every button has an icon beside its label.
+The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **Rotate**, **Align**, **Icon**, **Clear** and **Setup** sit under the preview. Every button has an icon beside its label.
 
 | Do this | To |
 |---|---|
@@ -137,7 +142,9 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under
 | Type in the text box | Fix any words. The preview updates as you type |
 | **Hold** the PRINT button (on screen or on the deck) for 3 seconds | Print. A green bar sweeps across PRINT and counts down; let go early to cancel. The PRINT light blinks while you hold, stays on while printing, then blinks twice when done. Ctrl+P or Ctrl+Enter print straight away |
 | Tap **⟳ Rotate**, or press F4 | Switch landscape / portrait |
-| Tap **Clear**, or press Esc | Clear the text |
+| Tap **Align**, or press F5 | Line the text up left, then center, then right. The button shows the current choice, and it's remembered across restarts (also on the Setup screen) |
+| Tap **Icon**, or press F6 | Add an icon (see Icons below). With an icon already on the label, it opens the icon placement screen |
+| Tap **Clear**, or press Esc | Clear the text and remove the icon |
 | Tap **⚙ Setup** | Open the Setup screen (below) |
 | **Press and hold** on the text box or the label preview for 1.5 seconds | Turn the screen off now, like the screen saver. Tap to wake it |
 
@@ -156,6 +163,18 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under
 
 The screen goes dark after 5 minutes with no touch, key or button press. Tap it to wake it; that first tap only wakes the screen and never presses a button. Pressing TALK while the screen is dark wakes it and starts recording; PRINT wakes it and starts the hold. The screen comes back at the brightness you chose.
 
+### Icons
+
+Tap **Icon** to put a black-and-white picture on the label. Icons come from [Iconify](https://iconify.design), a free collection of open-source icon sets, so finding a new one needs internet; icons you've used are saved on the Pi and work offline.
+
+1. **Find one.** The icon screen opens on your saved icons. To find a new one, hold TALK and say a word ("coffee", "screws", "fire extinguisher"), or type it and tap **Find**. Results come in pages of 21; use **Prev** / **Next**.
+2. **Tap an icon.** It goes on the label and into your saved icons, and the placement screen opens.
+3. **Place it.** The label is shown large with a button on each side: **Top**, **Bottom**, **Left**, **Right**. Pick a side and an **Icon size** (Small, Medium, Large); the text shrinks and moves to make room. Tap **Done**.
+
+On the placement screen, **Change** picks a different icon and **Remove** takes it off the label. On the icon screen, **Remove saved** lets you tap saved icons to delete them. The side and size you pick are remembered for the next icon.
+
+With only an icon and no text, the icon is centered and fills the label. Solid icons print best; the sets searched are listed in `ICON_SETS` in `config.py`.
+
 Tips for accuracy:
 - Hold the button a moment *before* you start talking, and release a beat after you finish.
 - Keep the mic 15–30cm from your mouth, away from fans and the printer.
@@ -171,6 +190,8 @@ Everything adjustable is in `config.py`, with comments. The most common changes:
 | `LABEL_WIDTH_IN`, `LABEL_LENGTH_IN` | How the labels sit in the printer: width across the print head, and length along the feed. 3 and 2 for a 3 × 2" roll loaded wide side across |
 | `LANDSCAPE_ROTATE_DEG` | Change 90 to 270 if labels whose layout is turned to fit the roll (portrait on a wide roll) print upside down |
 | `TEXT_ALIGN` | Starting alignment: `"left"`, `"center"` or `"right"` (the Setup screen choice overrides it) |
+| `ICON_SETS` | The Iconify icon sets searched for icons (solid, single-colour sets print best) |
+| `ICON_POSITION`, `ICON_SIZE` | Where a new icon goes and how big, until you choose on the placement screen |
 | `DATE_FORMAT` | `"%b %d, %Y"` = Oct 16, 2026; `"%m/%d/%Y"` = 10/16/2026 |
 | `DATE_DEFAULT_ON`, `QR_DEFAULT_ON` | Whether date / QR are on when the app starts |
 | `PRINT_DARKNESS` | 0–30. Raise if the print is faint |
@@ -207,6 +228,8 @@ The window is 800×480 by default to match the Hosyond screen. Add `--size 720x1
 | Print is faint | Raise `PRINT_DARKNESS`, or check that the labels are direct-thermal (scratch one with a fingernail; it should leave a dark mark) |
 | "Microphone not found" | Plug the mic into any USB port and press TALK again; the app looks for it each time. If you use a different mic, set `MIC_NAME` to part of its name (`./run.sh stt.py --list`) |
 | App doesn't start at boot | Check the kiosk service: `systemctl status labelbox` and `journalctl -u labelbox -b`. Run `sudo bash kiosk/install-kiosk.sh` again if it's missing |
+| Icon search says "No internet connection" | The Pi needs internet only to find new icons. Check Wi-Fi, or pick from your saved icons |
+| Saved icons disappear after a restart with protection on | Turn protection off and on again once (`sudo bash kiosk/protect.sh off`, restart, `... on`, restart) so it installs the icon helper |
 | A deck button does nothing | Check the wiring against the table above. The status line says "Hold the Talk button (or press F1)" when the app can't see the TALK button |
 
 ## Files
@@ -221,6 +244,8 @@ The window is 800×480 by default to match the Hosyond screen. Add `--size 720x1
 | `hardware.py` | The deck buttons and their lights |
 | `config.py` | All settings |
 | `icons.py` | The button icons, drawn with Pillow (run it to see them all on one sheet) |
+| `iconlib.py` | Label icons: online search, download cache and the saved-icon library (`icon-library/`) |
+| `svgraster.py` | Draws SVG icons with Pillow and numpy, so no extra graphics library is needed |
 | `install.sh` | One-time setup on the Pi |
 | `run.sh` | Starts the app (or another script) with the right environment |
 | `kiosk/` | Boot-to-app service, boot logo, desktop launchers, and install/uninstall scripts |
