@@ -173,7 +173,9 @@ Tap **Icon** to put a black-and-white picture on the label. Icons come from [Ico
 
 On the placement screen, **Change** picks a different icon and **Remove** takes it off the label. On the icon screen, **Remove saved** lets you tap saved icons to delete them. The side and size you pick are remembered for the next icon.
 
-With only an icon and no text, the icon is centered and fills the label. Solid icons print best; the sets searched are listed in `ICON_SETS` in `config.py`.
+With only an icon and no text, the icon is centered and fills the label.
+
+The search covers about twenty open-source icon sets chosen for single-colour, print-friendly icons, including plenty of computer and maker parts: USB, HDMI, Ethernet and power cables, network and graphics cards, RAM, CPUs, SSDs, NVMe, power supplies, motherboards, filament spools, 3D printers, screws and more. Common words are matched to what the icon sets call things, so saying "video card" also finds "graphics card" and "GPU", and "PLA" or "filament" finds spools. Thin, two-tone and crossed-out ("off") variants are left out because they print poorly. To add your own words, use `ICON_SYNONYMS` in `config.py`; the sets themselves are in `ICON_SETS`.
 
 Tips for accuracy:
 - Hold the button a moment *before* you start talking, and release a beat after you finish.
@@ -191,6 +193,7 @@ Everything adjustable is in `config.py`, with comments. The most common changes:
 | `LANDSCAPE_ROTATE_DEG` | Change 90 to 270 if labels whose layout is turned to fit the roll (portrait on a wide roll) print upside down |
 | `TEXT_ALIGN` | Starting alignment: `"left"`, `"center"` or `"right"` (the Setup screen choice overrides it) |
 | `ICON_SETS` | The Iconify icon sets searched for icons (solid, single-colour sets print best) |
+| `ICON_SYNONYMS` | Your own search words, e.g. `{"zip ties": ["cable tie"]}` |
 | `ICON_POSITION`, `ICON_SIZE` | Where a new icon goes and how big, until you choose on the placement screen |
 | `DATE_FORMAT` | `"%b %d, %Y"` = Oct 16, 2026; `"%m/%d/%Y"` = 10/16/2026 |
 | `DATE_DEFAULT_ON`, `QR_DEFAULT_ON` | Whether date / QR are on when the app starts |

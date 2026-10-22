@@ -74,30 +74,155 @@ def _http(url: str, limit: int = 2_000_000) -> bytes:
 
 # --- search ----------------------------------------------------------------
 
-def search(query: str, limit: int = 96) -> list[str]:
-    q = " ".join(query.lower().split())[:60]
+# Words people say, and what the icon sets call them. Each entry's searches
+# run first, then the words as spoken. config.ICON_SYNONYMS adds more.
+SYNONYMS = {
+    # computer parts
+    "ram": ["ram memory", "memory"],
+    "memory": ["ram memory", "memory"],
+    "video card": ["graphics card", "gpu"],
+    "graphics card": ["graphics card", "gpu"],
+    "gpu": ["graphics card", "gpu"],
+    "network card": ["network interface card", "network interface", "ethernet"],
+    "nic": ["network interface card", "network interface", "ethernet"],
+    "network adapter": ["network interface card", "network interface", "ethernet"],
+    "wifi card": ["wifi", "network interface card"],
+    "cpu": ["cpu", "processor"],
+    "processor": ["cpu", "processor"],
+    "motherboard": ["motherboard", "circuit board"],
+    "mainboard": ["motherboard", "circuit board"],
+    "power supply": ["power supply"],
+    "psu": ["power supply"],
+    "ssd": ["ssd", "solid state"],
+    "nvme": ["nvme", "ssd"],
+    "m.2": ["nvme", "ssd"],
+    "m2": ["nvme", "ssd"],
+    "hard drive": ["hard drive", "hdd"],
+    "hard disk": ["hard drive", "hdd"],
+    "hdd": ["hdd", "hard drive"],
+    "sata": ["hard drive", "hdd"],
+    "heatsink": ["fan", "cpu"],
+    "cooler": ["fan", "cpu"],
+    "case fan": ["fan"],
+    "sd card": ["sd card", "micro sd"],
+    "micro sd": ["micro sd", "sd card"],
+    "flash drive": ["usb flash drive", "usb drive", "usb"],
+    "thumb drive": ["usb flash drive", "usb drive", "usb"],
+    # cables and ports
+    "usb c": ["usb c", "usb type c"],
+    "usb-c": ["usb c", "usb type c"],
+    "type c": ["usb c", "usb type c"],
+    "usb cable": ["usb cable", "usb"],
+    "hdmi": ["hdmi cable", "hdmi"],
+    "hdmi cable": ["hdmi cable", "hdmi"],
+    "displayport": ["displayport", "monitor"],
+    "display port": ["displayport", "monitor"],
+    "ethernet": ["ethernet cable", "ethernet"],
+    "ethernet cable": ["ethernet cable", "ethernet"],
+    "network cable": ["ethernet cable", "ethernet"],
+    "cat 6": ["ethernet cable", "ethernet"],
+    "cat6": ["ethernet cable", "ethernet"],
+    "cat5": ["ethernet cable", "ethernet"],
+    "power cable": ["power cable", "power plug"],
+    "power cord": ["power cable", "power plug"],
+    "audio cable": ["audio jack", "headphone jack", "jack"],
+    "aux cable": ["audio jack", "headphone jack", "jack"],
+    "headphone jack": ["headphone jack", "audio jack"],
+    "video cable": ["hdmi cable", "displayport", "vga"],
+    "serial cable": ["serial port", "serial"],
+    "adapter": ["adapter", "usb"],
+    "charger": ["charger", "power plug"],
+    # 3D printing
+    "filament": ["spool", "3d filament", "printer 3d nozzle"],
+    "pla": ["spool", "3d filament"],
+    "petg": ["spool", "3d filament"],
+    "abs": ["spool", "3d filament"],
+    "tpu": ["spool", "3d filament"],
+    "3d printer": ["printer 3d", "3d printer"],
+    "nozzle": ["printer 3d nozzle", "nozzle"],
+    "resin": ["printer 3d", "bottle"],
+    # hardware
+    "screws": ["screw"],
+    "nuts": ["nut", "bolt"],
+    "bolts": ["bolt", "nut"],
+    "nuts and bolts": ["nut", "bolt"],
+    "washers": ["washer"],
+}
+
+# Faint or two-tone variants that print poorly, and near-duplicate copies.
+_SKIP_PARTS = {"duotone", "thin", "light", "twotone", "duo", "broken"}
+
+
+def _skip(icon_id: str) -> bool:
+    prefix, name = icon_id.split(":", 1)
+    parts = name.split("-")
+    if _SKIP_PARTS & set(parts):
+        return True
+    if parts[-1] in ("off", "slash") or "off" in parts[1:]:   # crossed-out versions
+        return True
+    if prefix == "material-symbols" and name.endswith(("-rounded", "-sharp")):
+        return True
+    if prefix == "iconmind" and parts[-1] == "regular":       # keep the bold copy
+        return True
+    if prefix == "energy-icons" and "20" in parts:             # keep the large copy
+        return True
+    if prefix == "solar" and parts[-1] in ("linear", "outline"):
+        return True
+    return False
+
+
+def search_terms(query: str) -> list[str]:
+    q = " ".join(query.lower().replace("_", " ").split())[:60]
     if not q:
         return []
+    table = dict(SYNONYMS)
+    table.update({k.lower(): v for k, v in getattr(config, "ICON_SYNONYMS", {}).items()})
+    terms = list(table.get(q, []))
+    if q.endswith("s") and not q.endswith("ss") and len(q) > 3:   # "cables" -> "cable"
+        terms += table.get(q[:-1], []) + [q[:-1]]
+    terms.append(q)
+    out = []
+    for t in terms:
+        if t not in out:
+            out.append(t)
+    return out
+
+
+def search(query: str, limit: int = 140) -> list[str]:
+    """Icon ids for what was said or typed, best matches first."""
+    results: list[str] = []
+    errors = 0
+    terms = search_terms(query)
+    for t in terms:
+        try:
+            ids = _search_one(t)
+        except IconError:
+            errors += 1
+            continue
+        for i in ids:
+            if i not in results:
+                results.append(i)
+    if terms and errors == len(terms):
+        raise IconError("No internet connection. Saved icons still work.")
+    return results[:limit]
+
+
+def _search_one(q: str) -> list[str]:
     sets = ",".join(getattr(config, "ICON_SETS", []))
-    key = hashlib.sha1(f"{q}|{sets}|{limit}".encode()).hexdigest()[:16]
+    key = hashlib.sha1(f"{q}|{sets}".encode()).hexdigest()[:16]
     cached = CACHE / "search" / f"{key}.json"
     try:
         if time.time() - cached.stat().st_mtime < SEARCH_TTL:
             return json.loads(cached.read_text())
     except (OSError, ValueError):
         pass
-    params = {"query": q, "limit": str(max(32, limit))}
+    params = {"query": q, "limit": "120"}
     if sets:
         params["prefixes"] = sets
     data = json.loads(_http(f"{API}/search?{urllib.parse.urlencode(params)}"))
-    ids = [i for i in data.get("icons", []) if valid(i) and not _near_duplicate(i)]
+    ids = [i for i in data.get("icons", []) if valid(i) and not _skip(i)]
     _write(cached, json.dumps(ids))
     return ids
-
-
-def _near_duplicate(icon_id: str) -> bool:
-    """Material Symbols has rounded and sharp copies of nearly every icon."""
-    return icon_id.startswith("material-symbols:") and icon_id.endswith(("-rounded", "-sharp"))
 
 
 # --- getting the SVG ----------------------------------------------------------

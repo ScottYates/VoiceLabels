@@ -349,13 +349,13 @@ def svg_to_image(svg: str | bytes, size: int) -> Image.Image:
     oy = (px - vb[3] * scale) / 2 - vb[1] * scale
     base = (scale, 0, 0, scale, ox, oy)
 
-    img = Image.new("L", (px, px), 255)
-    canvas = np.array(img)
+    canvas = np.full((px, px), 255, dtype=np.uint8)
     skip = {"defs", "clipPath", "mask", "title", "desc", "metadata", "style", "symbol",
             "linearGradient", "radialGradient", "pattern", "text"}
+    masks = {el.attrib["id"]: el for el in root.iter()
+             if _tag(el) == "mask" and "id" in el.attrib}
 
-    def walk(el, inherited, m):
-        nonlocal canvas, img
+    def walk(el, inherited, m, target, depth=0):
         st = _style(el)
         if st.get("display") == "none" or st.get("visibility") == "hidden":
             return
@@ -369,26 +369,39 @@ def svg_to_image(svg: str | bytes, size: int) -> Image.Image:
         t = _tag(el)
         if t in skip:
             return
+        ref = re.match(r"url\(\s*#([^)\s]+)\s*\)", st.get("mask", ""))
+        if ref and ref.group(1) in masks and depth < 3:
+            # Luminance mask: draw the element and the mask separately, then
+            # keep the element's ink only where the mask is light.
+            alone = np.full_like(target, 255)
+            # (the copy drops the mask, and the transform already applied to m)
+            el_copy = ET.Element(el.tag, {k: v for k, v in el.attrib.items()
+                                          if k not in ("mask", "transform")})
+            el_copy.extend(list(el))
+            walk(el_copy, inherited, m, alone, depth + 1)
+            mk = np.zeros_like(target)
+            for ch in masks[ref.group(1)]:
+                walk(ch, {"fill": "black"}, m, mk, depth + 1)
+            target[(alone < 128) & (mk >= 128)] = 0
+            return
         if t in ("svg", "g", "a"):
             for ch in el:
-                walk(ch, style, m)
+                walk(ch, style, m, target, depth)
             return
         subs = _shape(el, st)
         if not subs:
             return
         subs = [(_apply(m, pts), closed) for pts, closed in subs]
         fill = _paint(style.get("fill", "black"))
-        if fill is not None and _f(st.get("fill-opacity"), 1) >= 0.35 and t not in ("line", "polyline"):
-            _fill(canvas, [p for p, _ in subs], style.get("fill-rule") == "evenodd", fill)
-        elif fill is not None and t == "polyline":
-            _fill(canvas, [p for p, _ in subs], style.get("fill-rule") == "evenodd", fill)
+        if fill is not None and _f(st.get("fill-opacity"), 1) >= 0.35 and t != "line":
+            _fill(target, [p for p, _ in subs], style.get("fill-rule") == "evenodd", fill)
         stroke = _paint(style.get("stroke"))
         if stroke is not None:
             sw = _f(style.get("stroke-width"), 1.0) * math.sqrt(abs(m[0] * m[3] - m[1] * m[2]))
-            img = Image.fromarray(canvas)
-            _stroke(img, subs, sw, stroke,
+            im = Image.fromarray(target)
+            _stroke(im, subs, sw, stroke,
                     style.get("stroke-linecap", "butt") in ("round", "square"))
-            canvas = np.array(img)
+            target[:] = np.array(im)
 
-    walk(root, {"fill": "black"}, base)
+    walk(root, {"fill": "black"}, base, canvas)
     return Image.fromarray(canvas).resize((size, size), Image.LANCZOS)

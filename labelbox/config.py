@@ -33,7 +33,15 @@ DATE_PX = 30
 # --- Icons ------------------------------------------------------------------
 # Icon sets searched online (Iconify). Solid, single-colour sets print best.
 # Browse them at https://icon-sets.iconify.design
-ICON_SETS = ["mdi", "material-symbols", "fa6-solid", "game-icons", "maki", "mingcute", "tabler"]
+ICON_SETS = [
+    "mdi", "material-symbols", "ph", "iconoven", "icon-park-solid", "bi", "lucide",
+    "hugeicons", "carbon", "tabler", "mingcute", "fa6-solid", "game-icons", "maki",
+    "energy-icons", "iconmind", "streamline-ultimate", "teenyicons", "clarity",
+    "simple-icons",    # brand logos: Raspberry Pi, Arduino, Prusa, ...
+]
+# Extra words for the icon search: what you say -> what to search for, e.g.
+#   ICON_SYNONYMS = {"zip ties": ["cable tie", "tie"]}
+ICON_SYNONYMS = {}
 ICON_TIMEOUT_SECONDS = 8
 ICON_POSITION = "left"        # where a new icon goes: "left", "right", "top" or "bottom"
 ICON_SIZE = "medium"          # "small", "medium" or "large"
