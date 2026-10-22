@@ -24,7 +24,7 @@ Labels can be **landscape** (3" wide, the default) or **portrait** (2" wide). Ta
 | Official 27W USB-C power supply, Active Cooler | |
 | 32GB microSD card | |
 | Hosyond 7" DSI touchscreen, 800×480 | Ribbon cable to the DSI port, power from the GPIO header (see Display setup). The app also works on the official 5" Touch Display 2 |
-| Compact USB or Bluetooth keyboard | Function keys F1–F4 are handy but optional |
+| Compact USB or Bluetooth keyboard | Function keys F1–F5 are handy but optional |
 | C G CHANGEEK CGS-M1 gooseneck USB microphone | Works with no driver. Bend the gooseneck toward the speaker (see Microphone setup) |
 | Two 30 mm arcade buttons with LEDs (TALK and PRINT) | EG Starts 5V type. The case deck has 30.4 mm holes |
 | 3D-printed case | See `case/README.md` |
@@ -110,7 +110,7 @@ From power-on, the screen shows the Voice Labels logo instead of the Raspberry P
 
 ### Power-off protection (safe to unplug)
 
-Normally a Pi should be shut down before its power is cut, or the SD card can be damaged. Protection removes that risk: the SD card's main partition becomes read-only and every change is kept in memory instead, so you can unplug it at any moment. Your settings (brightness, print hold) are saved to the boot partition, so they still survive restarts.
+Normally a Pi should be shut down before its power is cut, or the SD card can be damaged. Protection removes that risk: the SD card's main partition becomes read-only and every change is kept in memory instead, so you can unplug it at any moment. Your settings (brightness, print hold, alignment) are saved to the boot partition, so they still survive restarts.
 
 ```
 sudo bash kiosk/protect.sh on       # then: sudo reboot
@@ -126,13 +126,13 @@ While protection is on, anything else you change is lost at the next restart: ap
 
 | Main screen | Setup screen |
 |---|---|
-| <img src="docs/screen.png?v=3" alt="Main screen" width="400"> | <img src="docs/setup.png?v=2" alt="Setup screen" width="400"> |
+| <img src="docs/screen.png?v=3" alt="Main screen" width="400"> | <img src="docs/setup.png?v=3" alt="Setup screen" width="400"> |
 
 The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **Rotate**, **Clear** and **Setup** sit under the preview. Every button has an icon beside its label.
 
 | Do this | To |
 |---|---|
-| **Hold** the TALK button (or **Hold to talk** on screen), speak, release | Record. The TALK light stays on while it listens and works out the words, then blinks twice when the text is in (it also blinks twice when the app is ready at startup). F1 starts and stops recording from the keyboard |
+| **Hold** the TALK button (or **Hold to talk** on screen), speak, release | Record. The words appear without a closing period, since labels don't need one. The TALK light stays on while it listens and works out the words, then blinks twice when the text is in (it also blinks twice when the app is ready at startup). F1 starts and stops recording from the keyboard |
 | **Tap** TALK, then straight away **press and hold** it again (screen or deck button), speak, release | Clear the text and start over. The status says "Cleared. Listening…" |
 | Type in the text box | Fix any words. The preview updates as you type |
 | **Hold** the PRINT button (on screen or on the deck) for 3 seconds | Print. A green bar sweeps across PRINT and counts down; let go early to cancel. The PRINT light blinks while you hold, stays on while printing, then blinks twice when done. Ctrl+P or Ctrl+Enter print straight away |
@@ -147,6 +147,7 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under
 |---|---|
 | **Date** (green with ✓ when on) and its text field | Print the date, or any text you type there. F2 also toggles it |
 | **QR** (green with ✓ when on) and its text field | Print a QR code of the field's text, or of the label text if the field is blank. F3 also toggles it |
+| **Align Left / Center / Right** | Line the label text (and the date) up on the left, center or right. F5 cycles through them. Remembered across restarts |
 | **Copies − / +** | How many labels each PRINT makes |
 | **Brightness 25 / 50 / 75 / 100%** | Screen brightness. Remembered across restarts |
 | **Print hold Off / 1 / 2 / 3 / 5 s** | How long PRINT must be held. Off prints on a tap. Remembered across restarts |
@@ -169,6 +170,7 @@ Everything adjustable is in `config.py`, with comments. The most common changes:
 | `ORIENTATION` | Default layout: `"landscape"` or `"portrait"` |
 | `LABEL_WIDTH_IN`, `LABEL_LENGTH_IN` | How the labels sit in the printer: width across the print head, and length along the feed. 3 and 2 for a 3 × 2" roll loaded wide side across |
 | `LANDSCAPE_ROTATE_DEG` | Change 90 to 270 if labels whose layout is turned to fit the roll (portrait on a wide roll) print upside down |
+| `TEXT_ALIGN` | Starting alignment: `"left"`, `"center"` or `"right"` (the Setup screen choice overrides it) |
 | `DATE_FORMAT` | `"%b %d, %Y"` = Oct 16, 2026; `"%m/%d/%Y"` = 10/16/2026 |
 | `DATE_DEFAULT_ON`, `QR_DEFAULT_ON` | Whether date / QR are on when the app starts |
 | `PRINT_DARKNESS` | 0–30. Raise if the print is faint |

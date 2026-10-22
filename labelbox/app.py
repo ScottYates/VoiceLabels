@@ -5,7 +5,8 @@
     python3 app.py --windowed   # not fullscreen (handy when testing)
 
 Keys: F1 talk (press to start, press again to stop)   F2 date on/off
-      F3 QR on/off   F4 landscape/portrait   Ctrl+P or Ctrl+Enter print
+      F3 QR on/off   F4 landscape/portrait   F5 left/center/right
+      Ctrl+P or Ctrl+Enter print
       Esc clear text   Ctrl+Shift+Q quit
 Touch: tap TALK then press and hold it again = clear and start over;
        press and hold the text box or preview = screen off
@@ -211,6 +212,7 @@ class App:
         self.date_text = tk.StringVar(value=self._auto_date)
         self.qr_text = tk.StringVar(value="")
         self.orientation = tk.StringVar(value=config.ORIENTATION)
+        self.align = tk.StringVar(value=config.TEXT_ALIGN)
         self.copies = tk.IntVar(value=1)
 
         self._build_ui()
@@ -218,6 +220,9 @@ class App:
         saved = self._load_settings()
         self.brightness = int(saved.get("brightness", 100))
         self.print_btn.seconds = float(saved.get("print_hold", config.PRINT_HOLD_SECONDS))
+        if saved.get("align") in self.ALIGNS:
+            self.align.set(saved["align"])
+        self._refresh_align_buttons()
         self._display_power(True)     # in case an earlier run left it blanked
         self._apply_brightness()
 
@@ -241,7 +246,8 @@ class App:
         self.set_status("Initializing…", MUTED)
         threading.Thread(target=self._load_model, daemon=True).start()
 
-        for var in (self.show_date, self.show_qr, self.date_text, self.qr_text, self.orientation):
+        for var in (self.show_date, self.show_qr, self.date_text, self.qr_text, self.orientation,
+                    self.align):
             var.trace_add("write", lambda *_: self.schedule_preview())
         self.root.after(50, self._poll)
         self.schedule_preview()
@@ -376,7 +382,7 @@ class App:
         p = tk.Frame(self.root, bg=BG)
         self.setup_panel = p
         p.columnconfigure(1, weight=1)
-        for r_ in (1, 2, 4, 5):                 # button rows share the spare height
+        for r_ in (1, 2, 4, 5, 6):              # button rows share the spare height
             p.rowconfigure(r_, weight=1, uniform="rows")
 
         big = dict(font=font(24, True), relief="flat", bd=0, highlightthickness=0,
@@ -417,12 +423,26 @@ class App:
                  font=font(15), anchor="w").grid(row=3, column=1, sticky="w",
                                                  padx=(0, pad), pady=(0, gap))
 
+        # Text alignment: Left / Center / Right, the current one highlighted.
+        tk.Label(p, text=" Align", image=self.icon("align-left", MUTED, 20), compound="left",
+                 **label).grid(row=4, column=0, sticky="w", padx=(pad, gap), pady=(0, gap))
+        al = tk.Frame(p, bg=BG)
+        al.grid(row=4, column=1, sticky="nsew", padx=(0, pad), pady=(0, gap))
+        al.rowconfigure(0, weight=1)
+        self._align_btns = {}
+        for i, a in enumerate(self.ALIGNS):
+            al.columnconfigure(i, weight=1, uniform="al")
+            b = tk.Button(al, text=" " + a.capitalize(), compound="left",
+                          command=lambda a=a: self.set_align(a), **big)
+            b.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else gap, 0))
+            self._align_btns[a] = b
+
         # Copies: − n +
         tk.Label(p, text=" Copies", image=self.icon("copies", MUTED, 20), compound="left",
-                 **label).grid(row=4, column=0, sticky="w",
+                 **label).grid(row=5, column=0, sticky="w",
                                                 padx=(pad, gap), pady=(0, gap))
         cp = tk.Frame(p, bg=BG)
-        cp.grid(row=4, column=1, sticky="nsw", padx=(0, pad), pady=(0, gap))
+        cp.grid(row=5, column=1, sticky="nsw", padx=(0, pad), pady=(0, gap))
         step = dict(big, padx=round(34 * s))
         tk.Button(cp, text="−", command=lambda: self._bump_copies(-1), **step).pack(side="left", fill="y")
         tk.Label(cp, textvariable=self.copies, bg=BG, fg=FG, width=3,
@@ -431,10 +451,10 @@ class App:
 
         # Brightness: one button per level, the current one highlighted.
         tk.Label(p, text=" Brightness", image=self.icon("sun", MUTED, 20), compound="left",
-                 **label).grid(row=5, column=0, sticky="w",
+                 **label).grid(row=6, column=0, sticky="w",
                                                     padx=(pad, gap), pady=(0, gap))
         br = tk.Frame(p, bg=BG)
-        br.grid(row=5, column=1, sticky="nsew", padx=(0, pad), pady=(0, gap))
+        br.grid(row=6, column=1, sticky="nsew", padx=(0, pad), pady=(0, gap))
         br.rowconfigure(0, weight=1)
         self._bright_btns = {}
         for i, lv in enumerate(sorted(config.BRIGHTNESS_LEVELS) or [100]):
@@ -443,12 +463,12 @@ class App:
             b.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else gap, 0))
             self._bright_btns[lv] = b
         # Print hold: how long PRINT must be held.
-        p.rowconfigure(6, weight=1, uniform="rows")
+        p.rowconfigure(7, weight=1, uniform="rows")
         tk.Label(p, text=" Print hold", image=self.icon("timer", MUTED, 20), compound="left",
-                 **label).grid(row=6, column=0, sticky="w",
+                 **label).grid(row=7, column=0, sticky="w",
                                                     padx=(pad, gap), pady=(0, pad))
         ph = tk.Frame(p, bg=BG)
-        ph.grid(row=6, column=1, sticky="nsew", padx=(0, pad), pady=(0, pad))
+        ph.grid(row=7, column=1, sticky="nsew", padx=(0, pad), pady=(0, pad))
         ph.rowconfigure(0, weight=1)
         self._hold_btns = {}
         for i, sec in enumerate(config.PRINT_HOLD_CHOICES):
@@ -555,6 +575,28 @@ class App:
                 err = "not allowed yet. Run once: sudo bash ~/labelbox/kiosk/allow-power.sh"
             self.power_note.configure(text="Couldn't do that: " + (err or "systemctl failed")[:120], fg=REC)
 
+    ALIGNS = ("left", "center", "right")
+
+    def set_align(self, align: str):
+        if align not in self.ALIGNS:
+            return
+        self.align.set(align)
+        self._save_settings(align=align)
+        self._refresh_align_buttons()
+
+    def cycle_align(self):
+        i = self.ALIGNS.index(self.align.get()) if self.align.get() in self.ALIGNS else 0
+        self.set_align(self.ALIGNS[(i + 1) % len(self.ALIGNS)])
+
+    def _refresh_align_buttons(self):
+        cur = self.align.get()
+        for a, b in getattr(self, "_align_btns", {}).items():
+            on = a == cur
+            col = "#000000" if on else FG
+            b.configure(image=self.icon("align-" + a, col, 24),
+                        bg=OK if on else PANEL, activebackground=OK if on else PANEL,
+                        fg=col, activeforeground=col)
+
     def set_print_hold(self, seconds):
         self.print_btn.seconds = float(seconds)
         self._save_settings(print_hold=float(seconds))
@@ -649,6 +691,7 @@ class App:
             "<F2>": lambda e: self.show_date.set(not self.show_date.get()),
             "<F3>": lambda e: self.show_qr.set(not self.show_qr.get()),
             "<F4>": lambda e: self.toggle_orientation(),
+            "<F5>": lambda e: self.cycle_align(),
             "<Control-p>": lambda e: self.print_label(),
             "<Control-Return>": lambda e: self.print_label(),
             "<Escape>": lambda e: (self.close_setup() if self.setup_panel.winfo_ismapped()
@@ -677,6 +720,7 @@ class App:
             show_qr=self.show_qr.get(),
             qr_data=self.qr_text.get().strip(),
             orientation=self.orientation.get(),
+            align=self.align.get(),
         )
 
     def schedule_preview(self):
@@ -781,7 +825,16 @@ class App:
         self.text.mark_set("insert", "end-1c")
         self.schedule_preview()
 
+    @staticmethod
+    def _tidy(spoken: str) -> str:
+        """Speech recognition ends sentences with a period; labels don't want one."""
+        spoken = spoken.strip()
+        while spoken.endswith(".") and not spoken.endswith("..."):
+            spoken = spoken[:-1].rstrip()
+        return spoken
+
     def _merge(self, spoken: str) -> str:
+        spoken = self._tidy(spoken)
         if config.RECORD_MODE == "append" and self._before_recording.strip():
             return f"{self._before_recording.rstrip()} {spoken}"
         return spoken

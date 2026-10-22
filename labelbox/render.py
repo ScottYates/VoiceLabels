@@ -19,6 +19,7 @@ class LabelSpec:
     show_qr: bool = False
     qr_data: str = ""          # blank = use the label text
     orientation: str = config.ORIENTATION
+    align: str = config.TEXT_ALIGN   # "left", "center" or "right"
 
 
 def canvas_size(orientation: str) -> tuple[int, int]:
@@ -93,7 +94,15 @@ def _fit_text(draw, text: str, box_w: int, box_h: int):
     return font, lines, line_h
 
 
-def _draw_text_block(draw, text: str, box: tuple[int, int, int, int], center: bool):
+def _x_for(align: str, x0: int, x1: int, w: float) -> float:
+    if align == "center":
+        return x0 + (x1 - x0 - w) / 2
+    if align == "right":
+        return x1 - w
+    return x0
+
+
+def _draw_text_block(draw, text: str, box: tuple[int, int, int, int], align: str):
     x0, y0, x1, y1 = box
     if not text.strip() or x1 - x0 < 20 or y1 - y0 < 10:
         return
@@ -102,7 +111,7 @@ def _draw_text_block(draw, text: str, box: tuple[int, int, int, int], center: bo
     y = y0 + (y1 - y0 - total_h) // 2
     for line in lines:
         w = draw.textlength(line, font=font)
-        x = x0 + (x1 - x0 - w) / 2 if center else x0
+        x = _x_for(align, x0, x1, w)
         draw.text((x, y), line, font=font, fill=0)
         y += line_h
 
@@ -136,6 +145,7 @@ def render(spec: LabelSpec) -> Image.Image:
     date_font = _font(config.FONT_REGULAR, config.DATE_PX)
     date_h = round(config.DATE_PX * 1.25)
     gap = 12
+    align = spec.align if spec.align in ("left", "center", "right") else "left"
 
     if spec.orientation == "landscape":
         # [ text ............ ][ QR ]
@@ -146,23 +156,25 @@ def render(spec: LabelSpec) -> Image.Image:
             img.paste(qr, (qx, (h - qr.height) // 2))
             text_box[2] = qx - gap
         if spec.show_date and spec.date_text:
-            draw.text((m, h - m - date_h), spec.date_text, font=date_font, fill=0)
+            dw = draw.textlength(spec.date_text, font=date_font)
+            dx = _x_for(align, text_box[0], text_box[2], dw)
+            draw.text((dx, h - m - date_h), spec.date_text, font=date_font, fill=0)
             text_box[3] = h - m - date_h - gap
-        _draw_text_block(draw, spec.text, tuple(text_box), center=False)
+        _draw_text_block(draw, spec.text, tuple(text_box), align)
     else:
         # [ date ]
         # [ text ]
         # [  QR  ]
         if spec.show_date and spec.date_text:
             dw = draw.textlength(spec.date_text, font=date_font)
-            draw.text(((w - dw) / 2, m), spec.date_text, font=date_font, fill=0)
+            draw.text((_x_for(align, m, w - m, dw), m), spec.date_text, font=date_font, fill=0)
             text_box[1] = m + date_h + gap
         if show_qr:
             qr = make_qr(qr_data, round(min(w, h) * config.QR_SIZE_FRACTION))
             qy = h - m - qr.height
             img.paste(qr, ((w - qr.width) // 2, qy))
             text_box[3] = qy - gap
-        _draw_text_block(draw, spec.text, tuple(text_box), center=True)
+        _draw_text_block(draw, spec.text, tuple(text_box), align)
 
     # Hard black/white threshold (no dithering) keeps text edges clean.
     return img.point(lambda p: 255 if p >= 128 else 0).convert("1", dither=Image.Dither.NONE)

@@ -17,6 +17,10 @@ ORIENTATION = "landscape"
 # 90 to 270.
 LANDSCAPE_ROTATE_DEG = 90
 
+# How the label text lines up: "left", "center" or "right" (also on the
+# Setup screen; the choice there is remembered).
+TEXT_ALIGN = "left"
+
 MARGIN_DOTS = 14              # blank border around the label (~0.07")
 
 # --- Fonts ----------------------------------------------------------------

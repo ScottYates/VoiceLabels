@@ -139,13 +139,22 @@ def icon_image(name: str, size: int, color: str, w: float = 2.2) -> Image.Image:
         _rrect(d, k, 2.5, 3.5, 21.5, 16, 1.8, c, w)
         _line(d, k, [(12, 16.5), (12, 20)], c, w)
         _line(d, k, [(7.5, 20.8), (16.5, 20.8)], c, w)
+    elif name in ("align-left", "align-center", "align-right"):
+        for y, half in ((5, 8.5), (9.7, 5.5), (14.3, 8.5), (19, 5.5)):
+            if name == "align-left":
+                x0, x1 = 3.5, 3.5 + 2 * half
+            elif name == "align-right":
+                x0, x1 = 20.5 - 2 * half, 20.5
+            else:
+                x0, x1 = 12 - half, 12 + half
+            _line(d, k, [(x0, y), (x1, y)], c, w)
     else:
         raise ValueError(f"no icon named {name!r}")
     return img.resize((size, size), Image.LANCZOS)
 
 
 NAMES = ["mic", "printer", "rotate", "clear", "gear", "power", "check", "back", "monitor",
-         "calendar", "qr", "sun", "timer", "copies"]
+         "calendar", "qr", "sun", "timer", "copies", "align-left", "align-center", "align-right"]
 
 
 if __name__ == "__main__":       # contact sheet for checking the set
