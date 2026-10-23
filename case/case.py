@@ -91,8 +91,18 @@ SEAT_RIB_W = 21.0              # solid rib inside each side wall carrying a slot
 DECK_LIP_H = 3.0               # lip on the deck's back edge, in front of the bezel
 DECK_LIP_D = 2.5
 
+# Lock pins: short printed pegs pushed in through the outside walls. Each one
+# crosses a dovetail through a groove in the rail, so the part can't slide.
+PIN_D = 4.0                    # pin shaft
+PIN_HOLE_D = 4.3               # hole through the inner parts (free fit)
+PIN_GRIP_D = 4.0               # hole through the outer wall (snug: holds the pin in)
+PIN_LEN = 21.0                 # shaft length under the head
+PIN_HEAD_D, PIN_HEAD_T = 9.0, 2.4
+PIN_HOUSING_S = 22.0           # housing pins: distance along the seat from the bezel
+PIN_POD_Z = 18.0               # pod pins: height (world Z)
+
 # Cable hole between the power pod and the space under the buttons.
-PASS_HOLE_D = 38.1             # 1.5 inch
+PASS_HOLE_D = 30.0             # ~1.2 inch: tops out below where the pod's front starts to slope
 PASS_HOLE_X = 62.0             # centre, world X (user-right is +)
 
 # Derived housing sizes
@@ -196,7 +206,10 @@ def housing():
     for sx in (-1, 1):
         rail = (dove_section(extra=0.5).extrude(z1)              # u -> X, v -> -Y
                 .mirror([0, 1, 0]).translate([sx * HOUSING_RAIL_X, 0, 0]))
-        rails.append(rail - end_cut)
+        # groove across the tip for the lock pin (pin axis at the slot bottom)
+        groove = cyl(PIN_HOLE_D / 2, W + 4, 0, 0, 0).rotate([0, 90, 0]).translate(
+            [-W / 2 - 2, -(DOVE_H + DOVE_CLR), PIN_HOUSING_S])
+        rails.append(rail - end_cut - groove)
     shell = union([shell] + rails + ribs + bosses)
 
     # Mic opening: a tall rectangle lined up with the Pi's USB port.
@@ -287,7 +300,6 @@ PSU_CLR = 0.8                      # room around the brick
 POD_WALL = 2.4
 TONGUE_T = 3.0                     # base floor extension the pod stands on
 POD_RAIL_X = W / 2 - 14.0          # vertical dovetail rails on the base's back wall
-POD_BUMP = 2.5                     # bumps on the pod's sloped front, against the back plate
 POD_GAP_V = 0.5                    # pod front to the base's rear wall
 POD_GAP_S = 3.0                    # pod front to the screen's back plate (screw heads)
 INLET_CUT = (47.6, 27.8)           # IEC socket panel cutout (W x H)
@@ -362,6 +374,31 @@ def pass_hole(y0, y1):
         [PASS_HOLE_X, y0, zc])
 
 
+def pin_hole(sx, yz, rail_x, outer_wall):
+    """Lock pin hole along X at (y, z): snug through the outer wall, free inside,
+    ending 2.5 mm past the far side of the rail's slot."""
+    y, z = yz
+    x_out = sx * (W / 2 + 1)
+    x_wall_in = sx * (W / 2 - outer_wall)
+    x_end = sx * (rail_x - DOVE_TIP / 2 - DOVE_CLR - 2.5)
+    def seg(x0, x1, d):
+        a, b = sorted((x0, x1))
+        return cyl(d / 2, b - a, 0, 0, 0).rotate([0, 90, 0]).translate([a, y, z])
+    return seg(x_out, x_wall_in, PIN_GRIP_D) + seg(x_wall_in + sx * 0.01, x_end, PIN_HOLE_D)
+
+
+def housing_pin_yz():
+    """Where the housing lock pins cross: at the bottom of the slot, so half the
+    pin sits in a groove across the rail's tip."""
+    p = E + PIN_HOUSING_S * DOWN_BACK - (DOVE_H + DOVE_CLR) * UP_FACE
+    return float(p[0]), float(p[1])
+
+
+def pod_pin_yz():
+    """Pod lock pins cross at the tip face of the base's rails."""
+    return B[0] + DOVE_H + DOVE_CLR, PIN_POD_Z
+
+
 def base():
     if POWER_POD:   # straight rear wall under the housing; the pod sits behind it
         prof = [(0, 0), (0, FRONT_H), (DECK_LEN, FRONT_H + DECK_LEN * T(DA)),
@@ -410,6 +447,8 @@ def base():
     # Trim everything to the outside profile.
     body = body ^ solid
     cuts.append(housing_slots())
+    for sx in (-1, 1):
+        cuts.append(pin_hole(sx, housing_pin_yz(), HOUSING_RAIL_X, outer_wall=BASE_WALL))
     rear_feet_y = BASE_LEN - 22
     if POWER_POD:
         # Floor tongue the pod stands on, and the vertical dovetail rails on the
@@ -418,6 +457,10 @@ def base():
         z0, z1 = pod_rail_z()
         rails = [dove_section(extra=0.5).extrude(z1 - z0).translate([sx * POD_RAIL_X, B[0], z0])
                  for sx in (-1, 1)]
+        # groove across each rail's tip for the pod's lock pin
+        py, pz = pod_pin_yz()
+        groove = cyl(PIN_HOLE_D / 2, W + 4, 0, 0, 0).rotate([0, 90, 0]).translate([-W / 2 - 2, py, pz])
+        rails = [r - groove for r in rails]
         body = union([body] + rails)
         cuts.append(pass_hole(B[0] - BASE_WALL - 10, B[0] + 0.3))
         rear_feet_y = TOTAL_LEN - 14
@@ -461,14 +504,9 @@ def power_pod():
                     .translate([x, B[0], z0 - 1]))
     # The 1.5" cable hole through the front wall, into the space under the buttons.
     cuts.append(pass_hole(yf - 1, slant_in(TONGUE_T + POD_WALL + PASS_HOLE_D) + 1.5))
-    # Bumps on the sloped front that rest against the screen's back plate, so the
-    # pod can't lift off its rails while the housing is on.
-    nrm = np.array([0.0, -DOWN_BACK[0], -DOWN_BACK[1]])          # out of the slope, toward the housing
-    zb = z_top - 12
+    # Lock pin holes through each side wall into the rail pads.
     for sx in (-1, 1):
-        p = np.array([sx * 75.0, front(zb), zb]) - 0.3 * nrm
-        bump = Manifold.batch_hull([cyl(5.0, 0.01, 0, 0, 0), cyl(3.0, 0.01, 0, 0, POD_BUMP + 0.3)])
-        adds.append(bump.rotate([90 - RECLINE, 0, 0]).translate(p.tolist()))
+        cuts.append(pin_hole(sx, pod_pin_yz(), POD_RAIL_X, outer_wall=POD_WALL))
     # Lid screw bosses in the four inside corners.
     lid_pts = pod_lid_points()
     for x, y in lid_pts:
@@ -528,6 +566,14 @@ def pod_lid():
             - box(-W / 2 + w + 2.4, W / 2 - w - 2.4, yi0 + 2, yi1 - 2, -3, 1))
     ring = ring - union([cyl(5.5, 4, x, y, -3) for x, y in pod_lid_points()])   # clear the bosses
     return (lid + ring) - union(cuts)
+
+def lock_pin():
+    """Printed head down. A flat on the head gives a fingernail or pliers a grip."""
+    head = cyl(PIN_HEAD_D / 2, PIN_HEAD_T)
+    shaft = cyl(PIN_D / 2, PIN_LEN - 0.6, 0, 0, PIN_HEAD_T - 0.01)
+    tip = Manifold.cylinder(0.6, PIN_D / 2, PIN_D / 2 - 0.5, SEG).translate([0, 0, PIN_HEAD_T + PIN_LEN - 0.61])
+    return union([head, shaft, tip]) - box(-10, 10, PIN_HEAD_D / 2 - 1.2, 10, -1, PIN_HEAD_T + 0.01)
+
 
 def deck(deck_posts):
     L = DECK_LEN / math.cos(DA)               # length along the slope
@@ -589,6 +635,7 @@ def build():
         "3_clamp_x4": union([cl.translate([i * 18, 0, 0]) for i in range(4)]),
         "4_base": b,
         "5_deck": d,                                      # top face up: labels print last, crisp
+        "8_lock_pin_x4": union([lock_pin().translate([i * 12, 0, 0]) for i in range(4)]),
     }
     if POWER_POD:
         parts["6_power_pod"] = power_pod()                # as modelled: floor down
