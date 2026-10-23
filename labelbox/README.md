@@ -179,6 +179,8 @@ The fields start filled in with the current address, router and DNS, so for a fi
 
 Changing the network needs the same permission as Restart and Shut down: kiosk mode sets it up; otherwise run `sudo bash kiosk/allow-power.sh` once (run it again if you set it up before the Network screen existed).
 
+**Staying connected.** The app turns Wi-Fi power saving off (the Pi's Wi-Fi chip can stop answering while it naps) and checks the router every 20 seconds. If the router stops answering for about a minute, it reconnects the Wi-Fi, then turns the radio off and on if that doesn't help. Each drop and recovery is written to `network.log`, with the signal strength at the time.
+
 The screen goes dark after 5 minutes with no touch, key or button press. Tap it to wake it; that first tap only wakes the screen and never presses a button. Pressing TALK while the screen is dark wakes it and starts recording; PRINT wakes it and starts the hold. The screen comes back at the brightness you chose.
 
 ### Icons

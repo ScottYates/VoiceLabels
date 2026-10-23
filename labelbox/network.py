@@ -9,6 +9,11 @@ change the connection is brought up again (a few seconds' drop) and checked:
 if the Pi can't reach the router at the new address within the timeout, the
 old settings are put back, so a typo can't strand it off the network.
 
+Wi-Fi power saving is turned off on the connection (the Pi's Wi-Fi chip is
+known to stop answering on the network when it naps), and watch() runs in the
+background: it pings the router, writes drops to ~/labelbox/network.log and
+reconnects the Wi-Fi if the router stays out of reach.
+
 The app keeps the choice in its settings too and calls ensure() at start-up,
 because with power-off protection on, NetworkManager's own files are reset
 at every restart.
@@ -16,8 +21,11 @@ at every restart.
 
 from __future__ import annotations
 
+import datetime
 import ipaddress
+import os
 import subprocess
+import threading
 import time
 
 TIMEOUT = 20
@@ -207,6 +215,11 @@ def ensure(saved: dict, wait_for_network=90) -> str | None:
         except NetError:
             pass
         time.sleep(2)
+    if st and st["connection"] and powersave_off(st["connection"]) and matches(saved, st):
+        try:
+            _run(["connection", "up", st["connection"]], timeout=45)   # so it takes effect
+        except NetError as e:
+            log(f"reconnect after power-save change failed: {e}")
     if not st or not st["connection"] or matches(saved, st):
         return None
     try:
@@ -218,3 +231,99 @@ def ensure(saved: dict, wait_for_network=90) -> str | None:
         return "Network: automatic address"
     except NetError as e:
         return f"Network setting not applied: {e}"
+
+
+LOG = os.path.expanduser("~/labelbox/network.log")
+
+
+def log(msg: str):
+    line = f"{datetime.datetime.now():%Y-%m-%d %H:%M:%S}  {msg}"
+    print("network:", msg, flush=True)
+    try:
+        lines = []
+        if os.path.exists(LOG):
+            with open(LOG) as f:
+                lines = f.readlines()[-400:]
+        lines.append(line + "\n")
+        with open(LOG, "w") as f:
+            f.writelines(lines)
+    except OSError:
+        pass
+
+
+def powersave_off(con: str) -> bool:
+    """Make sure Wi-Fi power saving is off for this connection. True if it had
+    to be changed (it takes effect when the connection next comes up)."""
+    try:
+        if _run(["-g", "connection.type", "connection", "show", con]).strip() != "802-11-wireless":
+            return False
+        if _run(["-g", "802-11-wireless.powersave", "connection", "show", con]).strip() == "disable":
+            return False
+        _run(["connection", "modify", con, "802-11-wireless.powersave", "2"])
+        log(f"turned Wi-Fi power saving off for {con}")
+        return True
+    except NetError as e:
+        log(f"couldn't turn Wi-Fi power saving off: {e}")
+        return False
+
+
+def _link_info(dev):
+    try:
+        out = subprocess.run(["/usr/sbin/iw", "dev", dev, "link"], capture_output=True,
+                             text=True, timeout=4).stdout
+        keep = [l.strip() for l in out.splitlines()
+                if l.strip().startswith(("Connected", "Not connected", "SSID", "freq", "signal"))]
+        return "; ".join(keep) or "no link info"
+    except Exception:  # noqa: BLE001
+        return "no link info"
+
+
+def _ping(host, dev=None):
+    args = ["ping", "-c", "1", "-W", "2"] + (["-I", dev] if dev else []) + [host]
+    try:
+        return subprocess.run(args, capture_output=True, timeout=5).returncode == 0
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def watch(every=20, fails_before_fix=3, on_change=None):
+    """Background loop: ping the router; after a few misses reconnect the Wi-Fi
+    (first the connection, then the radio). Every drop and fix is logged."""
+    def loop():
+        misses, down_since, gateway, dev, con, tries = 0, None, None, None, None, 0
+        while True:
+            try:
+                st = status()
+                if st["gateway"]:
+                    gateway, dev, con = st["gateway"], st["device"], st["connection"] or con
+            except Exception:  # noqa: BLE001
+                pass
+            ok = bool(gateway) and _ping(gateway, dev)
+            if ok:
+                if down_since:
+                    log(f"back online after {int(time.monotonic() - down_since)} s ({_link_info(dev)})")
+                    if on_change:
+                        on_change(True)
+                misses, down_since, tries = 0, None, 0
+            else:
+                misses += 1
+                if misses == 1:
+                    down_since = time.monotonic()
+                    log(f"router {gateway} not answering ({_link_info(dev or 'wlan0')})")
+                    if on_change:
+                        on_change(False)
+                if misses >= fails_before_fix and (misses - fails_before_fix) % 6 == 0:
+                    tries += 1
+                    try:
+                        if tries % 2 == 1 and con:
+                            log(f"reconnecting {con}")
+                            _run(["connection", "up", con], timeout=45)
+                        else:
+                            log("turning the Wi-Fi radio off and on")
+                            _run(["radio", "wifi", "off"])
+                            time.sleep(3)
+                            _run(["radio", "wifi", "on"])
+                    except NetError as e:
+                        log(f"reconnect failed: {e}")
+            time.sleep(every)
+    threading.Thread(target=loop, daemon=True, name="net-watch").start()

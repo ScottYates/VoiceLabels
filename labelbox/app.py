@@ -1128,14 +1128,13 @@ class App:
     def _network_at_start(self):
         """Put the saved network choice back at start-up (needed with power-off
         protection on, which resets the system's own network files)."""
-        saved = self._load_settings().get("network")
-        if not saved:
-            return
+        saved = self._load_settings().get("network") or {}
 
         def work():
             note = network.ensure(saved)
             if note:
                 self.events.put(("net_note", note))
+            network.watch()
         threading.Thread(target=work, daemon=True).start()
 
     def open_power(self):
