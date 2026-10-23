@@ -1,13 +1,13 @@
 # Voice Labels case
 
 <p align="center">
-  <img src="docs/case-front.png?v=4" alt="Front: reclined screen housing above the button deck" width="420">
-  <img src="docs/case-back.png?v=4" alt="Back: the power pod under the screen's lean, with the switched power socket in its back wall" width="400">
+  <img src="docs/case-front.png?v=5" alt="Front: reclined screen housing above the button deck" width="420">
+  <img src="docs/case-back.png?v=5" alt="Back: the power pod under the screen's lean, with the switched power socket in its back wall" width="400">
 </p>
 
 A desk console for the voice label printer: the 7" screen (with the Pi on its back) sits in a housing reclined 20°. In front of it is a sloped deck with the **TALK** (left) and **PRINT** (right) buttons. The mic plugs straight into one of the Pi's USB ports through a tall opening in the right side wall. Cables leave through snap-out tabs on either side. Behind the base, tucked under the screen's lean, a closed **power pod** holds the USB power brick, with a switched, fused mains socket in its back wall. A 30 mm round hole on the right side joins the pod to the space under the buttons, for cables.
 
-The big parts join with **sliding dovetails**, not screws: the screen housing slides down into slots in the base, and the power pod drops onto rails on the back of the base. Four push-in **lock pins** hold them there, and pulling the pins lets them slide apart again.
+The big parts join with **sliding dovetails**, not screws: the screen housing slides down into slots in the base, and the power pod drops onto rails on the back of the base. Quarter-turn **lock pins** hold them there: a twist of the pin's wing head locks or frees it.
 
 Assembled size: about **215 W × 155 D × 173 H mm**. Every part fits the Snapmaker U1's 270 mm bed and prints **without supports**.
 
@@ -17,12 +17,12 @@ Assembled size: about **215 W × 155 D × 173 H mm**. Every part fits the Snapma
 |---|---|---|---|
 | `stl/1_housing.stl` | As exported: bezel face down | 215 × 125 × 42 | The bezel's first layers are the visible front, so use a smooth, clean plate. The two dovetail rails under the bottom wall print straight up with it |
 | `stl/2_back_plate.stl` | Flat | 215 × 120 × 2.5 | Vents over the Pi |
-| `stl/3_screen_pin_x4.stl` | As exported: heads down | four pins, Ø4 × 28 mm | Hold the screen board in the housing. Print at 100% infill |
+| `stl/3_screen_pin_x4.stl` | As exported: heads down | four pins, Ø4 × 28 mm | Hold the screen board in the housing. Same quarter-turn lock as the lock pins, just longer. Print at 100% infill |
 | `stl/4_base.stl` | As exported: floor down | 215 × 155 × 61 | Use a brim if the corners lift. It has the housing's dovetail slots in two solid ribs along the seat, two vertical rails on its back wall for the pod, and the floor carries on behind as a tongue the pod stands on |
 | `stl/5_deck.stl` | As exported: top face up | 215 × 63 × 6 | TALK and PRINT are engraved 0.6 mm deep in the top, so they form in the last layers and stay crisp. For coloured letters, add a filament change at 2.4 mm on the U1, or paint them. Around each button hole the plate is thinned to 2 mm from underneath so the buttons' snap-in clips can grip. The 3 mm lip along its back edge sits in front of the screen bezel and locks the housing in |
 | `stl/6_power_pod.stl` | As exported: floor down | 215 × 50 × 68 | **Print in PETG** (it holds mains wiring and a warm brick). Its front leans back 20° to follow the screen; that prints fine without supports. The rail slots in its front wall are open at the bottom |
 | `stl/7_pod_lid.stl` | As exported: top face down | 215 × 38 × 4 | PETG. The lip on top locates it inside the pod |
-| `stl/8_lock_pin_x4.stl` | As exported: heads down | four pins, Ø4 × 21 mm | Print at 100% infill. The flat on each head is a grip for a fingernail or pliers |
+| `stl/8_lock_pin_x4.stl` | As exported: heads down | four pins, Ø4 × 21 mm | Print at 100% infill, in PETG if you have it (it's tougher for the click). The small lug near each head is a 1.4 mm overhang, which prints fine |
 
 Suggested settings: PLA or PETG, 0.4 mm nozzle, 0.2 mm layers, 3 walls, 15–20% gyroid infill, no supports.
 
@@ -44,7 +44,7 @@ The screws thread straight into printed pilot holes. Don't overtighten them.
 
 ## How the parts join
 
-<p align="center"><img src="docs/case-joints.png?v=2" alt="Base from behind showing the housing slots with their lock pins, the pod rails and the cable hole; housing from below showing its two rails with the pin grooves" width="760"></p>
+<p align="center"><img src="docs/case-joints.png?v=3" alt="Base from behind showing the housing slots with their lock pins, the pod rails and the cable hole; housing from below showing its two rails with the pin grooves" width="760"></p>
 
 - **Housing to base:** two dovetail rails run front to back under the housing. They slide into matching slots in two solid ribs inside the base, along the sloped seat. The slots are open at the front (the deck end) and closed at the back, so the housing goes in from the front, sliding down and back along the seat until it stops. It can't lift or shift sideways.
 - **Housing lock pins:** one pin goes in through each side wall of the base, near the top. It passes through the rib and across the bottom of the slot, where a groove across the housing's rail meets it. With the pins in, the housing can't slide either way.
@@ -53,25 +53,37 @@ The screws thread straight into printed pilot holes. Don't overtighten them.
 - **Deck lip:** the lip along the deck's back edge stands in front of the bottom of the bezel and hides the joint line. It also stops the housing sliding forward while the deck is on.
 - **Cable hole:** a 30 mm round hole on the right side, through the pod's front wall and the base's back wall, lines up when the pod is on its rails. Its bottom is level with the pod floor and its top stays below where the pod's front starts to slope, so it never opens into a gap.
 
-**The lock pins** push in snugly through the outside wall and slide freely inside. Push each one in until its head sits against the wall. To take a pin out, get a fingernail or pliers under the flat on its head and pull. If the pins come out too easily, print them at 101–102% scale; if they won't go in, lower the scale slightly or run a 4 mm drill through the outer hole.
+### The quarter-turn lock pins
 
-Taking it apart is the same steps in reverse: pull the two pod pins and lift the pod off; take the deck off (4 screws), pull the two housing pins, and slide the housing forward and up out of its slots. To take the screen out, pull the four screen pins.
+<p align="center"><img src="docs/pin-lock.png?v=1" alt="A lock pin beside its hole: the hole has a slot at the top for the lug on the pin" width="360"></p>
+
+All eight pins (four lock pins, four longer screen pins) lock the same way, like a camera lens:
+
+1. **In:** hold the pin with its wing head **upright** (pointing the same way as the slot at the top of the hole) and push it all the way in. The small lug on the shaft passes through the slot.
+2. **Lock:** turn the wing head a quarter turn, either way, until it lies **crosswise**. Behind the wall, the lug rides up a small ramp, which pulls the head tight against the wall, then drops into a notch with a click. A stop just past the notch keeps it from turning too far.
+3. **Out:** turn the head back to upright (it takes a firm twist to get the lug back over the ramp) and pull the pin out.
+
+The pin can't come out while it's crosswise, and it can't turn back by itself: getting the lug back over the ramp takes a deliberate twist, so vibration and handling won't loosen it. The head shows at a glance which pins are locked.
+
+If a pin is too stiff to turn, lower `RAMP_H` (0.4 mm) in `case.py`. If it doesn't click firmly, raise it a little, or print the pins in PETG.
+
+Taking it apart is the same steps in reverse: unlock and pull the two pod pins and lift the pod off; take the deck off (4 screws), unlock and pull the two housing pins, and slide the housing forward and up out of its slots. To take the screen out, unlock and pull the four screen pins.
 
 The joints are sized with 0.25 mm of play on each side (`DOVE_CLR`). Print the deck first if you like, but it's worth test-sliding the housing into the base before wiring anything: it should slide with a firm push and no wobble. If it's too tight, sand the rails lightly or raise `DOVE_CLR` to 0.3–0.35 and reprint the base.
 
 ## Assembly
 
-<p align="center"><img src="docs/case-exploded.png?v=1" alt="Exploded view: the deck lifted off the front, the housing slid forward and up out of its slots, the pod lifted off its rails" width="520"></p>
+<p align="center"><img src="docs/case-exploded.png?v=2" alt="Exploded view: the deck lifted off the front, the housing slid forward and up out of its slots, the pod lifted off its rails" width="520"></p>
 
 1. **Test the fit first.** Print the deck and push a button into one hole. Check that the mic's plug passes through the opening in the housing's right wall. If the holes are tight or loose, see Adjusting below.
 2. **Snap out cable tabs.** The housing has four tabs on its back edge, a high and a low one on each side. Snap out the ones you need with pliers: a high tab for the power cable on whichever side you prefer, and the middle tab on the right side for the printer cable.
 3. **Wire the power pod** (see "Power pod wiring" below), with nothing plugged into the wall.
-4. **Fit the pod.** Hold it above the back of the base and lower it so the slots in its front wall catch the base's two vertical rails, then let it slide down until it sits on the floor tongue. The cable holes line up on the right side. Push a lock pin into the hole low on each side of the pod.
-5. **Fit the screen.** Remove the black corner stands from the screen if they're still attached. With the housing face down on a soft cloth, lower the screen and Pi face-first into it. The two side rails centre it, and the glass sits against the bezel. Push the four screen pins (the longer ones) in through the holes in the housing's side walls, two on each side, until their heads sit against the wall. Each passes through a post beside the board and reaches 3.5 mm over the back of the board's edge, holding it against the bezel.
+4. **Fit the pod.** Hold it above the back of the base and lower it so the slots in its front wall catch the base's two vertical rails, then let it slide down until it sits on the floor tongue. The cable holes line up on the right side. Push a lock pin into the hole low on each side of the pod, head upright, and turn it crosswise to lock.
+5. **Fit the screen.** Remove the black corner stands from the screen if they're still attached. With the housing face down on a soft cloth, lower the screen and Pi face-first into it. The two side rails centre it, and the glass sits against the bezel. Push the four screen pins (the longer ones) in through the holes in the housing's side walls, two on each side, and turn each a quarter turn to lock. Each passes through a post beside the board and reaches 3.5 mm over the back of the board's edge, holding it against the bezel.
 
-   <p align="center"><img src="docs/screen-pins.png?v=1" alt="Inside the housing from behind: four gold pins pass through posts beside the screen board and over its edges" width="520"></p>
+   <p align="center"><img src="docs/screen-pins.png?v=2" alt="Inside the housing from behind: four gold pins pass through posts beside the screen board and over its edges" width="520"></p>
 6. **Fit the buttons.** Push each button down through its hole in the deck from the top until its clips snap under the plate (TALK on the left, PRINT on the right). If your buttons came with a plastic nut instead, screw it on from underneath; the thinned area leaves room for it. Wire them as described in the main README ("Wiring the buttons").
-7. **Slide the housing in.** Hold it above the front of the base, screen facing you, with the rails under it lined up with the slots at the front of the seat. Slide it down and back along the seat until it stops. As it goes in, feed the button wires up through the slot in the housing's floor, and any cables from the pod through the cable hole. Push a lock pin into the hole near the top of each side of the base.
+7. **Slide the housing in.** Hold it above the front of the base, screen facing you, with the rails under it lined up with the slots at the front of the seat. Slide it down and back along the seat until it stops. As it goes in, feed the button wires up through the slot in the housing's floor, and any cables from the pod through the cable hole. Push a lock pin into the hole near the top of each side of the base and turn it to lock.
 8. **Connect inside.** Connect the button wires to the GPIO header. Then, from outside, push the mic's plug through the opening in the right wall into the Pi's USB port behind it. Coil the spare cable. Plug in the printer cable and the keyboard's receiver.
 9. **Route the USB-C cable.** Either through the cable hole into the base and up through the slot in the housing's floor, or out of the notch at the top of the pod's front wall, up the back of the housing and in through the notch at the top edge of the back plate, right behind the Pi's USB-C port. Plug it into the Pi.
 10. **Fit the deck.** Screw it onto the base (4 × M3 × 10).
@@ -81,7 +93,7 @@ The joints are sized with 0.25 mm of play on each side (`DOVE_CLR`). Print the d
 
 **This is mains voltage. Do all of it unplugged, and if you've never wired a plug or a light fitting, have someone who has check it before you plug in.**
 
-<p align="center"><img src="docs/case-open.png?v=2" alt="Looking down into the power pod with its lid off: the brick stands on edge against the back wall" width="420"></p>
+<p align="center"><img src="docs/case-open.png?v=3" alt="Looking down into the power pod with its lid off: the brick stands on edge against the back wall" width="420"></p>
 
 The power socket in the pod's back wall has a fuse and a lighted rocker switch built in. It comes with short wires already crimped onto its back. Inside the pod:
 
@@ -121,7 +133,8 @@ Everything is set by the numbers at the top of `case.py`. Ready-to-print copies 
 | `DOVE_CLR` | 0.25 | Play on each side of every dovetail. Raise it if the housing or pod won't slide on, lower it if they wobble |
 | `DOVE_NECK`, `DOVE_TIP`, `DOVE_H` | 10, 13, 5 | Dovetail rail size: width at the root, width at the tip, height |
 | `PASS_HOLE_D`, `PASS_HOLE_X` | 30, 62 | The cable hole between the pod and the base: diameter, and how far right of centre. Larger than about 30.7 mm and the top of the hole reaches the pod's sloped front |
-| `PIN_D`, `PIN_GRIP_D`, `PIN_HOLE_D` | 4.0, 4.0, 4.3 | Lock pin shaft, the snug hole through the outer wall, and the free hole inside (for the lock pins and the screen pins) |
+| `PIN_D`, `PIN_HOLE_D` | 4.0, 4.3 | Pin shaft and the holes it passes through (lock pins and screen pins) |
+| `RAMP_H`, `NOTCH_H`, `LUG_GAP` | 0.4, 0.15, 0.15 | The quarter-turn lock: how high the ramp behind the wall rises, the notch the lug clicks into, and the lug's clearance before the ramp. A higher ramp means a stiffer turn and a firmer click |
 | `SCREEN_PIN_OVER`, `CLAMP_YS` | 3.5, 15 / 87 mm up the board | How far the screen pins reach over the board, and where along its sides. If something on the back of your screen board is in the way, move them |
 | `PSU_L`, `PSU_H`, `PSU_T` | 63.5, 63.5, 31.75 | The power brick: prong-to-cable length, height, thickness |
 | `INLET_CUT`, `INLET_SCREW_SPACING` | 47.6 × 27.8, 40 | Power socket cutout and its screw spacing (screws above and below). Check against your socket before printing the pod |

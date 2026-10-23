@@ -93,11 +93,20 @@ DECK_LIP_D = 2.5
 
 # Lock pins: short printed pegs pushed in through the outside walls. Each one
 # crosses a dovetail through a groove in the rail, so the part can't slide.
+# They lock with a quarter turn, like a camera-lens bayonet: a lug on the shaft
+# passes a slot in the wall, then turns behind it, riding up a small ramp on
+# the wall's inside face (which pulls the head tight) and dropping into a
+# notch at 90 degrees. A raised stop past the notch stops it turning too far.
 PIN_D = 4.0                    # pin shaft
-PIN_HOLE_D = 4.3               # hole through the inner parts (free fit)
-PIN_GRIP_D = 4.0               # hole through the outer wall (snug: holds the pin in)
+PIN_HOLE_D = 4.3               # holes the shaft passes through
 PIN_LEN = 21.0                 # shaft length under the head
-PIN_HEAD_D, PIN_HEAD_T = 9.0, 2.4
+PIN_HEAD_L, PIN_HEAD_W, PIN_HEAD_T = 14.0, 6.0, 2.4   # wing head you turn with your fingers
+PIN_WALL = 2.4                 # the walls the pins lock behind (all 2.4 mm)
+LUG_R, LUG_W, LUG_T = 3.2, 1.8, 1.2   # lug: reach from the axis, width, thickness
+LUG_GAP = 0.15                 # lug face to the wall's inside face, before the ramp
+RAMP_H, NOTCH_H, STOP_H = 0.4, 0.15, 1.2   # ramp top, notch floor, stop: height off the wall
+KEYWAY_W, KEYWAY_R = 2.3, 3.6  # slot in the wall the lug passes through
+POCKET_R, POCKET_L = 3.8, 2.2  # room behind the wall for the lug to turn
 PIN_HOUSING_S = 22.0           # housing pins: distance along the seat from the bezel
 PIN_POD_Z = 18.0               # pod pins: height (world Z)
 
@@ -226,16 +235,12 @@ def housing():
     for sx in (-1, 1):
         for y in (WALL + RIB / 2, WALL + INNER_H - RIB / 2):
             holes.append(cyl(PILOT_R, 10.5, sx * RIB_X, y, DEPTH - 10))
-    # Screen pins: in through the side wall (snug), through the post (free),
+    bores = []
+    # Screen pins: in through the side wall, through the post,
     # reaching over the back of the board's edge.
     for sx in (-1, 1):
         for y in CLAMP_YS:
-            z = screen_pin_z()
-            def seg(x0, x1, d):
-                a, b = sorted((x0, x1))
-                return cyl(d / 2, b - a, 0, 0, 0).rotate([0, 90, 0]).translate([a, y, z])
-            holes.append(seg(sx * (W / 2 + 1), sx * (W / 2 - WALL), PIN_GRIP_D))
-            holes.append(seg(sx * (W / 2 - WALL + 0.01), sx * (CLAMP_X - 4.5), PIN_HOLE_D))
+            bores.append(pin_bore(sx, y, screen_pin_z(), sx * (CLAMP_X - 4.5)))
     # Wire pass-through in the bottom wall (button wires to the GPIO header).
     holes.append(box(-20, 20, -1, WALL + 1, 8, 30))
     # Breakaway cable tabs: a notch at the back rim of each side wall, filled
@@ -253,7 +258,7 @@ def housing():
             # thin the hinge line at the bottom of the tab from the inside
             hinge_in = (xa, xb - KO_WEB) if sx > 0 else (xa + KO_WEB, xb)
             holes.append(box(hinge_in[0], hinge_in[1], y0, y1, z0 - 0.01, z0 + 1.2))
-    return shell - union(holes)
+    return add_pin_bores(shell - union(holes), bores)
 
 USBC_X = 31.4                   # Pi USB-C port across the housing (print X)
 USBC_NOTCH_W = 7.5              # cable notch in the back plate (cable up to ~6.5 mm)
@@ -388,17 +393,67 @@ def pass_hole(y0, y1):
         [PASS_HOLE_X, y0, zc])
 
 
-def pin_hole(sx, yz, rail_x, outer_wall):
-    """Lock pin hole along X at (y, z): snug through the outer wall, free inside,
-    ending 2.5 mm past the far side of the rail's slot."""
-    y, z = yz
-    x_out = sx * (W / 2 + 1)
-    x_wall_in = sx * (W / 2 - outer_wall)
-    x_end = sx * (rail_x - DOVE_TIP / 2 - DOVE_CLR - 2.5)
-    def seg(x0, x1, d):
+def pin_bore(sx, y, z, x_end):
+    """Hole for a quarter-turn lock pin along X at (y, z), entering through the
+    side wall at x = sx * W/2. Returns (cuts, adds): the hole, slot and turning
+    pocket to remove, and the ramps, notches and stops on the wall's inside face
+    to add back. The slot points up (+Z in the part's own frame, which is up on
+    the print bed too); the pin locks a quarter turn either way."""
+    xo, xi = sx * W / 2, sx * (W / 2 - PIN_WALL)
+    def along(x0, x1, r):
         a, b = sorted((x0, x1))
-        return cyl(d / 2, b - a, 0, 0, 0).rotate([0, 90, 0]).translate([a, y, z])
-    return seg(x_out, x_wall_in, PIN_GRIP_D) + seg(x_wall_in + sx * 0.01, x_end, PIN_HOLE_D)
+        return cyl(r, b - a, 0, 0, 0).rotate([0, 90, 0]).translate([a, y, z])
+    cuts = [along(xo + sx * 1, x_end, PIN_HOLE_D / 2)]
+    a, b = sorted((xo + sx * 1, xi - sx * 0.01))
+    cuts.append(box(a, b, y - KEYWAY_W / 2, y + KEYWAY_W / 2, z, z + KEYWAY_R))
+    cuts.append(along(xi + sx * 0.01, xi - sx * POCKET_L, POCKET_R))
+    # Ramp, notch and stop: thin sector slabs on the inside face, each side of the slot.
+    def height(t):
+        if 24 <= t < 66:
+            return RAMP_H * (t - 24) / 42 + 0.02
+        if 66 <= t < 112:
+            return NOTCH_H
+        if 112 <= t < 140:
+            return STOP_H
+        return 0.0
+    r0, r1 = PIN_HOLE_D / 2 + 0.05, LUG_R + 0.35
+    step = 3
+    adds = []
+    for side in (-1, 1):
+        for t in range(24, 140, step):
+            h = height(t + step / 2)
+            a0_, a1_ = math.radians(t), math.radians(t + step + 0.5)
+            quad = [(r0, a0_), (r1, a0_), (r1, a1_), (r0, a1_)]
+            yz = [(y + r * math.sin(a) * side, z + r * math.cos(a)) for r, a in quad]
+            x0, x1 = sorted((xi + sx * 0.01, xi - sx * h))
+            adds.append(x_extrude(yz, x0, x1))
+    return union(cuts), union(adds)
+
+
+def pin_hole(sx, yz, rail_x, outer_wall=None):
+    """Lock pin hole ending 2.5 mm past the far side of the rail's slot."""
+    y, z = yz
+    return pin_bore(sx, y, z, sx * (rail_x - DOVE_TIP / 2 - DOVE_CLR - 2.5))
+
+
+def add_pin_bores(body, bores):
+    """Cut the holes and pockets, then add the ramps back."""
+    cuts = union([c for c, _ in bores])
+    adds = union([a for _, a in bores])
+    return (body - cuts) + adds
+
+
+def pin_place(m, sx, y, z, locked=True):
+    """Put a pin (modelled head-down along +Z, lug along +X) into its hole on
+    side sx: head against the wall, lug sideways when locked, up when not."""
+    lug = [0, 1, 0] if locked else [0, 0, 1]
+    ax = [-sx, 0, 0]
+    third = np.cross(ax, lug).tolist()
+    # columns: images of local X (lug), local Y, local Z (axis)
+    mat = [[lug[0], third[0], ax[0], sx * (W / 2 + PIN_HEAD_T)],
+           [lug[1], third[1], ax[1], y],
+           [lug[2], third[2], ax[2], z]]
+    return m.transform(mat)
 
 
 def housing_pin_yz():
@@ -461,8 +516,7 @@ def base():
     # Trim everything to the outside profile.
     body = body ^ solid
     cuts.append(housing_slots())
-    for sx in (-1, 1):
-        cuts.append(pin_hole(sx, housing_pin_yz(), HOUSING_RAIL_X, outer_wall=BASE_WALL))
+    bores = [pin_hole(sx, housing_pin_yz(), HOUSING_RAIL_X) for sx in (-1, 1)]
     rear_feet_y = BASE_LEN - 22
     if POWER_POD:
         # Floor tongue the pod stands on, and the vertical dovetail rails on the
@@ -482,7 +536,7 @@ def base():
     for x in (-W / 2 + 16, W / 2 - 16):
         for y in (16, rear_feet_y):
             cuts.append(cyl(6.5, 1.2, x, y, -0.2))
-    return body - union(cuts), deck_posts
+    return add_pin_bores(body - union(cuts), bores), deck_posts
 
 
 def power_pod():
@@ -518,9 +572,10 @@ def power_pod():
                     .translate([x, B[0], z0 - 1]))
     # The 1.5" cable hole through the front wall, into the space under the buttons.
     cuts.append(pass_hole(yf - 1, slant_in(TONGUE_T + POD_WALL + PASS_HOLE_D) + 1.5))
+    bores = []
     # Lock pin holes through each side wall into the rail pads.
     for sx in (-1, 1):
-        cuts.append(pin_hole(sx, pod_pin_yz(), POD_RAIL_X, outer_wall=POD_WALL))
+        bores.append(pin_hole(sx, pod_pin_yz(), POD_RAIL_X))
     # Lid screw bosses in the four inside corners.
     lid_pts = pod_lid_points()
     for x, y in lid_pts:
@@ -549,7 +604,7 @@ def power_pod():
         x = xb1 + 6 + i * 6
         if x + 2.5 < W / 2 - 14:
             cuts.append(box(x, x + 2.5, yb - w - 1, yb + 1, z_top - 30, z_top - 8))
-    pod = union([pod] + adds) - union(cuts)
+    pod = add_pin_bores(union([pod] + adds) - union(cuts), bores)
     return pod
 
 def pod_lid_points():
@@ -582,12 +637,19 @@ def pod_lid():
     return (lid + ring) - union(cuts)
 
 def lock_pin(length=None):
-    """Printed head down. A flat on the head gives a fingernail or pliers a grip."""
+    """Quarter-turn lock pin, modelled as printed: wing head flat on the bed,
+    shaft up. The lug (local +X) lines up with the head's long axis, so the
+    head shows the lock state: along the slot = open, crosswise = locked.
+    The lug's flat underside is a 1.4 mm overhang, which prints fine."""
     length = PIN_LEN if length is None else length
-    head = cyl(PIN_HEAD_D / 2, PIN_HEAD_T)
-    shaft = cyl(PIN_D / 2, length - 0.6, 0, 0, PIN_HEAD_T - 0.01)
-    tip = Manifold.cylinder(0.6, PIN_D / 2, PIN_D / 2 - 0.5, SEG).translate([0, 0, PIN_HEAD_T + length - 0.61])
-    return union([head, shaft, tip]) - box(-10, 10, PIN_HEAD_D / 2 - 1.2, 10, -1, PIN_HEAD_T + 0.01)
+    L, Wd, T = PIN_HEAD_L, PIN_HEAD_W, PIN_HEAD_T
+    head = rrect(L, Wd, Wd / 2 - 0.01).extrude(T)
+    shaft = cyl(PIN_D / 2, length - 0.6, 0, 0, T - 0.01)
+    tip = Manifold.cylinder(0.6, PIN_D / 2, PIN_D / 2 - 0.5, SEG).translate([0, 0, T + length - 0.61])
+    z0 = T + PIN_WALL + LUG_GAP
+    lug = box(PIN_D / 2 - 0.3, LUG_R, -LUG_W / 2, LUG_W / 2, z0, z0 + LUG_T)
+    lug = lug ^ cyl(LUG_R, LUG_T + 1, 0, 0, z0 - 0.5)          # round its outer end
+    return union([head, shaft, tip, lug])
 
 
 def deck(deck_posts):
