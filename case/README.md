@@ -13,7 +13,7 @@ Assembled size: about **215 W × 155 D × 173 H mm**. Every part fits the Snapma
 
 ## 3D viewer
 
-**[Open the 3D viewer](https://scottyates.github.io/VoiceLabels/)**: turn the case, zoom, see through the shell, spread the parts apart to see how they slide off their dovetails, and tap **Slide the panels** to watch the deck, back plate and pod lid slide out of their rails and back in. Below the model, an animated close-up shows how the quarter-turn pins lock.
+**[Open the 3D viewer](https://scottyates.github.io/VoiceLabels/)**: turn the case, zoom, see through the shell, and take it apart by clicking. Click a pin to turn it and pull it out (click again to push it in and lock it), a panel to slide it off or on, a button to press it, and the housing, screen or pod to take it off once whatever holds it is out of the way; the viewer tells you what has to come off first. **Put it all back** reassembles it. You can also spread the parts apart, or tap **Slide the panels** to watch the deck, back plate and pod lid slide out of their rails and back in. Below the model, an animated close-up shows how the quarter-turn pins lock.
 
 <p align="center">
   <a href="https://scottyates.github.io/VoiceLabels/"><img src="docs/case-spin.gif" alt="The assembled case turning slowly in the 3D viewer" width="420"></a>
@@ -79,7 +79,7 @@ The pin can't come out while it's crosswise, and it can't turn back by itself: g
 
 If a pin is too stiff to turn, lower `RAMP_H` (0.4 mm) in `case.py`. If it doesn't click firmly, raise it a little, or print the pins in PETG.
 
-Taking it apart is the same steps in reverse: slide the back plate up and off and the pod lid out backwards; unlock and pull the two pod pins and lift the pod off; slide the deck forward and off, unlock and pull the two housing pins, and slide the housing forward and up out of its slots. To take the screen out, unlock and pull the four screen pins.
+Taking it apart is the same steps in reverse: slide the deck forward and off, unlock and pull the two housing pins, and slide the housing forward and up out of its slots. Then unlock and pull the two pod pins and lift the pod off (it can't lift while the housing is on: the housing's lower back edge overhangs the pod). To take the screen out of the housing, slide the back plate up and off, unlock and pull the four screen pins, and lift the screen and Pi out of the back.
 
 The joints are sized with 0.25 mm of play on each side (`DOVE_CLR`). Print the deck first if you like, but it's worth test-sliding the housing into the base before wiring anything: it should slide with a firm push and no wobble. If it's too tight, sand the rails lightly or raise `DOVE_CLR` to 0.3–0.35 and reprint the base.
 

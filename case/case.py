@@ -326,7 +326,9 @@ KNOCKOUT_YS = [PCB_Y0 + 52.0,                         # low: printer cable
                WALL + INNER_H - RIB - 6.0]            # high: power cable
 
 BACK_STOP_Y = 2.0               # back plate stops on blocks this tall at the bottom corners
-BACK_DETENT_X = -40.0           # click bump: on a pad inside the bottom wall
+BACK_DETENT_X = -94.0           # click bump: on a pad inside the bottom wall, beside the
+                                # screen board (the board passes this rim on its way in)
+BACK_PAD_W = 16.0
 BACK_DETENT_Y = WALL + 2.2
 
 
@@ -338,7 +340,8 @@ def _pad_yz(x_center):
     if area < 0:
         pts = pts[::-1]
     # profile is in (y, z); extrude across x
-    return CrossSection([pts]).extrude(20).rotate([90, 0, 90]).translate([x_center - 10, 0, 0])
+    return (CrossSection([pts]).extrude(BACK_PAD_W).rotate([90, 0, 90])
+            .translate([x_center - BACK_PAD_W / 2, 0, 0]))
 
 
 def back_plate():
@@ -615,6 +618,10 @@ def base():
         body = union([body] + rails)
         cuts.append(pass_hole(B[0] - BASE_WALL - 10, B[0] + 0.3))
         rear_feet_y = TOTAL_LEN - 14
+    # The housing slides on and off along its dovetails, forward and up. Trim
+    # the tops of the side walls in front of it to 0.4 mm below the path of
+    # its floor, or their front corners would scrape it.
+    cuts.append(housing_world(box(-W / 2 - 1, W / 2 + 1, -0.4, WALL + 20, -90, 0.01)))
     # Feet recesses under the floor.
     for x in (-W / 2 + 16, W / 2 - 16):
         for y in (16, rear_feet_y):
