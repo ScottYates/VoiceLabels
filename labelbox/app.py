@@ -540,6 +540,8 @@ class App:
         ("\u201cupper case\u201d", "Makes everything UPPER CASE"),
         ("\u201clower case\u201d", "Makes everything lower case"),
         ("\u201ctitle case\u201d", "Capitalizes Each Word"),
+        ("\u201cremove \u2026\u201d", "Takes it out of the text: \u201cremove comma\u201d, \u201cremove dash\u201d,\n"
+                                       "\u201cremove punctuation\u201d, or words: \u201cremove Johnson\u201d"),
         ("Spelling", "Say the letters one by one: \u201cT R A E\u201d gives Trae"),
     ]
     HELP_TOUCH = [
@@ -1581,7 +1583,7 @@ class App:
             if config.RECORD_MODE == "append" and self._before_recording.strip():
                 return f"{self._before_recording.rstrip()} {spoken}"
             return spoken
-        text, case, cleared, only = voicecmd.parse(spoken.strip())
+        text, case, cleared, only, removals = voicecmd.parse(spoken.strip())
         new = voicecmd.finish(self._tidy(text))
         before = "" if cleared else self._before_recording.rstrip("\n")
         if cleared:
@@ -1592,12 +1594,13 @@ class App:
             result = before.rstrip() + ("" if new.startswith(" ") else " ") + new
         else:
             result = new
-        result = voicecmd.apply_case(result, case)
+        result = voicecmd.apply_case(voicecmd.apply_removals(result, removals), case)
         notes = {"upper": "Changed to UPPER CASE", "lower": "Changed to lower case",
                  "title": "Changed to Title Case"}
         if only:
             self._cmd_note = ("Cleared" if cleared and not case else
-                              notes.get(case) or ("Space added" if new else None))
+                              notes.get(case) or ("Removed" if removals else None) or
+                              ("Space added" if new else None))
         return result
 
     # ------------------------------------------------------------ printing

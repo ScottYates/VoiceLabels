@@ -208,8 +208,9 @@ Say these while holding TALK. The **Help** button under the preview lists them o
 | "upper case" | Makes everything UPPER CASE |
 | "lower case" | Makes everything lower case |
 | "title case" | Capitalizes Each Word |
+| "remove ..." | Takes something out of the whole text. Punctuation by name: "remove comma", "remove dash", "remove period", "remove question mark", "remove commas and periods", "remove punctuation" (all of it). Anything else is removed as words: "remove Johnson" |
 
-The case commands change the whole label. Said on their own, they change the text already in the box instead of replacing it; said after some words ("blue cable upper case"), they apply to the new text. "Space" is always taken as a command, so a label that needs the word itself has to be typed. To turn the commands off, set `VOICE_COMMANDS = False` in `config.py`.
+The case commands change the whole label. Said on their own, they change the text already in the box instead of replacing it; said after some words ("blue cable upper case"), they apply to the new text. "Space" and "remove" are always taken as commands, so a label that needs those words (REMOVE BEFORE FLIGHT) has to be typed. To turn the commands off, set `VOICE_COMMANDS = False` in `config.py`.
 
 ### Spelling words out
 
@@ -244,7 +245,7 @@ Everything adjustable is in `config.py`, with comments. The most common changes:
 | `MIC_NAME` | Text in the microphone's name. The app finds it on any USB port; `./run.sh stt.py --list` shows the names |
 | `SPELL_JOINER` | What goes between spelled-out letters: `""` for Trae, `"-"` for T-R-A-E, `None` to leave them as heard |
 | `SPELL_CASE` | Capitals for a joined word: `"name"` (Trae, RJ45), `"upper"` (TRAE) or `"lower"` |
-| `VOICE_COMMANDS` | `True` to act on "space", "start over", "upper case", "lower case" and "title case"; `False` to keep them as words |
+| `VOICE_COMMANDS` | `True` to act on "space", "start over", "upper case", "lower case", "title case" and "remove"; `False` to keep them as words |
 | `KEYTERMS` | Words the speech model should favor (part numbers, names, jargon), spelled as you want them printed |
 | `SCREEN_BLANK_SECONDS` | Seconds of inactivity before the screen goes dark (0 = never) |
 | `LONG_PRESS_BLANK_SECONDS` | How long to hold on the text box or preview to turn the screen off (0 = never) |

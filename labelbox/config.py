@@ -89,8 +89,8 @@ SPELL_JOINER = ""
 # digits), "upper" gives TRAE, "lower" gives trae.
 SPELL_CASE = "name"
 
-# Spoken commands: "space", "start over", "upper case", "lower case" and
-# "title case" (the Help screen lists them). False treats them as words.
+# Spoken commands: "space", "start over", "upper case", "lower case",
+# "title case" and "remove ..." (the Help screen lists them). False treats them as words.
 VOICE_COMMANDS = True
 
 # Words the speech model should favor. Add part numbers, names and jargon you
