@@ -6,6 +6,9 @@
     "lower case"   everything in small letters
     "title case"   Each Word Capitalized
     "undo"         puts back the text and icon from before the last change
+    "change X to Y" replaces in the whole text: "change periods to dashes" turns
+                   this.is.a.test into this-is-a-test; words work too
+                   ("change red to blue"), and "space" names a space
     "remove ..."   takes something out of the whole text: "remove comma" drops
                    every ",", "remove dash" every "-", "remove punctuation" all
                    of it; anything else is removed as words ("remove Johnson")
@@ -94,11 +97,44 @@ def _punct_chars(words):
     return chars or None
 
 
-def _starts_command(toks, i):
+def _starts_command(toks, i, spaces_ok=False):
     for n in range(_LONGEST, 0, -1):
-        if tuple(_norm(t) for t in toks[i:i + n]) in PHRASES:
+        key = tuple(_norm(t) for t in toks[i:i + n])
+        if key in PHRASES and not (spaces_ok and key == ("space",)):
             return True
-    return _norm(toks[i]) == "remove"
+    return _norm(toks[i]) in ("remove", "change")
+
+
+def _take(toks, j, spaces_ok=False, stop_at_to=False):
+    """Words from toks[j] up to the next command, the end of a sentence, or
+    (with stop_at_to) the word "to". Returns (words, next index)."""
+    target = []
+    while j < len(toks):
+        if target and _starts_command(toks, j, spaces_ok):
+            break
+        if stop_at_to and _norm(toks[j]) in ("to", "into", "with"):
+            break
+        target.append(toks[j])
+        j += 1
+        if toks[j - 1][-1:] in ".!?" and len(toks[j - 1]) > 1 and not stop_at_to:
+            break
+    return target, j
+
+
+def _side(target):
+    """What one side of "change X to Y" names: ("chars", ".") for punctuation,
+    ("text", " ") for a space, or ("text", "red") for words."""
+    words = [w for w in (_clean(t) for t in target) if w]
+    if words and all(w in ("space", "spaces", "a", "the") for w in words) and \
+            any(w.startswith("space") for w in words):
+        return ("text", " ")
+    if words in (["nothing"], ["blank"]):
+        return ("text", "")
+    chars = _punct_chars(words)
+    if chars:
+        return ("chars", chars)
+    text = " ".join(t.strip(_PUNCT) for t in target)
+    return ("text", text) if text else None
 
 
 def _norm(tok: str) -> str:
@@ -113,11 +149,30 @@ def _clean(tok: str) -> str:
 
 
 def apply_removals(text: str, removals) -> str:
-    for kind, what in removals:
+    tidy = False
+    for kind, *what in removals:
         if kind == "chars":
-            text = "".join(c for c in text if c not in what)
-        else:
-            text = re.sub(r"(?<!\w)" + re.escape(what) + r"(?!\w)", "", text, flags=re.I)
+            text = "".join(c for c in text if c not in what[0])
+            tidy = True
+        elif kind == "words":
+            text = re.sub(r"(?<!\w)" + re.escape(what[0]) + r"(?!\w)", "", text, flags=re.I)
+            tidy = True
+        else:                                        # ("replace", (kind, src), to)
+            (skind, src), to = what
+            if skind == "chars":
+                text = "".join(to if c in src else c for c in text)
+            elif src.strip():
+                def keep_caps(m, to=to):
+                    if m.group(0).isupper() and len(m.group(0)) > 1:
+                        return to.upper()
+                    return to[:1].upper() + to[1:] if m.group(0)[:1].isupper() else to
+                text = re.sub(r"(?<!\w)" + re.escape(src) + r"(?!\w)", keep_caps, text,
+                              flags=re.I)
+            else:
+                text = text.replace(src, to)
+            tidy = tidy or to in ("", " ")
+    if not tidy:
+        return text
     text = re.sub(r"[ \t]{2,}", " ", text)
     return "\n".join(line.strip() for line in text.split("\n"))
 
@@ -136,6 +191,18 @@ def parse(spoken: str):
     toks = spoken.split()
     out, case, cleared, removals, undo, i = [], None, False, [], False, 0
     while i < len(toks):
+        if _norm(toks[i]) == "change" and i + 1 < len(toks):
+            src_toks, j = _take(toks, i + 1, spaces_ok=True, stop_at_to=True)
+            if j < len(toks) and _norm(toks[j]) in ("to", "into", "with") and src_toks:
+                dst_toks, j = _take(toks, j + 1, spaces_ok=True)
+                src, dst = _side(src_toks), _side(dst_toks)
+                if src and dst:
+                    to = dst[1][0] if dst[0] == "chars" else dst[1]   # "dashes" -> "-"
+                    removals.append(("replace", src, to))
+                    if out and out[-1] != SPACE:
+                        out[-1] = out[-1].rstrip(".,") or out[-1]
+                    i = j
+                    continue
         if _norm(toks[i]) == "remove" and i + 1 < len(toks):
             # "remove <what>": up to the next command or the end of the sentence
             j, target = i + 1, []

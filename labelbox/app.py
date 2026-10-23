@@ -543,6 +543,8 @@ class App:
         ("\u201clower case\u201d", "Makes everything lower case"),
         ("\u201ctitle case\u201d", "Capitalizes Each Word"),
         ("\u201cundo\u201d", "Goes back to how it was before the last change"),
+        ("\u201cchange \u2026 to \u2026\u201d", "Replaces one thing with another everywhere:\n"
+                                                  "\u201cchange periods to dashes\u201d, \u201cchange red to blue\u201d"),
         ("\u201cremove \u2026\u201d", "Takes it out of the text: \u201cremove comma\u201d, \u201cremove dash\u201d,\n"
                                        "\u201cremove punctuation\u201d, or words: \u201cremove Johnson\u201d"),
         ("Spelling", "Say the letters one by one: \u201cT R A E\u201d gives Trae"),
@@ -575,10 +577,10 @@ class App:
                 row=r, column=0, columnspan=2, sticky="w", padx=pad, pady=(gap, 2))
             r += 1
             for key, desc in rows:
-                tk.Label(p, text=key, bg=BG, fg=ACCENT, font=font(17, True), anchor="nw",
-                         justify="left").grid(row=r, column=0, sticky="nw", padx=(pad, gap), pady=2)
-                tk.Label(p, text=desc, bg=BG, fg=FG, font=font(17), anchor="nw",
-                         justify="left").grid(row=r, column=1, sticky="nw", padx=(0, pad), pady=2)
+                tk.Label(p, text=key, bg=BG, fg=ACCENT, font=font(16, True), anchor="nw",
+                         justify="left").grid(row=r, column=0, sticky="nw", padx=(pad, gap), pady=1)
+                tk.Label(p, text=desc, bg=BG, fg=FG, font=font(16), anchor="nw",
+                         justify="left").grid(row=r, column=1, sticky="nw", padx=(0, pad), pady=1)
                 r += 1
         p.rowconfigure(r, weight=1)
 
@@ -1612,7 +1614,8 @@ class App:
                  "title": "Changed to Title Case"}
         if only:
             self._cmd_note = ("Cleared" if cleared and not case else
-                              notes.get(case) or ("Removed" if removals else None) or
+                              notes.get(case) or (("Changed" if any(r[0] == "replace" for r in removals)
+                                                   else "Removed") if removals else None) or
                               ("Space added" if new else None))
         return result
 

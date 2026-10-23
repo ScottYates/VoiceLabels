@@ -90,7 +90,8 @@ SPELL_JOINER = ""
 SPELL_CASE = "name"
 
 # Spoken commands: "space", "start over", "upper case", "lower case",
-# "title case", "undo" and "remove ..." (the Help screen lists them). False treats them as words.
+# "title case", "undo", "change ... to ..." and "remove ..." (the Help
+# screen lists them). False treats them as words.
 VOICE_COMMANDS = True
 
 # Words the speech model should favor. Add part numbers, names and jargon you
