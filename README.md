@@ -24,7 +24,7 @@ Speech recognition runs entirely on the Pi with [Moonshine](https://github.com/m
 | Folder | Contents |
 |---|---|
 | [`labelbox/`](labelbox/) | The app: touchscreen editor with a live label preview, push-to-talk speech, date and QR code options, Zebra ZPL printing, screen blanking, and a Setup screen. [Setup and usage guide](labelbox/README.md) |
-| [`case/`](case/) | A 3D-printable desk console: the reclined screen housing, a button deck for TALK and PRINT, an opening for the mic to plug straight into the Pi, snap-out cable tabs, and a closed power pod with a switched, fused mains socket for the USB power brick. Includes print-ready STLs, the parametric Python model and an [interactive 3D viewer](case/viewer/index.html). [Printing and assembly guide](case/README.md) |
+| [`case/`](case/) | A 3D-printable desk console: the reclined screen housing, a button deck for TALK and PRINT, an opening for the mic to plug straight into the Pi, snap-out cable tabs, and a closed power pod with a switched, fused mains socket for the USB power brick. Includes print-ready STLs, the parametric Python model and an [interactive 3D viewer](https://scottyates.github.io/VoiceLabels/). [Printing and assembly guide](case/README.md) |
 
 ## Hardware
 
