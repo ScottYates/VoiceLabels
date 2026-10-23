@@ -632,6 +632,7 @@ class App:
         gen = self._icon_gen
         self._forget_mode = False
         self.forget_btn.pack_forget()
+        self._last_icon_query = q
         self._icons_note(f"Searching for “{q}”…", MUTED)
         per = self.ICON_COLS * self.ICON_ROWS
 
@@ -1074,6 +1075,29 @@ class App:
             # Bind on the text box too, and stop Tk's built-in text bindings.
             for w in (self.root, self.text):
                 w.bind(seq, lambda e, fn=fn: (fn(e), "break")[1])
+
+    def _open_menu(self):
+        """The screen covering the main one, if any."""
+        for name in ("place_panel", "icons_panel", "setup_panel"):
+            panel = getattr(self, name, None)
+            if panel is not None and panel.winfo_ismapped():
+                return name
+        return None
+
+    def _menu_ok(self):
+        """The deck's PRINT button acts as Done / OK on the other screens."""
+        menu = self._open_menu()
+        if menu == "place_panel":
+            self.close_place()
+        elif menu == "icons_panel":
+            q = " ".join(self.icon_query.get().split())
+            if q and q != getattr(self, "_last_icon_query", None):
+                self.icon_search()                 # typed a word: OK = Find
+            else:
+                self.close_icons()
+        elif menu == "setup_panel":
+            self.close_setup()                     # also closes the power tiles
+        self.print_hw.led_flash(1)
 
     def _escape(self):
         if self.place_panel.winfo_ismapped():
@@ -1526,11 +1550,22 @@ class App:
             self._note_activity()
             self.talk_release()
         elif kind == "print_press":
+            was_dark = self._blank_overlay is not None
             self._wake()
-            self.print_btn.begin()
+            if self._open_menu():
+                # In a menu, the green button is OK / Done. If the screen was
+                # dark, the press only wakes it so you can see where you are.
+                self._print_as_ok = True
+                if not was_dark:
+                    self._menu_ok()
+            else:
+                self.print_btn.begin()
         elif kind == "print_release":
             self._note_activity()
-            self.print_btn.end()
+            if getattr(self, "_print_as_ok", False):
+                self._print_as_ok = False
+            else:
+                self.print_btn.end()
         elif kind == "printed":
             self.busy = False
             self.print_hw.led_flash(2)                 # done

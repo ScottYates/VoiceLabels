@@ -141,6 +141,7 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under
 | **Tap** TALK, then straight away **press and hold** it again (screen or deck button), speak, release | Clear the text and start over. The status says "Cleared. Listening…" |
 | Type in the text box | Fix any words. The preview updates as you type |
 | **Hold** the PRINT button (on screen or on the deck) for 3 seconds | Print. A green bar sweeps across PRINT and counts down; let go early to cancel. The PRINT light blinks while you hold, stays on while printing, then blinks twice when done. Ctrl+P or Ctrl+Enter print straight away |
+| Press the deck's **PRINT** button while the Setup, icon or icon placement screen is open | Acts as **Done / OK**: closes that screen and goes back to the main screen (it doesn't print). On the icon screen, if you've typed a new word it runs the search first. If the screen was dark, the first press only wakes it |
 | Tap **⟳ Rotate**, or press F4 | Switch landscape / portrait |
 | Tap **Align**, or press F5 | Line the text up left, then center, then right. The button shows the current choice, and it's remembered across restarts (also on the Setup screen) |
 | Tap **Icon**, or press F6 | Add an icon (see Icons below). With an icon already on the label, it opens the icon placement screen |
