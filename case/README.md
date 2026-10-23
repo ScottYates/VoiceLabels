@@ -11,6 +11,17 @@ The big parts join with **sliding dovetails**, not screws: the screen housing sl
 
 Assembled size: about **215 W × 155 D × 173 H mm**. Every part fits the Snapmaker U1's 270 mm bed and prints **without supports**.
 
+## 3D viewer
+
+<p align="center">
+  <img src="docs/case-spin.gif" alt="The assembled case turning slowly in the 3D viewer" width="420">
+  <img src="docs/pin-lock.gif" alt="Close-up of a lock pin: pushed in with its head upright, turned a quarter turn to lock, turned back and pulled out" width="440">
+</p>
+
+[`viewer/index.html`](viewer/index.html) is an interactive 3D model of the whole case, with the Pi, power brick and switch inside. You can turn it, zoom, see through the shell, hide the deck or lids, and spread the parts apart to see how they slide off their dovetails. Below the model, an animated close-up shows how the quarter-turn pins lock.
+
+GitHub shows the page as code rather than running it, so to use it: open [the file](viewer/index.html), click **Download raw file**, then open the downloaded `index.html` in a web browser. Everything is in that one file. It needs an internet connection the first time, to load the 3D library.
+
 ## Parts to print
 
 | File | Print orientation | Size (mm) | Notes |
