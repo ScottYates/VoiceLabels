@@ -10,7 +10,10 @@ Parts (each exported in its print orientation, no supports needed):
   5. deck         flat button plate with TALK / PRINT labels
   6. power_pod    closed box behind the base for the USB power brick, with a
                   switched, fused IEC power socket in its back wall
-  7. pod_lid      screw-on lid for the power pod
+  7. pod_lid      sliding lid for the power pod
+  8. lock_pin x4  quarter-turn pins that lock the housing and pod to the base
+  9. socket_keeper  frame that clamps the power socket's front plate to the pod
+ 10. socket_pin x2  quarter-turn pins that hold the keeper on
 
 How the big parts join (no screws carry them):
   housing -> base   two dovetail rails under the housing slide down its seat
@@ -402,10 +405,13 @@ POD_RAIL_X = W / 2 - 14.0          # vertical dovetail rails on the base's back 
 POD_GAP_V = 0.5                    # pod front to the base's rear wall
 POD_GAP_S = 3.0                    # pod front to the screen's back plate (screw heads)
 INLET_CUT = (47.6, 27.8)           # IEC socket panel cutout (W x H)
-INLET_SCREW_SPACING = 40.0         # its two screws, above and below the cutout
+INLET_SCREW_SPACING = 40.0         # its screw ears, above and below the cutout (unused: no screws)
+INLET_PLATE = (50.0, 48.0, 4.5)    # its front plate: width, height, thickness (estimated; measure yours)
+KEEPER_FACE = 2.0                  # keeper frame: thickness in front of the plate
+KEEPER_SQUEEZE = 0.3               # how much the keeper presses the plate into the wall
+KEEPER_PIN_DX = 31.0               # keeper pins: this far either side of the socket centre
 INLET_DEPTH = 38.0                 # body + terminals behind the panel
 INLET_X = -68.0                    # socket centre across the pod (world X, user-right +)
-INLET_PANEL_T = 2.0                # back wall thinned to this around the socket (snap clips)
 BRICK_X0 = -5.0                    # brick's prong end (world X); prongs face -X
 LID_T = 2.4
 
@@ -676,14 +682,13 @@ def power_pod():
     adds.append(detent_bump(POD_DETENT_X, yb - w / 2, z_top))
     # Brick locators: a low rib in front of it and a short stop past its cable end.
     adds.append(box(xb0 + 6, xb1 - 6, yb0 - 3.0 - PSU_CLR, yb0 - PSU_CLR, zi0, zi0 + 5))
-    # IEC socket in the back wall: cutout, two screw holes, wall thinned around it.
+    # IEC socket in the back wall: the cutout, and the bores for the two
+    # quarter-turn pins that hold the keeper frame over its front plate.
     iw, ih = INLET_CUT
-    izc = zi0 + 5 + INLET_SCREW_SPACING / 2 + 2       # keep the lower screw clear of the floor
+    izc = inlet_zc()
     cuts.append(box(INLET_X - iw / 2, INLET_X + iw / 2, yb - w - 1, yb + 1, izc - ih / 2, izc + ih / 2))
-    for dz in (-INLET_SCREW_SPACING / 2, INLET_SCREW_SPACING / 2):
-        cuts.append(cyl(1.75, 10, 0, 0, -5).rotate([90, 0, 0]).translate([INLET_X, yb, izc + dz]))
-    cuts.append(box(INLET_X - iw / 2 - 6, INLET_X + iw / 2 + 6, yb - w - 1, yb - INLET_PANEL_T,
-                    izc - ih / 2 - 3, izc + ih / 2 + 3))
+    for dx in (-KEEPER_PIN_DX, KEEPER_PIN_DX):
+        bores.append(back_wall_bore(INLET_X + dx, izc))
     # Zip-tie anchors (a bar with a tunnel) for the cord socket and the cords.
     for x, y in [(xb0 - 20, (yb0 + yb1) / 2), (INLET_X + 30, g["yf"] + 16),
                  (xb1 + 16, yb1 - 6)]:
@@ -699,6 +704,59 @@ def power_pod():
             cuts.append(box(x, x + 2.5, yb - w - 1, yb + 1, z_top - 30, z_top - 8))
     pod = add_pin_bores(union([pod] + adds) - union(cuts), bores)
     return pod
+
+def inlet_zc():
+    """Height of the power socket's centre: its front plate clears the pod's floor."""
+    return POD["z0"] + POD_WALL + 5 + INLET_SCREW_SPACING / 2 + 2
+
+
+def keeper_t():
+    return INLET_PLATE[2] - KEEPER_SQUEEZE + KEEPER_FACE
+
+
+def back_wall_bore(x, z):
+    """A lock-pin bore (hole, slot, turning pocket, ramps) through the pod's
+    back wall at (x, z), pin axis along -Y. Built as a side-wall bore and
+    turned a quarter turn about Z."""
+    cut, add = pin_bore(1, 0.0, z, W / 2 - PIN_WALL - 3.0)
+    move = lambda m: m.rotate([0, 0, 90]).translate([x, POD["yb"] - W / 2, 0])
+    return move(cut), move(add)
+
+
+def keeper_pin_place(m, x, locked=True):
+    """Put a keeper pin (as modelled by lock_pin) in its hole at x: head on the
+    keeper's outer face."""
+    m = pin_place(m, 1, 0.0, inlet_zc(), locked)
+    return m.rotate([0, 0, 90]).translate([x, POD["yb"] - W / 2 + keeper_t(), 0])
+
+
+def keeper_pin():
+    return lock_pin(keeper_pin_len(), grip=keeper_t() + PIN_WALL)
+
+
+def keeper_pin_len():
+    return keeper_t() + PIN_WALL + LUG_GAP + LUG_T + 1.2      # short tail: the cord socket sits close inside
+
+
+def socket_keeper():
+    """Frame over the power socket's front plate, in world coordinates. A
+    pocket in its back fits the plate, a window lets the plug, switch and fuse
+    drawer through, and two lock pins clamp it to the back wall."""
+    yb, izc, kt = POD["yb"], inlet_zc(), keeper_t()
+    pw, ph, pt = INLET_PLATE
+    hw, hh = KEEPER_PIN_DX + 6.0, ph / 2 + 4.0
+    frame = (rrect(2 * hw, 2 * hh, 4.0).extrude(kt)          # in (x, z), thickness along +Y
+             .rotate([-90, 0, 0]).translate([INLET_X, yb, izc]))
+    cuts = [box(INLET_X - pw / 2 - 0.5, INLET_X + pw / 2 + 0.5, yb - 1, yb + pt - KEEPER_SQUEEZE,
+                izc - ph / 2 - 0.5, izc + ph / 2 + 0.5),
+            box(INLET_X - INLET_CUT[0] / 2 - 0.4, INLET_X + INLET_CUT[0] / 2 + 0.4, yb - 1, yb + kt + 1,
+                izc - INLET_CUT[1] / 2 - 0.4, izc + INLET_CUT[1] / 2 + 0.4)]
+    for dx in (-KEEPER_PIN_DX, KEEPER_PIN_DX):
+        x = INLET_X + dx
+        cuts.append(cyl(PIN_HOLE_D / 2, kt + 2, 0, 0, 0).rotate([-90, 0, 0]).translate([x, yb - 1, izc]))
+        cuts.append(box(x - KEYWAY_W / 2, x + KEYWAY_W / 2, yb - 1, yb + kt + 1, izc, izc + KEYWAY_R))
+    return frame - union(cuts)
+
 
 POD_LID_STOP = 3.0               # stop blocks at the pod's front corners
 POD_DETENT_X = -30.0            # click bump on the back wall's top
@@ -718,7 +776,7 @@ def pod_lid():
             cuts.append(box(x, x + 2.5, yb0 + 4, yb1 - 4, -1, LID_T + 1))
     return lid - union(cuts)
 
-def lock_pin(length=None, cam_from=None):
+def lock_pin(length=None, cam_from=None, grip=PIN_WALL):
     """Quarter-turn lock pin, modelled as printed: wing head flat on the bed,
     shaft up. The lug (local +X) lines up with the head's long axis, so the
     head shows the lock state: along the slot = open, crosswise = locked.
@@ -744,7 +802,7 @@ def lock_pin(length=None, cam_from=None):
                ^ box(-CAM_FLAT, CAM_FLAT, -CAM_D, CAM_D, end - 0.6, end))
         cam = cam - box(-5, 5, -5, 5, end - 0.6, end + 1)
         shaft = union([shaft, cam, step ^ box(-CAM_FLAT, CAM_FLAT, -CAM_D, CAM_D, 0, end)])
-    z0 = T + PIN_WALL + LUG_GAP
+    z0 = T + grip + LUG_GAP
     lug = box(PIN_D / 2 - 0.3, LUG_R, -LUG_W / 2, LUG_W / 2, z0, z0 + LUG_T)
     lug = lug ^ cyl(LUG_R, LUG_T + 1, 0, 0, z0 - 0.5)          # round its outer end
     return union([head, shaft, tip, lug])
@@ -819,6 +877,8 @@ def build():
     if POWER_POD:
         parts["6_power_pod"] = power_pod()                # as modelled: floor down
         parts["7_pod_lid"] = pod_lid().mirror([0, 0, 1])  # top face down, lip up
+        parts["9_socket_keeper"] = socket_keeper().rotate([-90, 0, 0])  # outer face down, pocket up
+        parts["10_socket_pin_x2"] = union([keeper_pin().translate([i * 12, 0, 0]) for i in range(2)])
     report = {}
     for name, m in parts.items():
         m = place_on_bed(m)
@@ -834,6 +894,7 @@ def build():
     if POWER_POD:
         asm["power_pod"] = power_pod()
         asm["pod_lid"] = pod_lid().translate([0, 0, POD["z_top"]])
+        asm["socket_keeper"] = socket_keeper()
     return report, asm, s_mid
 
 if __name__ == "__main__":

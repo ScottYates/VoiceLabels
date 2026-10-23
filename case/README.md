@@ -7,9 +7,9 @@
 
 A desk console for the voice label printer: the 7" screen (with the Pi on its back) sits in a housing reclined 20°. In front of it is a sloped deck with the **TALK** (left) and **PRINT** (right) buttons. The mic plugs straight into one of the Pi's USB ports through a tall opening in the right side wall. Cables leave through snap-out tabs on either side. Behind the base, tucked under the screen's lean, a closed **power pod** holds the USB power brick, with a switched, fused mains socket in its back wall. A 30 mm round hole on the right side joins the pod to the space under the buttons, for cables.
 
-The big parts join with **sliding dovetails**, not screws: the screen housing slides down into slots in the base, and the power pod drops onto rails on the back of the base. Quarter-turn **lock pins** hold them there: a twist of the pin's wing head locks or frees it. The back plate, the pod lid and the button deck are **sliding panels** that click into place. There are no screws anywhere.
+The big parts join with **sliding dovetails**, not screws: the screen housing slides down into slots in the base, and the power pod drops onto rails on the back of the base. Quarter-turn **lock pins** hold them there: a twist of the pin's wing head locks or frees it. The back plate, the pod lid and the button deck are **sliding panels** that click into place, and the power socket is clamped by a printed frame held by two more pins. There are no screws anywhere.
 
-Assembled size: about **215 W × 155 D × 173 H mm**. Every part fits the Snapmaker U1's 270 mm bed and prints **without supports**.
+Assembled size: about **215 W × 161 D × 173 H mm**. Every part fits the Snapmaker U1's 270 mm bed and prints **without supports**.
 
 ## 3D viewer
 
@@ -33,6 +33,8 @@ The viewer is one self-contained file, [`viewer/index.html`](viewer/index.html),
 | `stl/5_deck.stl` | As exported: top face up | 211 × 62 × 6 | TALK and PRINT are engraved 0.6 mm deep in the top, so they form in the last layers and stay crisp. For coloured letters, add a filament change at 2.4 mm on the U1, or paint them. Around each button hole the plate is thinned to 2 mm from underneath so the buttons' snap-in clips can grip. The 3 mm lip along its back edge sits in front of the screen bezel and locks the housing in |
 | `stl/6_power_pod.stl` | As exported: floor down | 215 × 50 × 68 | **Print in PETG** (it holds mains wiring and a warm brick). Its front leans back 20° to follow the screen; that prints fine without supports. The rail slots in its front wall are open at the bottom |
 | `stl/7_pod_lid.stl` | As exported: flat, wide face down | 211 × 35 × 2.4 | PETG. Slides into the top of the pod from the back |
+| `stl/9_socket_keeper.stl` | As exported: outer face down | 74 × 56 × 6.2 | PETG. Clamps the power socket's front plate to the pod's back wall. The pocket in its back fits the plate; if your socket's plate is a different size, set `INLET_PLATE` and reprint just this part |
+| `stl/10_socket_pin_x2.stl` | As exported: heads down | two pins, Ø4 × 11 mm | Hold the keeper on. Same quarter-turn lock as the other pins, shorter. 100% infill, PETG |
 | `stl/8_lock_pin_x4.stl` | As exported: heads down | four pins, Ø4 × 21 mm | Print at 100% infill, in PETG if you have it (it's tougher for the click). The small lug near each head is a 1.4 mm overhang, which prints fine |
 
 Suggested settings: PLA or PETG, 0.4 mm nozzle, 0.2 mm layers, 3 walls, 15–20% gyroid infill, no supports.
@@ -42,14 +44,14 @@ Suggested settings: PLA or PETG, 0.4 mm nozzle, 0.2 mm layers, 3 walls, 15–20%
 | Qty | Item | Used for |
 |---|---|---|
 | 4 | Rubber feet, up to 13 mm across | Recesses in the base floor |
-| 1 | Switched, fused IEC C14 power socket, 47 × 27.4 mm cutout (e.g. Amazon B0C2GHJGW2) | Back of the pod; it snaps in (its two screws are optional) and comes with pre-crimped wires |
+| 1 | Switched, fused IEC C14 power socket, 47 × 27.4 mm cutout (e.g. Amazon B0C2GHJGW2) | Back of the pod, clamped by the printed keeper frame (no screws; its screw ears just sit under the frame). Comes with pre-crimped wires |
 | 1 | 1 ft 2-prong extension cord (e.g. Amazon B08R63X8RZ) | Its socket end feeds the brick inside the pod |
 | 2–3 | Wago 221 lever connectors | Joining the cord's wires to the socket's wires |
 | 1 | 2 A time-delay (slow-blow) 5 × 20 mm fuse | Replaces the 10 A fuse that comes in the socket. It protects the small brick much better |
 | 3 | Small zip ties | Cord socket and cables to the anchors in the pod |
 | 1 | IEC C13 power cord (a standard PC cord) | Wall to the pod |
 
-No screws are needed: the big parts are held by the printed lock pins and the panels slide in and click.
+No screws are needed: the big parts are held by the printed lock pins, the panels slide in and click, and the power socket is clamped by the keeper frame.
 
 ## How the parts join
 
@@ -69,7 +71,7 @@ No screws are needed: the big parts are held by the printed lock pins and the pa
 
 <p align="center"><img src="docs/pin-lock.png?v=1" alt="A lock pin beside its hole: the hole has a slot at the top for the lug on the pin" width="360"></p>
 
-All eight pins (four lock pins, four longer screen pins) lock the same way, like a camera lens:
+All ten pins (four lock pins, four longer screen pins, two short socket pins) lock the same way, like a camera lens:
 
 1. **In:** hold the pin with its wing head **upright** (pointing the same way as the slot at the top of the hole) and push it all the way in. The small lug on the shaft passes through the slot.
 2. **Lock:** turn the wing head a quarter turn, either way, until it lies **crosswise**. Behind the wall, the lug rides up a small ramp, which pulls the head tight against the wall, then drops into a notch with a click. A stop just past the notch keeps it from turning too far.
@@ -120,7 +122,7 @@ The power socket in the pod's back wall has a fuse and a lighted rocker switch b
    | **Earth** (green/yellow) | nothing: the brick has two prongs. Put it alone in its own Wago so its end is covered, or leave it off the socket |
 
 4. **Swap the fuse** in the socket's drawer for a **2 A time-delay** fuse.
-5. **Mount the parts.** Snap the power socket into the back-wall opening from outside (its two screws are optional). Zip-tie the cord socket to the anchor next to the brick and the Wagos to the anchor near the front. Plug the brick into the cord socket, stand it on edge against the back wall (prongs toward the power socket), and coil the spare USB-C cable in the space beyond its cable end.
+5. **Mount the parts.** Push the power socket into the back-wall opening from outside, so its front plate sits flat on the wall. Put the keeper frame over it (pocket side towards the wall; the plug, switch and fuse drawer show through the window), push the two short socket pins through the frame and the wall, head upright, and turn each a quarter turn to lock. The frame presses the plate against the wall; you don't need the socket's screws. Zip-tie the cord socket to the anchor next to the brick and the Wagos to the anchor near the front. Plug the brick into the cord socket, stand it on edge against the back wall (prongs toward the power socket), and coil the spare USB-C cable in the space beyond its cable end.
 6. **Check before closing:** no bare copper visible anywhere, every lever down, nothing pulled tight. Slide the lid on.
 
 Turning the switch off cuts power to everything. With power-off protection turned on in the software (see the main README), that's safe to do at any time.
@@ -151,7 +153,9 @@ Everything is set by the numbers at the top of `case.py`. Ready-to-print copies 
 | `SCREEN_PIN_OVER`, `CLAMP_YS` | 3.5, 15 / 87 mm up the board | How far the screen pins reach over the board, and where along its sides. If something on the back of your screen board is in the way, move them |
 | `CAM_SQUEEZE`, `CAM_FLAT`, `CAM_D` | 0.35, 1.45, 4.2 | The screen pins' cam: how far its round side reaches past the back of the board when locked (raise it if the screen still moves, lower it if the pins are too stiff to turn), how far the flats are from the axis (the clearance while sliding the pin in), and its diameter |
 | `PSU_L`, `PSU_H`, `PSU_T` | 63.5, 63.5, 31.75 | The power brick: prong-to-cable length, height, thickness |
-| `INLET_CUT`, `INLET_SCREW_SPACING` | 47.6 × 27.8, 40 | Power socket cutout and its screw spacing (screws above and below). Check against your socket before printing the pod |
+| `INLET_CUT` | 47.6 × 27.8 | Power socket cutout in the pod's back wall. Check against your socket before printing the pod |
+| `INLET_PLATE` | 50 × 48 × 4.5 | The socket's front plate: width (including any screw ears), height, thickness. **These are estimates: measure yours.** They size the pocket in the keeper frame, so a wrong value only means reprinting the keeper |
+| `KEEPER_SQUEEZE`, `KEEPER_FACE` | 0.3, 2.0 | How hard the keeper presses the plate into the wall, and how thick the frame is in front of the plate |
 
 `python3 preview.py` checks that the screen, Pi, plugs and the mic's path to its port clear the case. It also writes the preview images in `out/`.
 
@@ -160,3 +164,4 @@ Everything is set by the numbers at the top of `case.py`. Ready-to-print copies 
 - **Pi depth:** the case assumes the brass standoffs hold the Pi about 8 mm off the screen board, which leaves about 6 mm of space above the Pi's USB ports. If your standoffs are a different length, set `PI_STANDOFF` to match. If they're longer than 12 mm, also raise `INNER_DEPTH` by the difference.
 - **Mic opening:** it lines up with the outer port of the Pi's USB stack nearest the GPIO header, the lower stack as the case stands. Hold the screen and Pi in the printed housing and check that the plug lines up before closing it. If the opening sits too far forward or back, adjust `PI_STANDOFF`.
 - **Screen opening:** it comes from the maker's drawing. The picture sits closer to the left and top edges of the glass, and the opening matches that.
+- **Power socket front plate:** the keeper frame assumes a plate 50 mm wide (including any screw ears) × 48 mm tall × 4.5 mm thick, with the plug, switch and fuse drawer all inside the 47.6 × 27.8 mm cutout outline. Measure yours and set `INLET_PLATE`. The thickness matters most: too thin a setting and the frame won't sit flat, too thick and the socket rattles. Only the keeper needs reprinting if it's off.
