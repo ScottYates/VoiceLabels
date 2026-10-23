@@ -81,10 +81,17 @@ MIC_NAME = "USB"
 RECORD_MODE = "replace"       # "replace" the text, or "append" to it
 TAIL_SECONDS = 0.35           # keep listening this long after release
 
-# Spelling: when you spell a word out ("S M I T H"), the letters are joined
-# with this between them: "-" gives S-M-I-T-H, "" gives SMITH. Set to None to
-# leave spelled letters as they were heard.
-SPELL_JOINER = "-"
+# Spelling: when you spell a word out ("T R A E", or the recognizer writes
+# T-R-A-E), the letters are joined back into one word: "" gives Trae.
+# "-" keeps them apart: T-R-A-E. Set to None to leave them as they were heard.
+SPELL_JOINER = ""
+# How a joined word is capitalized: "name" gives Trae (and RJ45 when it has
+# digits), "upper" gives TRAE, "lower" gives trae.
+SPELL_CASE = "name"
+
+# Spoken commands: "space", "start over", "upper case", "lower case" and
+# "title case" (the Help screen lists them). False treats them as words.
+VOICE_COMMANDS = True
 
 # Words the speech model should favor. Add part numbers, names and jargon you
 # say often, spelled and capitalized exactly as you want them on the label.

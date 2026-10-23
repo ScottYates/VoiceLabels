@@ -34,6 +34,7 @@ import printer
 from hardware import Button
 import iconlib
 import network
+import voicecmd
 from spelling import hyphenate_spelling
 from render import LabelSpec, for_printer, render
 from stt import PushToTalk
@@ -346,8 +347,12 @@ class App:
         tcap.grid(row=1, column=0, sticky="ew", padx=(0, pad))
         tk.Label(tcap, text="TEXT", bg=BG, fg=MUTED, font=cap_bold,
                  anchor="w").pack(side="left")
-        tk.Label(tcap, text="type here to edit", bg=BG, fg=MUTED, font=cap_font,
-                 anchor="e").pack(side="right")
+        tk.Button(tcap, text=" Help", command=self.open_help, image=self.icon("help", FG, 16),
+                  compound="left", font=cap_bold, relief="flat", bd=0, highlightthickness=0,
+                  padx=round(12 * s), pady=round(3 * s), bg=PANEL, fg=FG, activebackground=PANEL,
+                  activeforeground=FG, cursor="hand2").pack(side="right")
+        tk.Label(tcap, text="type to edit", bg=BG, fg=MUTED, font=cap_font,
+                 anchor="e").pack(side="right", padx=(0, gap))
 
         # Right box: the label drawn on its backing paper.
         self.canvas = tk.Canvas(body, bg=LINER, width=1, height=1, highlightthickness=2,
@@ -407,6 +412,7 @@ class App:
         self._build_setup()
         self._build_icons()
         self._build_place()
+        self._build_help()
         self.text.focus_set()
 
     # --------------------------------------------------------------- setup
@@ -529,6 +535,59 @@ class App:
         return dict(font=font(pt, True), relief="flat", bd=0, highlightthickness=0,
                     pady=round(14 * s), padx=round(18 * s), cursor="hand2", bg=PANEL, fg=FG,
                     activebackground=PANEL, activeforeground=FG)
+
+    # ------------------------------------------------------------- help
+    HELP_VOICE = [
+        ("\u201cspace\u201d", "Adds a space. Say it between spelled words:\n"
+                                "\u201cT R A E space J O H N S O N\u201d gives Trae Johnson"),
+        ("\u201cstart over\u201d", "Clears all the text (anything said after it is kept)"),
+        ("\u201cupper case\u201d", "Makes everything UPPER CASE"),
+        ("\u201clower case\u201d", "Makes everything lower case"),
+        ("\u201ctitle case\u201d", "Capitalizes Each Word"),
+        ("Spelling", "Say the letters one by one: \u201cT R A E\u201d gives Trae"),
+    ]
+    HELP_TOUCH = [
+        ("Double-tap text", "Clears the text"),
+        ("Tap Talk, then hold", "Starts over and listens again"),
+        ("Hold text or label", "Turns the screen off (touch to wake)"),
+        ("PRINT", "Hold to print. On other screens it means Done"),
+    ]
+
+    def _build_help(self):
+        """Voice commands and touch shortcuts, from the Help button."""
+        s, font, gap = self._s, self._font, self._gap
+        pad = max(8, round(16 * s))
+        p = tk.Frame(self.root, bg=BG)
+        self.help_panel = p
+        p.columnconfigure(1, weight=1)
+        head = tk.Frame(p, bg=BG)
+        head.grid(row=0, column=0, columnspan=2, sticky="ew", padx=pad, pady=(pad, 0))
+        tk.Label(head, text="Help", bg=BG, fg=FG, font=font(28, True)).pack(side="left")
+        tk.Button(head, text=" Done", command=self.close_help, image=self.icon("check", "#000000", 22),
+                  compound="left", **dict(self._panel_button_style(20), bg=ACCENT, fg="#000000",
+                                          activebackground="#ffd36b", activeforeground="#000000",
+                                          pady=round(8 * s), padx=round(26 * s))).pack(side="right")
+        r = 1
+        for title, rows in (("Say these while holding Talk", self.HELP_VOICE),
+                            ("Touch", self.HELP_TOUCH)):
+            tk.Label(p, text=title.upper(), bg=BG, fg=MUTED, font=font(13, True), anchor="w").grid(
+                row=r, column=0, columnspan=2, sticky="w", padx=pad, pady=(gap, 2))
+            r += 1
+            for key, desc in rows:
+                tk.Label(p, text=key, bg=BG, fg=ACCENT, font=font(17, True), anchor="nw",
+                         justify="left").grid(row=r, column=0, sticky="nw", padx=(pad, gap), pady=2)
+                tk.Label(p, text=desc, bg=BG, fg=FG, font=font(17), anchor="nw",
+                         justify="left").grid(row=r, column=1, sticky="nw", padx=(0, pad), pady=2)
+                r += 1
+        p.rowconfigure(r, weight=1)
+
+    def open_help(self):
+        self.help_panel.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self.help_panel.lift()
+
+    def close_help(self):
+        self.help_panel.place_forget()
+        self.text.focus_set()
 
     def _build_icons(self):
         """Search screen: a search box, a grid of icons, page buttons."""
@@ -1331,7 +1390,7 @@ class App:
 
     def _open_menu(self):
         """The screen covering the main one, if any."""
-        for name in ("place_panel", "icons_panel", "setup_panel"):
+        for name in ("help_panel", "place_panel", "icons_panel", "setup_panel"):
             panel = getattr(self, name, None)
             if panel is not None and panel.winfo_ismapped():
                 return name
@@ -1340,7 +1399,9 @@ class App:
     def _menu_ok(self):
         """The deck's PRINT button acts as Done / OK on the other screens."""
         menu = self._open_menu()
-        if menu == "place_panel":
+        if menu == "help_panel":
+            self.close_help()
+        elif menu == "place_panel":
             self.close_place()
         elif menu == "icons_panel":
             q = " ".join(self.icon_query.get().split())
@@ -1353,7 +1414,9 @@ class App:
         self.print_hw.led_flash(1)
 
     def _escape(self):
-        if self.place_panel.winfo_ismapped():
+        if self.help_panel.winfo_ismapped():
+            self.close_help()
+        elif self.place_panel.winfo_ismapped():
             self.close_place()
         elif self.icons_panel.winfo_ismapped():
             self.close_icons()
@@ -1452,6 +1515,8 @@ class App:
         if self.date_text.get() == self._auto_date:
             self._auto_date = today()
             self.date_text.set(self._auto_date)
+        if self.help_panel.winfo_ismapped():
+            self.close_help()                      # talking from Help goes to the label
         self._voice_search = self.icons_panel.winfo_ismapped()
         if self._voice_search:
             self._query_before = self.icon_query.get()
@@ -1500,21 +1565,44 @@ class App:
 
     @staticmethod
     def _tidy(spoken: str) -> str:
-        """Join spelled-out letters (S M I T H -> S-M-I-T-H) and drop the period
+        """Join spelled-out letters (T R A E -> Trae) and drop the period
         speech recognition puts at the end; labels don't want one."""
         spoken = spoken.strip()
         joiner = getattr(config, "SPELL_JOINER", "-")
         if joiner is not None:
-            spoken = hyphenate_spelling(spoken, joiner)
+            spoken = hyphenate_spelling(spoken, joiner, getattr(config, "SPELL_CASE", "name"))
         while spoken.endswith(".") and not spoken.endswith("..."):
             spoken = spoken[:-1].rstrip()
         return spoken
 
     def _merge(self, spoken: str) -> str:
-        spoken = self._tidy(spoken)
-        if config.RECORD_MODE == "append" and self._before_recording.strip():
-            return f"{self._before_recording.rstrip()} {spoken}"
-        return spoken
+        """What was heard, combined with the text from before the recording,
+        with the spoken commands (space, start over, upper / lower / title
+        case) carried out."""
+        self._cmd_note = None
+        if not getattr(config, "VOICE_COMMANDS", True):
+            spoken = self._tidy(spoken)
+            if config.RECORD_MODE == "append" and self._before_recording.strip():
+                return f"{self._before_recording.rstrip()} {spoken}"
+            return spoken
+        text, case, cleared, only = voicecmd.parse(spoken.strip())
+        new = voicecmd.finish(self._tidy(text))
+        before = "" if cleared else self._before_recording.rstrip("\n")
+        if cleared:
+            result = new.lstrip()
+        elif only:                                   # just commands: work on the text there
+            result = before + new
+        elif config.RECORD_MODE == "append" and before.strip():
+            result = before.rstrip() + ("" if new.startswith(" ") else " ") + new
+        else:
+            result = new
+        result = voicecmd.apply_case(result, case)
+        notes = {"upper": "Changed to UPPER CASE", "lower": "Changed to lower case",
+                 "title": "Changed to Title Case"}
+        if only:
+            self._cmd_note = ("Cleared" if cleared and not case else
+                              notes.get(case) or ("Space added" if new else None))
+        return result
 
     # ------------------------------------------------------------ printing
     def _print_hold_start(self):
@@ -1814,7 +1902,7 @@ class App:
             if val:
                 self.button.led_flash(2)               # done
                 self._set_text(self._merge(val))
-                self.set_status("Edit if needed, then print", OK)
+                self.set_status(getattr(self, "_cmd_note", None) or "Edit if needed, then print", OK)
             else:
                 self.button.led_off()
                 self._set_text(self._before_recording)
@@ -1881,8 +1969,23 @@ def main():
         # just after start, then every few seconds for as long as the app runs.
         def fills_screen():
             root.update_idletasks()
-            return (root.winfo_rootx() == 0 and root.winfo_rooty() == 0 and
-                    root.winfo_width() >= screen[0] - 1 and root.winfo_height() >= screen[1] - 1)
+            if not (root.winfo_rootx() == 0 and root.winfo_rooty() == 0 and
+                    abs(root.winfo_width() - screen[0]) <= 1 and
+                    abs(root.winfo_height() - screen[1]) <= 1):
+                return False
+            # The bottom-row buttons must end inside the screen too.
+            try:
+                b = app._main_btns["setup"]
+                if b.winfo_ismapped() and b.winfo_rooty() + b.winfo_height() > screen[1]:
+                    if fixes["n"] >= 3:
+                        return False
+                    print(f"bottom buttons end at {b.winfo_rooty() + b.winfo_height()}, "
+                          f"below the screen", flush=True)
+                    open("/tmp/labelbox-dump", "w").close()   # log the layout once
+                    return False
+            except (NameError, AttributeError, KeyError, tk.TclError, OSError):
+                pass
+            return True
 
         def refullscreen():
             root.attributes("-fullscreen", False)
@@ -1910,10 +2013,34 @@ def main():
         screen = (w, h)
         root.geometry(f"{w}x{h}")
     app = App(root, dry_run=args.dry_run, screen=screen)
+
+    def geometry_dump():
+        # Debugging aid: `touch /tmp/labelbox-dump` writes every widget's place
+        # and size to the log.
+        if os.path.exists("/tmp/labelbox-dump"):
+            try:
+                os.remove("/tmp/labelbox-dump")
+            except OSError:
+                pass
+
+            def walk(w, depth=0):
+                if w.winfo_ismapped():
+                    print(f"geom {'  ' * depth}{w.winfo_class()} {w.winfo_name()} "
+                          f"{w.winfo_x()},{w.winfo_y()} {w.winfo_width()}x{w.winfo_height()} "
+                          f"req {w.winfo_reqwidth()}x{w.winfo_reqheight()}", flush=True)
+                    for c in w.winfo_children():
+                        walk(c, depth + 1)
+            print(f"geom root at {root.winfo_rootx()},{root.winfo_rooty()} "
+                  f"screen {root.winfo_screenwidth()}x{root.winfo_screenheight()}", flush=True)
+            walk(root)
+        root.after(2000, geometry_dump)
+    root.after(2000, geometry_dump)
     if os.environ.get("LABELBOX_SHOW_SETUP"):      # for screenshots while testing
         root.after(300, app.open_setup)
     if os.environ.get("LABELBOX_SHOW_NETWORK"):
         root.after(400, lambda: (app.open_setup(), app.open_network()))
+    if os.environ.get("LABELBOX_SHOW_HELP"):
+        root.after(400, app.open_help)
     if os.environ.get("LABELBOX_SHOW_POWER"):
         root.after(400, lambda: (app.open_setup(), app.open_power()))
     if os.environ.get("LABELBOX_ICON"):            # pre-chosen icon, for screenshots

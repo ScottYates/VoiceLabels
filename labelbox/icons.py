@@ -178,6 +178,11 @@ def icon_image(name: str, size: int, color: str, w: float = 2.2) -> Image.Image:
             else:
                 x0, x1 = 12 - half, 12 + half
             _line(d, k, [(x0, y), (x1, y)], c, w)
+    elif name == "help":                             # ? in a circle
+        _circle(d, k, 12, 12, 9.5, c, w)
+        _arc(d, k, 12, 9.6, 2.9, 180, 90, c, w)
+        _line(d, k, [(12, 12.5), (12, 13.8)], c, w)
+        _dot(d, k, 12, 16.8, 1.3, c)
     else:
         raise ValueError(f"no icon named {name!r}")
     return img.resize((size, size), Image.LANCZOS)
@@ -185,7 +190,7 @@ def icon_image(name: str, size: int, color: str, w: float = 2.2) -> Image.Image:
 
 NAMES = ["mic", "printer", "rotate", "clear", "gear", "power", "check", "back", "monitor",
          "calendar", "qr", "sun", "timer", "copies", "align-left", "align-center", "align-right",
-         "network", "backspace", "search", "bookmark", "image", "trash", "arrow-left", "arrow-up", "arrow-right", "arrow-down"]
+         "network", "backspace", "search", "bookmark", "image", "trash", "arrow-left", "arrow-up", "arrow-right", "arrow-down", "help"]
 
 
 if __name__ == "__main__":       # contact sheet for checking the set

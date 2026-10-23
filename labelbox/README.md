@@ -137,7 +137,7 @@ While protection is on, anything else you change is lost at the next restart: ap
 |---|---|
 | <img src="docs/screen.png?v=3" alt="Main screen" width="400"> | <img src="docs/setup.png?v=4" alt="Setup screen" width="400"> |
 
-The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **Rotate**, **Align**, **Icon**, **Clear** and **Setup** sit under the preview. Every button has an icon beside its label.
+The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words (with a **Help** button above it listing the voice commands and touch shortcuts), and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **Rotate**, **Align**, **Icon**, **Clear** and **Setup** sit under the preview. Every button has an icon beside its label.
 
 | Do this | To |
 |---|---|
@@ -197,11 +197,25 @@ With only an icon and no text, the icon is centered and fills the label.
 
 The search covers about twenty open-source icon sets chosen for single-colour, print-friendly icons, including plenty of computer and maker parts: USB, HDMI, Ethernet and power cables, network and graphics cards, RAM, CPUs, SSDs, NVMe, power supplies, motherboards, filament spools, 3D printers, screws and more. Common words are matched to what the icon sets call things, so saying "video card" also finds "graphics card" and "GPU", and "PLA" or "filament" finds spools. Thin, two-tone and crossed-out ("off") variants are left out because they print poorly. To add your own words, use `ICON_SYNONYMS` in `config.py`; the sets themselves are in `ICON_SETS`.
 
+### Voice commands
+
+Say these while holding TALK. The **Help** button above the text box lists them on screen.
+
+| Say | What it does |
+|---|---|
+| "space" | Adds a space. Use it between spelled words: "T R A E space J O H N S O N" gives Trae Johnson |
+| "start over" | Clears all the text. Anything said after it in the same recording is kept |
+| "upper case" | Makes everything UPPER CASE |
+| "lower case" | Makes everything lower case |
+| "title case" | Capitalizes Each Word |
+
+The case commands change the whole label. Said on their own, they change the text already in the box instead of replacing it; said after some words ("blue cable upper case"), they apply to the new text. "Space" is always taken as a command, so a label that needs the word itself has to be typed. To turn the commands off, set `VOICE_COMMANDS = False` in `config.py`.
+
 ### Spelling words out
 
-To get a name, code or part number exactly right, spell it: hold TALK and say the letters one by one, "S, M, I, T, H". The app notices a run of single letters and joins them with hyphens on the label: **S-M-I-T-H**. Numbers inside a spelled run are kept with it ("R J 45" gives R-J-45), and you can mix spelling with ordinary words ("Smith, spelled S M I T H" gives Smith, spelled S-M-I-T-H). Letters the recognizer writes with periods or dashes ("S. M. I. T. H.", "S - M - I") come out the same way, and initials before a name stay with it ("J. R. R. Tolkien" gives J-R-R Tolkien).
+To get a name, code or part number exactly right, spell it: hold TALK and say the letters one by one, "T, R, A, E". The app notices a run of single letters and joins them back into one word on the label: **Trae**. You can mix spelling with ordinary words ("T R A E Johnson" gives Trae Johnson). Numbers inside a spelled run are kept with it, in capitals ("R J 45" gives RJ45). The recognizer sometimes writes spelled letters with dashes or periods ("T-R-A-E.", "S. M. I. T. H."); those are joined the same way. Two or three initials with periods are left as initials ("J. R. R. Tolkien").
 
-Ordinary single letters are left alone: "Plan B", "vitamin C", "a", "I". It takes two or more spelled letters in a row (or three or more with letter names like "ess" between them). To join the letters without hyphens (SMITH), or to turn this off, change `SPELL_JOINER` in `config.py`.
+Ordinary single letters are left alone: "Plan B", "vitamin C", "a", "I". It takes two or more spelled letters in a row (or three or more with letter names like "ess" between them). To get capitals (TRAE) set `SPELL_CASE = "upper"` in `config.py`; to keep the letters apart (T-R-A-E) set `SPELL_JOINER = "-"`; `SPELL_JOINER = None` turns this off.
 
 Tips for accuracy:
 - Hold the button a moment *before* you start talking, and release a beat after you finish.
@@ -228,7 +242,9 @@ Everything adjustable is in `config.py`, with comments. The most common changes:
 | `PRINT_HOLD_SECONDS`, `PRINT_HOLD_CHOICES` | Default PRINT hold time, and the choices on the Setup screen (0 = no hold) |
 | `TALK_BUTTON_PIN`, `PRINT_BUTTON_PIN`, `*_LED_PIN` | GPIO pins for the two buttons and their lights |
 | `MIC_NAME` | Text in the microphone's name. The app finds it on any USB port; `./run.sh stt.py --list` shows the names |
-| `SPELL_JOINER` | What goes between spelled-out letters: `"-"` for S-M-I-T-H, `""` for SMITH, `None` to leave them as heard |
+| `SPELL_JOINER` | What goes between spelled-out letters: `""` for Trae, `"-"` for T-R-A-E, `None` to leave them as heard |
+| `SPELL_CASE` | Capitals for a joined word: `"name"` (Trae, RJ45), `"upper"` (TRAE) or `"lower"` |
+| `VOICE_COMMANDS` | `True` to act on "space", "start over", "upper case", "lower case" and "title case"; `False` to keep them as words |
 | `KEYTERMS` | Words the speech model should favor (part numbers, names, jargon), spelled as you want them printed |
 | `SCREEN_BLANK_SECONDS` | Seconds of inactivity before the screen goes dark (0 = never) |
 | `LONG_PRESS_BLANK_SECONDS` | How long to hold on the text box or preview to turn the screen off (0 = never) |

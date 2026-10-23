@@ -1,10 +1,12 @@
 """Spot spelled-out words in recognized speech and join the letters.
 
-    "my name is S M I T H"          -> "my name is S-M-I-T-H"
-    "part A, B, C, 1, 2, 3."        -> "part A-B-C-1-2-3."
-    "code ess em eye tee aitch"     -> "code S-M-I-T-H"
-    "S.M.I.T.H."                    -> "S-M-I-T-H"
+With joiner "" (the default in config.py) and case "name":
+    "my name is S M I T H"          -> "my name is Smith"
+    "T-R-A-E. Johnson."             -> "Trae Johnson."
+    "part A, B, C, 1, 2, 3."        -> "part ABC123"
+    "S M eye T H"                   -> "Smith"
     "Plan B" / "vitamin C" / "I a"  -> unchanged
+With joiner "-": "S-M-I-T-H", "A-B-C-1-2-3".
 
 A run counts as spelling when it has at least two single letters or digits
 in a row (with at least one letter, and not just "a"/"I" on their own), or
@@ -76,7 +78,22 @@ def _is_spelling(run) -> bool:
     return False
 
 
-def hyphenate_spelling(text: str, joiner: str = "-") -> str:
+def _case(chars, joiner, case):
+    word = joiner.join(chars)
+    if case == "upper" or (case == "name" and any(c.isdigit() for c in chars)):
+        return word.upper()
+    if case == "lower":
+        return word.lower()
+    return word[:1].upper() + word[1:].lower()       # "name": Trae
+
+
+def _multi(tok):
+    """A token that is already a whole spelled word: S-M-I-T-H or S.M.I.T.H."""
+    k, cs = _classify(tok)
+    return k == "strong" and len(cs) > 1
+
+
+def hyphenate_spelling(text: str, joiner: str = "-", case: str = "upper") -> str:
     words = text.split(" ")
     out, i = [], 0
     while i < len(words):
@@ -96,6 +113,8 @@ def hyphenate_spelling(text: str, joiner: str = "-") -> str:
             k, cs = _classify(words[j])
             if k is None:
                 break
+            if run and (_multi(words[j]) or _multi(run[-1][0])):
+                break                                 # "J-O-H-N S-M-I-T-H": two words
             run.append((words[j], k, cs))
             j += 1
             prev = words[j - 1]
@@ -114,12 +133,13 @@ def hyphenate_spelling(text: str, joiner: str = "-") -> str:
         trail = []
         while run and run[-1][1] == "name":
             trail.insert(0, run.pop()[0])
-        if run and _is_spelling(run):
+        initials = len(run) <= 3 and all(re.fullmatch(r"[A-Za-z]\.", w) for w, _, _ in run)
+        if run and _is_spelling(run) and not initials:   # "J. R. R. Tolkien" stays as it is
             last = run[-1][0]
             end = "" if _DOTTED.match(last) else last[len(last.rstrip(_PUNCT)):]
-            if end == "." and len(last.strip(_PUNCT)) == 1:
-                end = ""                              # "H." - the period belongs to the letter
-            out.append(joiner.join(c for _, _, cs in run for c in cs) + end)
+            if end == ".":
+                end = ""                              # "H." / "T-R-A-E." - the recognizer's period
+            out.append(_case([c for _, _, cs in run for c in cs], joiner, case) + end)
         else:
             out.extend(w for w, _, _ in run)
         out.extend(trail)
