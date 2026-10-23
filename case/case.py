@@ -12,6 +12,14 @@ Parts (each exported in its print orientation, no supports needed):
                   switched, fused IEC power socket in its back wall
   7. pod_lid      screw-on lid for the power pod
 
+How the big parts join (no screws carry them):
+  housing -> base   two dovetail rails under the housing slide down its seat
+                    into dovetail slots in the base. The deck's back edge
+                    then stops the housing sliding back out.
+  power pod -> base two vertical dovetail rails on the back of the base; the
+                    pod drops onto them and rests on the floor tongue. With
+                    the housing on, its lean over the pod stops it lifting.
+
 Coordinates for the housing ("print" frame): X across, Y up the face,
 Z depth (0 = front face on the bed). Viewed from the FRONT, user-right = -X.
 World frame for the assembly: X user-right, Y toward the back, Z up.
@@ -60,7 +68,7 @@ RECLINE = 20.0                 # screen tilt back from vertical, degrees
 DECK_ANGLE = 8.0               # button deck rises toward the screen
 DECK_LEN = 62.0                # deck depth (horizontal)
 DECK_T = 3.0                   # deck thickness (snap-in buttons like ~3 mm)
-FRONT_H = 46.0                 # height of the deck underside at the front edge
+FRONT_H = 49.0                 # height of the deck underside at the front edge
 REAR_SLOPE = 50.0              # rear wall angle from horizontal (>45 = no supports)
 BUTTON_HOLE = 30.4             # 30 mm arcade buttons (print-tested holes run small)
 BUTTON_PANEL_T = 2.0           # deck thinned to this around each button, for snap-in clips
@@ -71,6 +79,21 @@ BASE_WALL = 2.4
 PILOT_R = 1.3                  # M3 screw into plastic
 CLEAR_R = 1.7                  # M3 clearance
 HEAD_R = 3.3                   # M3 pan head counterbore
+
+# Dovetails. A rail is NECK wide where it meets its part and TIP wide at its
+# end, HEIGHT tall; slots are DOVE_CLR bigger all round. Raise DOVE_CLR if
+# your printer's joints come out too tight, lower it if they rattle.
+DOVE_NECK, DOVE_TIP, DOVE_H = 10.0, 13.0, 5.0
+DOVE_CLR = 0.25
+HOUSING_RAIL_X = None          # set below: rail centres across the housing
+HOUSING_RAIL_Z = (1.0, 40.0)   # rail start (at its root) / end along the housing depth
+SEAT_RIB_W = 21.0              # solid rib inside each side wall carrying a slot
+DECK_LIP_H = 3.0               # lip on the deck's back edge, in front of the bezel
+DECK_LIP_D = 2.5
+
+# Cable hole between the power pod and the space under the buttons.
+PASS_HOLE_D = 38.1             # 1.5 inch
+PASS_HOLE_X = 62.0             # centre, world X (user-right is +)
 
 # Derived housing sizes
 INNER_W = PCB_W + 2 * CLR + 2 * SIDE_GAP
@@ -85,6 +108,7 @@ RIB = 8.0                              # corner rib size
 RIB_X = INNER_W / 2 - RIB / 2          # rib centres
 CLAMP_X = PCB_W / 2 + CLR + 6.0
 CLAMP_YS = [PCB_Y0 + 15.0, PCB_Y0 + 87.0]
+HOUSING_RAIL_X = W / 2 - 12.0
 
 # ------------------------------------------------------------------ helpers
 def box(x0, x1, y0, y1, z0, z1):
@@ -100,6 +124,14 @@ def rrect(w, h, r):
 
 def union(parts):
     return Manifold.batch_boolean(parts, OpType.Add)
+
+def dove_section(clr=0.0, extra=0.0):
+    """Dovetail cross-section (u across, v out from the part), narrow at v=0.
+    clr grows it for the slot; extra lengthens it back into the part."""
+    n, t, h = DOVE_NECK / 2 + clr, DOVE_TIP / 2 + clr, DOVE_H + clr
+    slope = (t - n) / h
+    return CrossSection([[(-n + slope * extra, -extra), (n - slope * extra, -extra),
+                          (t, h), (-t, h)]])
 
 def text_cross_section(s, size):
     """Text outline as a CrossSection, centred, using DejaVu Sans Bold."""
@@ -155,6 +187,16 @@ def housing():
     # Clamp bosses beside the board.
     bosses = [cyl(3.5, STACK, sx * CLAMP_X, y, FRONT) for sx in (-1, 1) for y in CLAMP_YS]
 
+    # Dovetail rails under the bottom wall, running front to back. In the print
+    # frame they hang off the Y=0 face and run along Z (straight up on the bed).
+    # Their front ends are cut at 45 degrees (starting at z0 where they meet the
+    # wall) so they build up from the bed without supports.
+    z0, z1 = HOUSING_RAIL_Z
+    end_cut = (box(-200, 200, -100, 100, -200, 0).rotate([-45, 0, 0]).translate([0, 0, z0]))
+    for sx in (-1, 1):
+        rail = (dove_section(extra=0.5).extrude(z1)              # u -> X, v -> -Y
+                .mirror([0, 1, 0]).translate([sx * HOUSING_RAIL_X, 0, 0]))
+        rails.append(rail - end_cut)
     shell = union([shell] + rails + ribs + bosses)
 
     # Mic opening: a tall rectangle lined up with the Pi's USB port.
@@ -169,11 +211,6 @@ def housing():
     for sx in (-1, 1):
         for y in (WALL + RIB / 2, WALL + INNER_H - RIB / 2):
             holes.append(cyl(PILOT_R, 10.5, sx * RIB_X, y, DEPTH - 10))
-    # Base screw pilots: up into the bottom ribs from the outside.
-    for sx in (-1, 1):
-        for z in BASE_SCREW_Z:
-            holes.append(cyl(PILOT_R, 10, 0, 0, 0).rotate([-90, 0, 0])
-                         .translate([sx * RIB_X, -0.5, z]))
     # Clamp pilots.
     for sx in (-1, 1):
         for y in CLAMP_YS:
@@ -201,7 +238,6 @@ USBC_X = 31.4                   # Pi USB-C port across the housing (print X)
 USBC_NOTCH_W = 7.5              # cable notch in the back plate (cable up to ~6.5 mm)
 USBC_NOTCH_D = 10.0             # notch depth below the inside top of the housing
 
-BASE_SCREW_Z = [10.0, 26.0]     # depth positions of the housing-to-base screws
 KO_W = 7.0                      # breakaway tab width (cable up to ~6 mm)
 KO_DEPTH = 10.0                 # how far the notch reaches in from the back rim
 KO_SLIT = 0.5
@@ -249,7 +285,9 @@ POWER_POD = True
 PSU_L, PSU_H, PSU_T = 63.5, 63.5, 31.75   # brick: prong axis (X), height (Z), thickness (Y)
 PSU_CLR = 0.8                      # room around the brick
 POD_WALL = 2.4
-TONGUE_T = 3.0                     # base floor extension the pod screws down onto
+TONGUE_T = 3.0                     # base floor extension the pod stands on
+POD_RAIL_X = W / 2 - 14.0          # vertical dovetail rails on the base's back wall
+POD_BUMP = 2.5                     # bumps on the pod's sloped front, against the back plate
 POD_GAP_V = 0.5                    # pod front to the base's rear wall
 POD_GAP_S = 3.0                    # pod front to the screen's back plate (screw heads)
 INLET_CUT = (47.6, 27.8)           # IEC socket panel cutout (W x H)
@@ -291,13 +329,38 @@ def profile_xs(points, width=None):
     # CrossSection is in (u, v); extrude along +Z then rotate so u->Y, v->Z, Z->X.
     return cs.extrude(width).rotate([90, 0, 90]).translate([-width / 2, 0, 0])
 
-def pod_screw_points():
-    """Screws up through the base tongue into pads in the pod floor (world x, y)."""
-    g = POD
-    xb0, xb1, yb0, yb1, _, _ = g["brick"]
-    ymid = (g["yf"] + g["yb"]) / 2
-    return [(-(W / 2 - 12), ymid), (W / 2 - 12, ymid),
-            ((xb0 + xb1) / 2 - 22, g["yf"] + 7), (INLET_X + 30, g["yf"] + 7)]
+def x_extrude(points, x0, x1):
+    """Extrude a (y, z) side profile over world X from x0 to x1."""
+    pts = list(points)
+    area = sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(pts, pts[1:] + pts[:1]))
+    if area < 0:
+        pts = pts[::-1]
+    return CrossSection([pts]).extrude(x1 - x0).rotate([90, 0, 90]).translate([x0, 0, 0])
+
+
+def housing_slots():
+    """The dovetail slots the housing's rails slide into (world frame).
+    Open at the front (deck end), closed at the back."""
+    z0, z1 = HOUSING_RAIL_Z
+    slots = []
+    for sx in (-1, 1):
+        slot = (dove_section(clr=DOVE_CLR, extra=1.0).extrude(z1 + 0.5 - (z0 - 20))
+                .mirror([0, 1, 0]).translate([sx * HOUSING_RAIL_X, 0, z0 - 20]))
+        slots.append(housing_world(slot))
+    return union(slots)
+
+
+def pod_rail_z():
+    """Bottom and top of the base's vertical pod rails."""
+    return TONGUE_T, POD["z_v"] - 5.0
+
+
+def pass_hole(y0, y1):
+    """The 1.5" cable hole, as a cylinder along Y between y0 and y1."""
+    zc = TONGUE_T + POD_WALL + PASS_HOLE_D / 2          # bottom level with the pod floor
+    return cyl(PASS_HOLE_D / 2, y1 - y0, 0, 0, 0).rotate([-90, 0, 0]).translate(
+        [PASS_HOLE_X, y0, zc])
+
 
 def base():
     if POWER_POD:   # straight rear wall under the housing; the pod sits behind it
@@ -320,24 +383,23 @@ def base():
     body = solid - cavity
 
     adds, cuts = [], []
-    # Seat pillars: slanted cylinders along the housing's height axis, under
-    # each housing screw, trimmed to the seat plane.
-    axis = np.array([0.0, UP_FACE[0], UP_FACE[1]])            # world direction up the face
-    seat_n = np.array([0.0, -DOWN_BACK[1], DOWN_BACK[0]])     # not used, for clarity
+    # Seat ribs: solid from the floor up to the housing seat, inside each side
+    # wall, each carrying one of the housing's dovetail slots.
+    seat = [(E[0], 0), (E[0], E[1]), (B[0], B[1]), (B[0], 0)]
+    xin = W / 2 - BASE_WALL + 0.01
     for sx in (-1, 1):
-        for d in BASE_SCREW_Z:
-            p = E + d * DOWN_BACK                                # seat point (y, z)
-            top_pt = np.array([sx * RIB_X, p[0], p[1]])
-            # pillar from far below the floor up to the seat point along the axis
-            L = 120.0
-            tilt = -RECLINE                                     # rotate about X
-            pillar = cyl(6.5, L, 0, 0, -L).rotate([tilt, 0, 0]).translate(top_pt.tolist())
-            adds.append(pillar)
-            screw = cyl(CLEAR_R, L + 5, 0, 0, -L).rotate([tilt, 0, 0]).translate(top_pt.tolist())
-            head = cyl(HEAD_R, L, 0, 0, -L - 6).rotate([tilt, 0, 0]).translate(top_pt.tolist())
-            cuts += [screw, head]
+        x0, x1 = sorted((sx * xin, sx * (xin - SEAT_RIB_W)))
+        adds.append(x_extrude(seat, x0, x1))
+    # Rear wall thickened along its top (45-degree underside, no supports), so
+    # the cable hole has a solid band above it and the housing a wider seat.
+    if POWER_POD:
+        yi = B[0] - BASE_WALL
+        led = 7.0
+        ledge = [(yi + 0.01, B[1] - led - 7.5), (yi - led, B[1] - 6),
+                 (yi - led, B[1] + (B[0] - (yi - led)) * T(RA) - 0.01),
+                 (yi + 0.01, B[1] + BASE_WALL * T(RA) - 0.01)]
+        adds.append(x_extrude(ledge, -W / 2 + 1, W / 2 - 1))
     # Deck screw posts (vertical), top trimmed to the deck underside.
-    # rear posts sit forward and inboard of the slanted housing-screw tunnels
     deck_posts = [(sx * (W / 2 - 9), 9.0) for sx in (-1, 1)] + \
                  [(sx * (W / 2 - 13), DECK_LEN - 17.0) for sx in (-1, 1)]
     for x, y in deck_posts:
@@ -345,21 +407,26 @@ def base():
         adds.append(cyl(4.5, ztop + 5, x, y, 0))
         cuts.append(cyl(PILOT_R, 11, x, y, ztop - 10))
     body = union([body] + adds)
-    # Trim everything to the outside profile (pillars and posts stay inside).
+    # Trim everything to the outside profile.
     body = body ^ solid
+    cuts.append(housing_slots())
     rear_feet_y = BASE_LEN - 22
     if POWER_POD:
-        # Floor tongue under the pod, with countersunk screws up into the pod.
+        # Floor tongue the pod stands on, and the vertical dovetail rails on the
+        # back wall that the pod drops onto.
         body = body + box(-W / 2, W / 2, B[0] - 1, TOTAL_LEN, 0, TONGUE_T)
-        for x, y in pod_screw_points():
-            cuts.append(cyl(CLEAR_R, TONGUE_T + 2, x, y, -1))
-            cuts.append(Manifold.cylinder(1.8, HEAD_R + 0.3, CLEAR_R, SEG).translate([x, y, -0.01]))
+        z0, z1 = pod_rail_z()
+        rails = [dove_section(extra=0.5).extrude(z1 - z0).translate([sx * POD_RAIL_X, B[0], z0])
+                 for sx in (-1, 1)]
+        body = union([body] + rails)
+        cuts.append(pass_hole(B[0] - BASE_WALL - 10, B[0] + 0.3))
         rear_feet_y = TOTAL_LEN - 14
     # Feet recesses under the floor.
     for x in (-W / 2 + 16, W / 2 - 16):
         for y in (16, rear_feet_y):
             cuts.append(cyl(6.5, 1.2, x, y, -0.2))
     return body - union(cuts), deck_posts
+
 
 def power_pod():
     """Closed box for the brick, modelled in world coordinates (print as is)."""
@@ -382,10 +449,26 @@ def power_pod():
 
     adds, cuts = [], []
     xb0, xb1, yb0, yb1, zb0, zb1 = g["brick"]
-    # Floor pads for the screws from below (blind holes: nothing reaches the inside air).
-    for x, y in pod_screw_points():
-        adds.append(cyl(5.0, 6.0, x, y, zi0 - 0.01))
-        cuts.append(cyl(PILOT_R, w + 6.0 - 1.0, x, y, z0 - 0.01))
+    # Slots for the base's vertical dovetail rails: open at the bottom, closed
+    # at the top, in thickened pads behind the front wall.
+    rz0, rz1 = pod_rail_z()
+    half = DOVE_TIP / 2 + DOVE_CLR
+    for sx in (-1, 1):
+        x = sx * POD_RAIL_X
+        adds.append(box(x - half - 2.4, x + half + 2.4, yf_in - 0.01, B[0] + DOVE_H + DOVE_CLR + 2.6,
+                        zi0 - 0.01, rz1 + 2.5))
+        cuts.append(dove_section(clr=DOVE_CLR, extra=1.5).extrude(rz1 + 0.5 - (z0 - 1))
+                    .translate([x, B[0], z0 - 1]))
+    # The 1.5" cable hole through the front wall, into the space under the buttons.
+    cuts.append(pass_hole(yf - 1, slant_in(TONGUE_T + POD_WALL + PASS_HOLE_D) + 1.5))
+    # Bumps on the sloped front that rest against the screen's back plate, so the
+    # pod can't lift off its rails while the housing is on.
+    nrm = np.array([0.0, -DOWN_BACK[0], -DOWN_BACK[1]])          # out of the slope, toward the housing
+    zb = z_top - 12
+    for sx in (-1, 1):
+        p = np.array([sx * 75.0, front(zb), zb]) - 0.3 * nrm
+        bump = Manifold.batch_hull([cyl(5.0, 0.01, 0, 0, 0), cyl(3.0, 0.01, 0, 0, POD_BUMP + 0.3)])
+        adds.append(bump.rotate([90 - RECLINE, 0, 0]).translate(p.tolist()))
     # Lid screw bosses in the four inside corners.
     lid_pts = pod_lid_points()
     for x, y in lid_pts:
@@ -403,7 +486,7 @@ def power_pod():
                     izc - ih / 2 - 3, izc + ih / 2 + 3))
     # Zip-tie anchors (a bar with a tunnel) for the cord socket and the cords.
     for x, y in [(xb0 - 20, (yb0 + yb1) / 2), (INLET_X + 30, g["yf"] + 16),
-                 (xb1 + 22, yb1 - 6)]:
+                 (xb1 + 16, yb1 - 6)]:
         adds.append(box(x - 5, x + 5, y - 4, y + 4, zi0, zi0 + 6))
         cuts.append(box(x - 6, x + 6, y - 2, y + 2, zi0 + 1.2, zi0 + 3.8))
     # USB-C cable exit: notch in the top of the front wall, closed by the lid.
@@ -462,6 +545,9 @@ def deck(deck_posts):
         txt = text_cross_section(label, 7.0).extrude(1.0)
         cuts.append(txt.translate([sx * BUTTON_SPACING / 2, s_mid - BUTTON_HOLE / 2 - 8,
                                    DECK_T - 0.6]))
+    # Lip along the back edge: it stands in front of the bottom of the screen
+    # bezel and stops the housing sliding back out along its rails.
+    plate = plate + box(-W / 2, W / 2, L - DECK_LIP_D, L, DECK_T - 0.01, DECK_T + DECK_LIP_H)
     return plate - union(cuts), s_mid
 
 # ------------------------------------------------------------------ assembly transforms
