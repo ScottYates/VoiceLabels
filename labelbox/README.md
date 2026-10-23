@@ -77,11 +77,21 @@ The mic works out of the box on the Pi. Distance matters more than anything else
 
 ## Setting up the printer
 
-1. Load the 2×3" label roll and adjust the guides to the 2" width. For a 4" printer, center the roll.
-2. **Calibrate**: with the printer on, hold the feed button until the status light flashes twice, then let go. The printer feeds a few labels and learns where the gaps are. Do this again whenever you change label sizes.
-3. Plug the printer into the Pi by USB. It shows up as `/dev/usb/lp0`, and the app writes to it directly, with no driver needed.
+1. Load the label roll and set the guides to its width.
+2. Plug the printer into the Pi by USB. It shows up as `/dev/usb/lp0`, and the app writes to it directly, with no driver needed.
 
 If you would rather use CUPS (for example, to also print from other computers), create a raw queue and put its name in `CUPS_QUEUE` in `config.py`.
+
+### Label sizes and calibration
+
+The app prints on 3 × 2", 3 × 1" and 2 × 1" labels. Tap the size above the label preview (it reads "3 × 2 in ▾") to open the **Labels** screen:
+
+- **Size**: pick the roll that's loaded. The preview and the text sizes follow it, and the choice is remembered.
+- **Measure labels**: the printer feeds a few blank labels and learns their length and the gap between them. Do this every time you load a different size. (Holding the printer's feed button until its light flashes twice does the same.)
+- **Print test label**: a calibration label for the chosen size, with a solid border 1 mm in from every edge, a dashed one 2 mm in, a notch at the middle of each edge, ruler ticks every ¼" and the size and position printed in the middle.
+- **Position**: if the border isn't the same distance from every edge, or part of it is cut off, move the print **Left / Right** (across the print head) or **Up / Down** (along the label) in 0.5 mm steps and print another test label. Each size keeps its own position, and it's used for every label of that size. **Reset** puts it back to the middle.
+
+A narrow roll (the 2" labels) is the one most likely to need a left or right nudge, depending on how the printer lines up narrow media under its print head.
 
 ## Installing the software
 
@@ -232,7 +242,8 @@ Everything adjustable is in `config.py`, with comments. The most common changes:
 | Setting | What it does |
 |---|---|
 | `ORIENTATION` | Default layout: `"landscape"` or `"portrait"` |
-| `LABEL_WIDTH_IN`, `LABEL_LENGTH_IN` | How the labels sit in the printer: width across the print head, and length along the feed. 3 and 2 for a 3 × 2" roll loaded wide side across |
+| `LABEL_SIZES`, `LABEL_SIZE` | The sizes on the Labels screen, each as (inches across the print head, inches along the feed), and the one to start with. Add your own, e.g. `"4x6": (4.0, 6.0)` |
+| `OFFSET_STEP_MM` | How far one tap of the Labels screen's position arrows moves the print (0.5 mm) |
 | `LANDSCAPE_ROTATE_DEG` | Change 90 to 270 if labels whose layout is turned to fit the roll (portrait on a wide roll) print upside down |
 | `TEXT_ALIGN` | Starting alignment: `"left"`, `"center"` or `"right"` (the Setup screen choice overrides it) |
 | `ICON_SETS` | The Iconify icon sets searched for icons (solid, single-colour sets print best) |
@@ -288,6 +299,7 @@ The window is 800×480 by default to match the Hosyond screen. Add `--size 720x1
 | `app.py` | The screen: editor, preview, buttons |
 | `render.py` | Draws the label (text fitting, date, QR) |
 | `zpl.py` | Converts the label image to Zebra's ZPL language |
+| `labels.py` | Label sizes, the per-size position offsets and the calibration label |
 | `printer.py` | Sends the ZPL to the printer |
 | `stt.py` | Push-to-talk speech recognition with Moonshine |
 | `hardware.py` | The deck buttons and their lights |

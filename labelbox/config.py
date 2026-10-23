@@ -2,13 +2,22 @@
 
 # --- Label geometry -------------------------------------------------------
 DPI = 203                     # Zebra GK420d / GC420d print head resolution
-# How the labels sit in the printer. Measure across the printer (side to side
-# under the print head) and along the feed (the way the labels come out).
-LABEL_WIDTH_IN = 3.0          # across the print head
-LABEL_LENGTH_IN = 2.0         # along the feed
+# Label sizes to choose from on the Labels screen (tap the size above the
+# preview). Each is (inches across the print head, inches along the feed):
+# measure side to side under the print head, and the way the labels come out.
+LABEL_SIZES = {
+    "3x2": (3.0, 2.0),
+    "3x1": (3.0, 1.0),
+    "2x1": (2.0, 1.0),
+}
+LABEL_SIZE = "3x2"            # the size to start with (the Labels screen remembers yours)
+OFFSET_STEP_MM = 0.5          # how far one tap of the position arrows moves the print
 
-# "landscape" = text reads along the 3" side (label is 3" wide x 2" tall)
-# "portrait"  = text reads along the 2" side (label is 2" wide x 3" tall)
+# The current size; set from LABEL_SIZES at start-up and on the Labels screen.
+LABEL_WIDTH_IN, LABEL_LENGTH_IN = LABEL_SIZES[LABEL_SIZE]
+
+# "landscape" = text reads along the label's long side (3 x 2" label: 3" wide x 2" tall)
+# "portrait"  = text reads along the short side (2" wide x 3" tall)
 ORIENTATION = "landscape"
 
 # When the label's layout doesn't match how the roll is loaded (e.g. a

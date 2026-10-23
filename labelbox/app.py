@@ -33,10 +33,11 @@ import icons
 import printer
 from hardware import Button
 import iconlib
+import labels
 import network
 import voicecmd
 from spelling import hyphenate_spelling
-from render import LabelSpec, for_printer, render
+from render import LabelSpec, canvas_size, for_printer, render
 from stt import PushToTalk
 from zpl import image_to_zpl
 
@@ -226,6 +227,13 @@ class App:
         self._build_ui()
         self._bind_keys()
         saved = self._load_settings()
+        # Label size and the per-size position offsets (mm).
+        self.label_size = saved.get("label_size") if saved.get("label_size") in labels.sizes() \
+            else labels.default_key()
+        labels.apply(self.label_size)
+        self.offsets = {k: [float(v[0]), float(v[1])] for k, v in (saved.get("offsets") or {}).items()
+                        if isinstance(v, (list, tuple)) and len(v) == 2}
+        self._refresh_labels_panel()
         self.brightness = int(saved.get("brightness", 100))
         self.print_btn.seconds = float(saved.get("print_hold", config.PRINT_HOLD_SECONDS))
         if saved.get("align") in self.ALIGNS:
@@ -341,7 +349,11 @@ class App:
         cap.grid(row=1, column=1, sticky="ew")
         tk.Label(cap, text="LABEL PREVIEW", bg=BG, fg=MUTED, font=cap_bold,
                  anchor="w").pack(side="left")
-        self.size_caption = tk.Label(cap, text="", bg=BG, fg=MUTED, font=cap_font, anchor="e")
+        # The label size, as a button: it opens the Labels screen (size, position, test print).
+        self.size_caption = tk.Button(cap, text="", command=self.open_labels, font=cap_bold,
+                                      relief="flat", bd=0, highlightthickness=0,
+                                      padx=round(10 * s), pady=0, bg=PANEL, fg=FG,
+                                      activebackground=PANEL, activeforeground=FG, cursor="hand2")
         self.size_caption.pack(side="right")
         tcap = tk.Frame(body, bg=BG)
         tcap.grid(row=1, column=0, sticky="ew", padx=(0, pad))
@@ -411,6 +423,7 @@ class App:
         self._build_icons()
         self._build_place()
         self._build_help()
+        self._build_labels()
         self.text.focus_set()
 
     # --------------------------------------------------------------- setup
@@ -533,6 +546,151 @@ class App:
         return dict(font=font(pt, True), relief="flat", bd=0, highlightthickness=0,
                     pady=round(14 * s), padx=round(18 * s), cursor="hand2", bg=PANEL, fg=FG,
                     activebackground=PANEL, activeforeground=FG)
+
+    # ------------------------------------------------------------ labels
+    def _build_labels(self):
+        """Label size, a position nudge for each size, and a calibration print."""
+        s, font, gap = self._s, self._font, self._gap
+        pad = max(8, round(16 * s))
+        big = self._panel_button_style(22)
+        p = tk.Frame(self.root, bg=BG)
+        self.labels_panel = p
+        p.columnconfigure(1, weight=1)
+        head = tk.Frame(p, bg=BG)
+        head.grid(row=0, column=0, columnspan=2, sticky="ew", padx=pad, pady=(pad, gap))
+        tk.Label(head, text="Labels", bg=BG, fg=FG, font=font(28, True)).pack(side="left")
+        tk.Button(head, text=" Done", command=self.close_labels, image=self.icon("check", "#000000", 22),
+                  compound="left", **dict(big, bg=ACCENT, fg="#000000", activebackground="#ffd36b",
+                                          activeforeground="#000000", pady=round(8 * s),
+                                          padx=round(26 * s))).pack(side="right")
+        lab = dict(bg=BG, fg=MUTED, font=font(18, True), anchor="w")
+
+        # Size: one button per size in config.LABEL_SIZES.
+        tk.Label(p, text="Size", **lab).grid(row=1, column=0, sticky="w", padx=(pad, gap), pady=(0, gap))
+        sz = tk.Frame(p, bg=BG)
+        sz.grid(row=1, column=1, sticky="nsew", padx=(0, pad), pady=(0, gap))
+        sz.rowconfigure(0, weight=1)
+        self._size_btns = {}
+        for i, key in enumerate(labels.sizes()):
+            sz.columnconfigure(i, weight=1, uniform="sz")
+            b = tk.Button(sz, text=labels.name(key), command=lambda k=key: self.set_label_size(k), **big)
+            b.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else gap, 0))
+            self._size_btns[key] = b
+
+        # Position: nudge the print across (left / right) and along (up / down).
+        self.offset_title = tk.Label(p, text="Position", **lab)
+        self.offset_title.grid(row=2, column=0, sticky="nw", padx=(pad, gap), pady=(0, gap))
+        pos = tk.Frame(p, bg=BG)
+        pos.grid(row=2, column=1, sticky="nsew", padx=(0, pad), pady=(0, gap))
+        step = dict(big, padx=round(22 * s))
+        self._offset_vals = []
+        for r_, (axis, minus, plus, ic_m, ic_p) in enumerate(
+                [(0, "Left", "Right", "arrow-left", "arrow-right"),
+                 (1, "Up", "Down", "arrow-up", "arrow-down")]):
+            pos.rowconfigure(r_, weight=1)
+            tk.Button(pos, text=" " + minus, image=self.icon(ic_m, FG, 22), compound="left",
+                      command=lambda a=axis: self.nudge_offset(a, -1), **step).grid(
+                row=r_, column=0, sticky="nsew", pady=(0 if r_ == 0 else gap, 0))
+            v = tk.Label(pos, text="", bg=BG, fg=FG, font=font(22, True), width=9)
+            v.grid(row=r_, column=1, pady=(0 if r_ == 0 else gap, 0))
+            self._offset_vals.append(v)
+            tk.Button(pos, text=" " + plus, image=self.icon(ic_p, FG, 22), compound="left",
+                      command=lambda a=axis: self.nudge_offset(a, 1), **step).grid(
+                row=r_, column=2, sticky="nsew", pady=(0 if r_ == 0 else gap, 0))
+        tk.Button(pos, text="Reset", command=self.reset_offset, **step).grid(
+            row=0, column=3, rowspan=2, sticky="nsew", padx=(gap, 0))
+        pos.columnconfigure(4, weight=1)
+
+        # Measure the labels (after changing rolls) and print the calibration label.
+        act = tk.Frame(p, bg=BG)
+        act.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=pad, pady=(0, gap))
+        act.columnconfigure((0, 1), weight=1, uniform="act")
+        act.rowconfigure(0, weight=1)
+        tk.Button(act, text=" Measure labels", image=self.icon("timer", FG, 22), compound="left",
+                  command=self.measure_labels, **big).grid(row=0, column=0, sticky="nsew", padx=(0, gap))
+        tk.Button(act, text=" Print test label", image=self.icon("printer", FG, 22), compound="left",
+                  command=self.print_test_label, **big).grid(row=0, column=1, sticky="nsew")
+        self.labels_note = tk.Label(p, text="", bg=BG, fg=MUTED, font=font(15), anchor="w",
+                                    justify="left", wraplength=1)
+        self.labels_note.grid(row=4, column=0, columnspan=2, sticky="ew", padx=pad, pady=(0, pad))
+        p.bind("<Configure>", lambda e: self.labels_note.configure(wraplength=max(200, e.width - 2 * pad)))
+        for r_ in (1, 2, 3):
+            p.rowconfigure(r_, weight=1)
+        self._labels_hint = ("After loading a new roll: pick its size, tap Measure labels (the printer "
+                             "feeds a few blank labels to learn their length), then Print test label. The "
+                             "solid border should sit the same distance from every edge; if it doesn't, "
+                             "move the print and test again. Each size keeps its own position.")
+
+    def open_labels(self):
+        self._refresh_labels_panel()
+        self.labels_note.configure(text=self._labels_hint, fg=MUTED)
+        self.labels_panel.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self.labels_panel.lift()
+
+    def close_labels(self):
+        self.labels_panel.place_forget()
+        self.text.focus_set()
+
+    def _refresh_labels_panel(self):
+        if not hasattr(self, "_size_btns"):
+            return
+        for k, b in self._size_btns.items():
+            on = k == self.label_size
+            col = "#000000" if on else FG
+            b.configure(bg=OK if on else PANEL, activebackground=OK if on else PANEL,
+                        fg=col, activeforeground=col)
+        dx, dy = self.offsets.get(self.label_size, [0.0, 0.0])
+        self.offset_title.configure(text=f"Position\n{labels.name(self.label_size)}")
+        self._offset_vals[0].configure(text=("centered" if dx == 0 else
+                                             f"{abs(dx):.1f} mm {'right' if dx > 0 else 'left'}"))
+        self._offset_vals[1].configure(text=("centered" if dy == 0 else
+                                             f"{abs(dy):.1f} mm {'down' if dy > 0 else 'up'}"))
+
+    def set_label_size(self, key):
+        if key not in labels.sizes():
+            return
+        self.label_size = key
+        labels.apply(key)
+        self._save_settings(label_size=key)
+        self._refresh_labels_panel()
+        self.labels_note.configure(text=f"{labels.name(key)} labels. " + self._labels_hint, fg=MUTED)
+        self.schedule_preview()
+
+    def nudge_offset(self, axis, sign):
+        cur = list(self.offsets.get(self.label_size, [0.0, 0.0]))
+        step = float(getattr(config, "OFFSET_STEP_MM", 0.5))
+        cur[axis] = round(max(-10.0, min(10.0, cur[axis] + sign * step)), 2)
+        self.offsets[self.label_size] = cur
+        self._save_settings(offsets=self.offsets)
+        self._refresh_labels_panel()
+
+    def reset_offset(self):
+        self.offsets[self.label_size] = [0.0, 0.0]
+        self._save_settings(offsets=self.offsets)
+        self._refresh_labels_panel()
+
+    def _labels_job(self, what, make_zpl):
+        if self.busy:
+            return
+        self.busy = True
+        self.labels_note.configure(text=f"{what}…", fg=MUTED)
+
+        def work():
+            try:
+                msg = printer.send(make_zpl(), dry_run=self.dry_run)
+                self.events.put(("labels_note", (f"{what}: {msg.lower()}", OK)))
+            except Exception as e:  # noqa: BLE001
+                self.events.put(("labels_note", (f"{what} failed: {e}", REC)))
+        threading.Thread(target=work, daemon=True).start()
+
+    def measure_labels(self):
+        self._labels_job("Measuring labels", labels.measure_command)
+
+    def print_test_label(self):
+        key = self.label_size
+        dx, dy = self.offsets.get(key, [0.0, 0.0])
+        self._labels_job(f"Test label ({labels.name(key)})",
+                         lambda: image_to_zpl(labels.test_label(key, dx, dy)))
 
     # ------------------------------------------------------------- help
     HELP_VOICE = [
@@ -1397,7 +1555,7 @@ class App:
 
     def _open_menu(self):
         """The screen covering the main one, if any."""
-        for name in ("help_panel", "place_panel", "icons_panel", "setup_panel"):
+        for name in ("labels_panel", "help_panel", "place_panel", "icons_panel", "setup_panel"):
             panel = getattr(self, name, None)
             if panel is not None and panel.winfo_ismapped():
                 return name
@@ -1406,7 +1564,9 @@ class App:
     def _menu_ok(self):
         """The deck's PRINT button acts as Done / OK on the other screens."""
         menu = self._open_menu()
-        if menu == "help_panel":
+        if menu == "labels_panel":
+            self.close_labels()
+        elif menu == "help_panel":
             self.close_help()
         elif menu == "place_panel":
             self.close_place()
@@ -1421,7 +1581,9 @@ class App:
         self.print_hw.led_flash(1)
 
     def _escape(self):
-        if self.help_panel.winfo_ismapped():
+        if self.labels_panel.winfo_ismapped():
+            self.close_labels()
+        elif self.help_panel.winfo_ismapped():
             self.close_help()
         elif self.place_panel.winfo_ismapped():
             self.close_place()
@@ -1483,8 +1645,8 @@ class App:
         c.create_image(x0, y0, image=self._preview_photo, anchor="nw")
         if self.place_panel.winfo_ismapped():
             self._draw_place_preview(img)
-        self.size_caption.configure(
-            text='3 × 2 in' if self.orientation.get() == "landscape" else '2 × 3 in')
+        cw_, ch_ = canvas_size(self.orientation.get())
+        self.size_caption.configure(text=f"{cw_ / config.DPI:g} × {ch_ / config.DPI:g} in  \u25be")
         # Placeholder in the text box when it's empty.
         if self.text.get("1.0", "end-1c").strip():
             self.placeholder.place_forget()
@@ -1655,7 +1817,8 @@ class App:
         def work():
             try:
                 img = render(spec)
-                zpl = image_to_zpl(for_printer(img, spec.orientation), copies=copies)
+                dx, dy = self.offsets.get(self.label_size, [0.0, 0.0])
+                zpl = image_to_zpl(labels.shift(for_printer(img, spec.orientation), dx, dy), copies=copies)
                 msg = printer.send(zpl, dry_run=self.dry_run, preview_png=img)
                 self.events.put(("printed", f"{msg} ({copies} cop{'y' if copies == 1 else 'ies'})"))
             except Exception as e:  # noqa: BLE001
@@ -1923,6 +2086,9 @@ class App:
             self._network_loaded(val)
         elif kind == "net_applied":
             self._network_applied(*val)
+        elif kind == "labels_note":
+            self.busy = False
+            self.labels_note.configure(text=val[0], fg=val[1])
         elif kind == "net_note":
             self.set_status(val, ACCENT if "not applied" in val else MUTED)
         elif kind == "icons_found":
@@ -2113,6 +2279,8 @@ def main():
         root.after(300, app.open_setup)
     if os.environ.get("LABELBOX_SHOW_NETWORK"):
         root.after(400, lambda: (app.open_setup(), app.open_network()))
+    if os.environ.get("LABELBOX_SHOW_LABELS"):
+        root.after(400, app.open_labels)
     if os.environ.get("LABELBOX_SHOW_HELP"):
         root.after(400, app.open_help)
     if os.environ.get("LABELBOX_SHOW_POWER"):
