@@ -76,9 +76,14 @@ BUTTON_RECESS_D = 38.0         # diameter of the thinned area (underside)
 BUTTON_SPACING = 84.0
 BASE_WALL = 2.4
 
-PILOT_R = 1.3                  # M3 screw into plastic
-CLEAR_R = 1.7                  # M3 clearance
-HEAD_R = 3.3                   # M3 pan head counterbore
+# Sliding panels (back plate, pod lid, deck): each panel's two long edges are
+# bevelled at 45 degrees and slide under matching lips along the top of the
+# side walls, like a pencil-box lid. A stop ends the travel and a small bump
+# clicks into a dimple under the panel to hold it there. No screws.
+SLIDE_NECK = 1.6               # rail width where it sits on the wall
+SLIDE_LIP = 1.2                # lip thickness above the panel
+SLIDE_CLR = 0.3                # play on each side
+DETENT_R, DETENT_H = 1.4, 0.45 # click bump (the dimple is a little bigger)
 
 # Dovetails. A rail is NECK wide where it meets its part and TIP wide at its
 # end, HEIGHT tall; slots are DOVE_CLR bigger all round. Raise DOVE_CLR if
@@ -145,6 +150,47 @@ def rrect(w, h, r):
 def union(parts):
     return Manifold.batch_boolean(parts, OpType.Add)
 
+
+def _ccw(pts):
+    area = sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(pts, pts[1:] + pts[:1]))
+    return pts if area > 0 else pts[::-1]
+
+
+def _along_y(cs, y0, y1):
+    """Extrude a CrossSection drawn in (x, z) along +Y from y0 to y1."""
+    return cs.extrude(y1 - y0).rotate([90, 0, 0]).translate([0, y1, 0])
+
+
+def slide_rails(t, y0, y1, z0=0.0):
+    """Two rails along the side edges (x = +-W/2) of a panel t thick lying on
+    the plane z = z0, running from y0 to y1. Each rail's inside face is a 45-degree
+    undercut that the panel's bevelled edge slides under."""
+    rails = []
+    for sx in (-1, 1):
+        x0, xn = W / 2, W / 2 - SLIDE_NECK
+        pts = [(x0, 0), (xn, 0), (xn - t, t), (xn - t, t + SLIDE_LIP), (x0, t + SLIDE_LIP)]
+        pts = _ccw([(sx * x, z) for x, z in pts])
+        rails.append(_along_y(CrossSection([pts]), y0, y1))
+    return union(rails).translate([0, 0, z0])
+
+
+def slide_panel(t, y0, y1):
+    """A panel t thick (bottom at z = 0) whose long edges are bevelled to slide
+    under slide_rails, running from y0 to y1."""
+    xb = W / 2 - SLIDE_NECK - SLIDE_CLR
+    pts = _ccw([(-xb, 0), (xb, 0), (xb - t, t), (-(xb - t), t)])
+    return _along_y(CrossSection([pts]), y0, y1)
+
+
+def detent_bump(x, y, z):
+    """Small dome on a surface at height z (the click bump)."""
+    return Manifold.cylinder(DETENT_H, DETENT_R, 0.35, SEG).translate([x, y, z - 0.01])
+
+
+def detent_dimple(x, y):
+    """Matching dimple in a panel's underside (panel bottom at z = 0)."""
+    return Manifold.cylinder(DETENT_H + 0.25, DETENT_R + 0.3, 0.6, SEG).translate([x, y, -0.01])
+
 def dove_section(clr=0.0, extra=0.0):
     """Dovetail cross-section (u across, v out from the part), narrow at v=0.
     clr grows it for the slot; extra lengthens it back into the part."""
@@ -198,12 +244,17 @@ def housing():
         x_in = sx * (PCB_W / 2 + CLR)
         rails.append(box(min(x_in, x_in + sx * 2), max(x_in, x_in + sx * 2),
                          PCB_Y0 + 25, PCB_Y0 + 75, FRONT, FRONT + STACK - 1.5))
-    # Corner ribs: back-plate screws (along Z) and base screws (along Y, bottom).
+    # Back plate: slide rails along the side walls' back rims (trimmed to the
+    # rounded outline), stop blocks at the bottom corners, and a small pad inside
+    # the bottom wall carrying the click bump.
     ribs = []
+    outline = rrect(W, H, CORNER_R).translate([0, H / 2]).extrude(20).translate([0, 0, DEPTH - 1])
+    ribs.append(slide_rails(BACK_T, 0, H, DEPTH) ^ outline)
     for sx in (-1, 1):
-        x0, x1 = sx * RIB_X - RIB / 2, sx * RIB_X + RIB / 2
-        ribs.append(box(x0, x1, WALL, WALL + RIB, FRONT, DEPTH))
-        ribs.append(box(x0, x1, WALL + INNER_H - RIB, WALL + INNER_H, FRONT, DEPTH))
+        ribs.append(box(sx * (W / 2 - 14) - 5, sx * (W / 2 - 14) + 5, 0, BACK_STOP_Y,
+                        DEPTH - 0.01, DEPTH + BACK_T) ^ outline)
+    ribs.append(_pad_yz(BACK_DETENT_X))
+    ribs.append(detent_bump(BACK_DETENT_X, BACK_DETENT_Y, DEPTH))
     # Posts beside the board that carry the screen pins.
     post_top = screen_pin_z() + PIN_D / 2 + 2.0
     bosses = [cyl(3.5, post_top - FRONT, sx * CLAMP_X, y, FRONT) for sx in (-1, 1) for y in CLAMP_YS]
@@ -231,10 +282,6 @@ def housing():
         mic_hole = mic_hole.mirror([1, 0, 0])
 
     holes = [mic_hole]
-    # Back-plate screw pilots (from the back rim, 10 mm deep).
-    for sx in (-1, 1):
-        for y in (WALL + RIB / 2, WALL + INNER_H - RIB / 2):
-            holes.append(cyl(PILOT_R, 10.5, sx * RIB_X, y, DEPTH - 10))
     bores = []
     # Screen pins: in through the side wall, through the post,
     # reaching over the back of the board's edge.
@@ -271,12 +318,28 @@ KO_WEB = 0.8                    # thickness left at the hinge (2 perimeters)
 KNOCKOUT_YS = [PCB_Y0 + 52.0,                         # low: printer cable
                WALL + INNER_H - RIB - 6.0]            # high: power cable
 
+BACK_STOP_Y = 2.0               # back plate stops on blocks this tall at the bottom corners
+BACK_DETENT_X = -40.0           # click bump: on a pad inside the bottom wall
+BACK_DETENT_Y = WALL + 2.2
+
+
+def _pad_yz(x_center):
+    """Wedge inside the housing's bottom wall at the back rim (45-degree underside)."""
+    prof = [(WALL - 0.01, DEPTH - 5.0), (WALL + 4.6, DEPTH - 0.01), (WALL - 0.01, DEPTH - 0.01)]
+    pts = prof
+    area = sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(pts, pts[1:] + pts[:1]))
+    if area < 0:
+        pts = pts[::-1]
+    # profile is in (y, z); extrude across x
+    return CrossSection([pts]).extrude(20).rotate([90, 0, 90]).translate([x_center - 10, 0, 0])
+
+
 def back_plate():
-    plate = rrect(W, H, CORNER_R).translate([0, H / 2]).extrude(BACK_T)
-    cut = []
-    for sx in (-1, 1):
-        for y in (WALL + RIB / 2, WALL + INNER_H - RIB / 2):
-            cut.append(cyl(CLEAR_R, BACK_T + 2, sx * RIB_X, y, -1))
+    """Slides down from the top of the housing under the rails on the side
+    walls, stops on two blocks at the bottom, and clicks onto a bump."""
+    outline = rrect(W, H, CORNER_R).translate([0, H / 2]).extrude(BACK_T + 2).translate([0, 0, -1])
+    plate = slide_panel(BACK_T, BACK_STOP_Y + SLIDE_CLR, H) ^ outline
+    cut = [detent_dimple(BACK_DETENT_X, BACK_DETENT_Y)]
     # Notch at the top edge for the USB-C power cable (from the power pod up
     # the back to the Pi's USB-C port, which points up at the top of the case).
     cut.append(box(USBC_X - USBC_NOTCH_W / 2, USBC_X + USBC_NOTCH_W / 2,
@@ -508,13 +571,19 @@ def base():
     # Deck screw posts (vertical), top trimmed to the deck underside.
     deck_posts = [(sx * (W / 2 - 9), 9.0) for sx in (-1, 1)] + \
                  [(sx * (W / 2 - 13), DECK_LEN - 17.0) for sx in (-1, 1)]
-    for x, y in deck_posts:
+    for x, y in deck_posts:                       # supports under the deck
         ztop = FRONT_H + y * T(DA)
         adds.append(cyl(4.5, ztop + 5, x, y, 0))
-        cuts.append(cyl(PILOT_R, 11, x, y, ztop - 10))
+    # A post near the back of the deck carries the deck's click bump.
+    adds.append(cyl(4.0, FRONT_H + DECK_DETENT_Y * T(DA) + 5, DECK_DETENT_X, DECK_DETENT_Y, 0))
     body = union([body] + adds)
     # Trim everything to the outside profile.
     body = body ^ solid
+    # Deck: slide rails along the side walls' sloped tops (the deck slides in
+    # from the front and stops against the seat ribs), and the click bump.
+    L = DECK_LEN / math.cos(DA)
+    body = body + deck_world(slide_rails(DECK_T, 0, L))
+    body = body + deck_world(detent_bump(DECK_DETENT_X, DECK_DETENT_Y / math.cos(DA), 0))
     cuts.append(housing_slots())
     bores = [pin_hole(sx, housing_pin_yz(), HOUSING_RAIL_X) for sx in (-1, 1)]
     rear_feet_y = BASE_LEN - 22
@@ -576,11 +645,14 @@ def power_pod():
     # Lock pin holes through each side wall into the rail pads.
     for sx in (-1, 1):
         bores.append(pin_hole(sx, pod_pin_yz(), POD_RAIL_X))
-    # Lid screw bosses in the four inside corners.
-    lid_pts = pod_lid_points()
-    for x, y in lid_pts:
-        adds.append(cyl(4.5, z_top - zi0, x, y, zi0))
-        cuts.append(cyl(PILOT_R, 11, x, y, z_top - 10))
+    # Lid: slide rails along the side walls' tops (the lid slides in from the
+    # back), stop blocks at the front corners, click bump on the back wall.
+    y_front = front(z_top)
+    adds.append(slide_rails(LID_T, y_front, yb, z_top))
+    for sx in (-1, 1):
+        adds.append(box(sx * (W / 2 - 14) - 5, sx * (W / 2 - 14) + 5, y_front, y_front + POD_LID_STOP,
+                        z_top - 0.01, z_top + LID_T))
+    adds.append(detent_bump(POD_DETENT_X, yb - w / 2, z_top))
     # Brick locators: a low rib in front of it and a short stop past its cable end.
     adds.append(box(xb0 + 6, xb1 - 6, yb0 - 3.0 - PSU_CLR, yb0 - PSU_CLR, zi0, zi0 + 5))
     # IEC socket in the back wall: cutout, two screw holes, wall thinned around it.
@@ -607,34 +679,23 @@ def power_pod():
     pod = add_pin_bores(union([pod] + adds) - union(cuts), bores)
     return pod
 
-def pod_lid_points():
-    g = POD
-    yfront = g["front"](g["z_top"]) + POD_WALL / math.cos(RA) + 5.0
-    yback = g["yb"] - POD_WALL - 5.0
-    xs = (-(W / 2 - POD_WALL - 5.0), W / 2 - POD_WALL - 5.0)
-    return [(x, y) for x in xs for y in (yfront, yback)]
+POD_LID_STOP = 3.0               # stop blocks at the pod's front corners
+POD_DETENT_X = -30.0            # click bump on the back wall's top
 
 def pod_lid():
+    """Slides in from the back under the rails on the pod's side walls, stops
+    on two blocks at the front and clicks onto a bump on the back wall."""
     g = POD
-    y0, y1 = g["front"](g["z_top"]), g["yb"]
-    lid = box(-W / 2, W / 2, y0, y1, 0, LID_T)
-    cuts = []
-    for x, y in pod_lid_points():
-        cuts.append(cyl(CLEAR_R, LID_T + 2, x, y, -1))
-        cuts.append(cyl(HEAD_R, 2, x, y, LID_T - 1.2))
+    y0, y1 = g["front"](g["z_top"]) + POD_LID_STOP + SLIDE_CLR, g["yb"]
+    lid = slide_panel(LID_T, y0, y1)
+    cuts = [detent_dimple(POD_DETENT_X, y1 - POD_WALL / 2)]
     # Vent slots over the brick and cable coil only (never over the mains side).
     xb0, xb1, yb0, yb1, _, _ = g["brick"]
     for i in range(10):
         x = xb0 + 4 + i * 6
         if x + 2.5 < W / 2 - 14:
             cuts.append(box(x, x + 2.5, yb0 + 4, yb1 - 4, -1, LID_T + 1))
-    # A lip under the lid that keeps it centred (and the brick pressed down).
-    w = POD_WALL
-    yi0, yi1 = y0 + w / math.cos(RA) + 0.4, y1 - w - 0.4
-    ring = (box(-W / 2 + w + 0.4, W / 2 - w - 0.4, yi0, yi1, -2.0, 0.01)
-            - box(-W / 2 + w + 2.4, W / 2 - w - 2.4, yi0 + 2, yi1 - 2, -3, 1))
-    ring = ring - union([cyl(5.5, 4, x, y, -3) for x, y in pod_lid_points()])   # clear the bosses
-    return (lid + ring) - union(cuts)
+    return lid - union(cuts)
 
 def lock_pin(length=None):
     """Quarter-turn lock pin, modelled as printed: wing head flat on the bed,
@@ -652,13 +713,15 @@ def lock_pin(length=None):
     return union([head, shaft, tip, lug])
 
 
+DECK_DETENT_X, DECK_DETENT_Y = 0.0, DECK_LEN - 7.0   # click post near the back of the deck
+
+
 def deck(deck_posts):
+    """Slides in from the front under the rails on the base's side walls,
+    stops against the seat ribs, and clicks onto a bump on a post."""
     L = DECK_LEN / math.cos(DA)               # length along the slope
-    plate = Manifold.cube([W, L, DECK_T]).translate([-W / 2, 0, 0])
-    cuts = []
-    for x, y in deck_posts:
-        cuts.append(cyl(CLEAR_R, DECK_T + 2, x, y / math.cos(DA), -1))
-        cuts.append(cyl(HEAD_R, 2, x, y / math.cos(DA), DECK_T - 1.2))  # shallow head recess
+    plate = slide_panel(DECK_T, 0, L - SLIDE_CLR)
+    cuts = [detent_dimple(DECK_DETENT_X, DECK_DETENT_Y / math.cos(DA))]
     s_mid = L / 2 + 4
     for sx, label in ((-1, "TALK"), (1, "PRINT")):
         cuts.append(cyl(BUTTON_HOLE / 2, DECK_T + 2, sx * BUTTON_SPACING / 2, s_mid, -1))
@@ -670,7 +733,9 @@ def deck(deck_posts):
                                    DECK_T - 0.6]))
     # Lip along the back edge: it stands in front of the bottom of the screen
     # bezel and stops the housing sliding back out along its rails.
-    plate = plate + box(-W / 2, W / 2, L - DECK_LIP_D, L, DECK_T - 0.01, DECK_T + DECK_LIP_H)
+    xt = W / 2 - SLIDE_NECK - SLIDE_CLR - DECK_T          # the deck's top face reaches this far
+    plate = plate + box(-xt, xt, L - SLIDE_CLR - DECK_LIP_D, L - SLIDE_CLR, DECK_T - 0.01,
+                        DECK_T + DECK_LIP_H)
     return plate - union(cuts), s_mid
 
 # ------------------------------------------------------------------ assembly transforms
