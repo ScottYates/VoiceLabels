@@ -11,6 +11,7 @@ Parts (each exported in its print orientation, no supports needed):
   6. power_pod    closed box behind the base for the USB power brick, with a
                   switched, fused IEC power socket in its back wall
   7. pod_lid      sliding lid for the power pod
+ 11. front_panel  the base's front wall: slides up from underneath once the deck is in
   8. lock_pin x4  quarter-turn pins that lock the housing and pod to the base
   9. socket_keeper  frame that clamps the power socket's front plate to the pod
  10. socket_pin x2  quarter-turn pins that hold the keeper on
@@ -78,6 +79,17 @@ BUTTON_PANEL_T = 2.0           # deck thinned to this around each button, for sn
 BUTTON_RECESS_D = 38.0         # diameter of the thinned area (underside)
 BUTTON_SPACING = 84.0
 BASE_WALL = 2.4
+# Front panel: the base's front wall is a separate panel that slides up into
+# place from underneath once the deck (with the buttons hanging under it) is in.
+# Its side edges are rebated and run in slots in two posts inside the front
+# corners; a lip of each post covers the rebate, so the front stays flush.
+FP_T = 3.0                     # panel thickness
+FP_LIP = 1.2                   # post lip in front of the panel's rebated edge
+FP_TONGUE = 3.5                # how far each edge runs into its post
+FP_POST = 7.5                  # post width, from the side wall inwards
+FP_CLR = 0.25                  # play in the slots
+FP_DETENT_Z = 14.0             # click bump height (from the floor)
+BUTTON_BODY_D, BUTTON_BODY_L = 31.0, 34.0   # arcade button body under the deck (stand-in for checks)
 
 # Sliding panels (back plate, pod lid, deck): each panel's two long edges are
 # bevelled at 45 degrees and slide under matching lips along the top of the
@@ -574,7 +586,7 @@ def base():
         [-W / 2 + BASE_WALL, 0, 0])
     body = solid - cavity
 
-    adds, cuts = [], []
+    adds, cuts, late_adds = [], [], []
     # Seat ribs: solid from the floor up to the housing seat, inside each side
     # wall, each carrying one of the housing's dovetail slots.
     seat = [(E[0], 0), (E[0], E[1]), (B[0], B[1]), (B[0], 0)]
@@ -628,11 +640,30 @@ def base():
     # the tops of the side walls in front of it to 0.4 mm below the path of
     # its floor, or their front corners would scrape it.
     cuts.append(housing_world(box(-W / 2 - 1, W / 2 + 1, -0.4, WALL + 20, -90, 0.01)))
+    # Front: the wall itself is the separate front panel; leave its opening,
+    # through the floor, with a slotted post in each front corner.
+    iw = W / 2 - BASE_WALL
+    cuts.append(box(-iw, iw, -1, FP_T + FP_CLR, -1, FRONT_H + 6))
+    post_d = FP_T + FP_CLR + 2.4
+    for sx in (-1, 1):
+        a, b = sorted((sx * iw, sx * (iw - FP_POST)))
+        post = box(a, b, 0, post_d, 0, FRONT_H + 3) ^ profile_xs(
+            [(0, 0), (0, FRONT_H), (DECK_LEN, FRONT_H + DECK_LEN * T(DA)), (DECK_LEN, 0)])
+        x1 = iw - FP_TONGUE - FP_CLR                      # panel's full-thickness edge
+        slot_main = box(*sorted((sx * (x1 + FP_CLR), 0)), -1, FP_T + FP_CLR, -1, FRONT_H + 6)
+        slot_tongue = box(*sorted((sx * (iw - FP_CLR + 0.01), 0)), FP_LIP, FP_T + FP_CLR, -1, FRONT_H + 6)
+        post = post - slot_main - slot_tongue
+        # click bump on the slot's back face, into a dimple in the panel's edge
+        xt = sx * (iw - FP_CLR - FP_TONGUE / 2)
+        bump = Manifold.cylinder(DETENT_H + FP_CLR, DETENT_R, 0.35, SEG).rotate([90, 0, 0]).translate(
+            [xt, FP_T + FP_CLR + 0.01, FP_DETENT_Z])
+        late_adds.append(post + bump)
     # Feet recesses under the floor.
     for x in (-W / 2 + 16, W / 2 - 16):
         for y in (16, rear_feet_y):
             cuts.append(cyl(6.5, 1.2, x, y, -0.2))
-    return add_pin_bores(body - union(cuts), bores), deck_posts
+    body = union([body - union(cuts)] + late_adds)
+    return add_pin_bores(body, bores), deck_posts
 
 
 def power_pod():
@@ -811,6 +842,23 @@ def lock_pin(length=None, cam_from=None, grip=PIN_WALL):
 DECK_DETENT_X, DECK_DETENT_Y = 0.0, DECK_LEN - 7.0   # click post near the back of the deck
 
 
+def front_panel():
+    """The base's front wall, in world coordinates: slides up from underneath
+    in the corner posts' slots, its top following the deck's underside."""
+    iw = W / 2 - BASE_WALL
+    x1 = iw - FP_TONGUE - FP_CLR
+    xe = iw - FP_CLR - 0.15
+    top = profile_xs([(-1, -1), (-1, FRONT_H - 0.3 - 1 * T(DA)), (FP_T + 1, FRONT_H - 0.3 + (FP_T + 1) * T(DA)),
+                      (FP_T + 1, -1)])
+    panel = box(-x1, x1, 0, FP_T, 0, FRONT_H + 2)
+    tongues = [box(*sorted((sx * x1 - sx * 0.01, sx * xe)), FP_LIP + FP_CLR, FP_T, 0, FRONT_H + 2)
+               for sx in (-1, 1)]
+    panel = union([panel] + tongues) ^ top
+    dimples = [Manifold.cylinder(DETENT_H + 0.3, DETENT_R + 0.3, 0.6, SEG).rotate([90, 0, 0])
+               .translate([sx * (iw - FP_CLR - FP_TONGUE / 2), FP_T + 0.01, FP_DETENT_Z]) for sx in (-1, 1)]
+    return panel - union(dimples)
+
+
 def deck(deck_posts):
     """Slides in from the front under the rails on the base's side walls,
     stops against the seat ribs, and clicks onto a bump on a post."""
@@ -831,6 +879,12 @@ def deck(deck_posts):
     xt = W / 2 - SLIDE_NECK - SLIDE_CLR - DECK_T          # the deck's top face reaches this far
     plate = plate + box(-xt, xt, L - SLIDE_CLR - DECK_LIP_D, L - SLIDE_CLR, DECK_T - 0.01,
                         DECK_T + DECK_LIP_H)
+    # Trim the front end face vertical in world terms, flush with the front panel
+    # below it (cut square to the slope, its top corner would stand 0.4 mm proud).
+    ca, sa = math.cos(DA), math.sin(DA)
+    front = box(-W, W, -20, 0, FRONT_H - 20, FRONT_H + 30).translate([0, 0, -FRONT_H]).transform(
+        [[1, 0, 0, 0], [0, ca, sa, 0], [0, -sa, ca, 0]])
+    cuts.append(front)
     return plate - union(cuts), s_mid
 
 # ------------------------------------------------------------------ assembly transforms
@@ -872,6 +926,7 @@ def build():
                                    for i in range(4)]),
         "4_base": b,
         "5_deck": d,                                      # top face up: labels print last, crisp
+        "11_front_panel": front_panel().rotate([-90, 0, 0]),   # inside face down, front face up
         "8_lock_pin_x4": union([lock_pin().translate([i * 12, 0, 0]) for i in range(4)]),
     }
     if POWER_POD:
@@ -890,7 +945,7 @@ def build():
     hw = housing_world(h)
     bpw = housing_world(bp.translate([0, 0, DEPTH]))
     dw = deck_world(d)
-    asm = {"housing": hw, "back_plate": bpw, "base": b, "deck": dw}
+    asm = {"housing": hw, "back_plate": bpw, "base": b, "deck": dw, "front_panel": front_panel()}
     if POWER_POD:
         asm["power_pod"] = power_pod()
         asm["pod_lid"] = pod_lid().translate([0, 0, POD["z_top"]])
