@@ -713,22 +713,24 @@ def power_pod():
     for sx in (-1, 1):
         bores.append(pin_hole(sx, pod_pin_yz(), POD_RAIL_X))
     # Lid: slide rails along the side walls' tops (the lid slides in from the
-    # back), stop blocks at the front corners, click bump on the back wall.
+    # back until it meets the housing's back) and a click bump on the back wall.
     y_front = front(z_top)
     adds.append(slide_rails(LID_T, y_front, yb, z_top))
-    for sx in (-1, 1):
-        adds.append(box(sx * (W / 2 - 14) - 5, sx * (W / 2 - 14) + 5, y_front, y_front + POD_LID_STOP,
-                        z_top - 0.01, z_top + LID_T))
     adds.append(detent_bump(POD_DETENT_X, yb - w / 2, z_top))
     # Close the slot between the pod's sloped front and the housing's back
     # plate: thicken the sloped face towards the plate, between the plate's
     # side rails, leaving POD_FACE_GAP.
-    rail_x = W / 2 - SLIDE_NECK - BACK_T - 0.4               # inside the rails' overhanging lips
-    grow = (POD_GAP_S - POD_FACE_GAP) / math.cos(RA)       # horizontal, at the slant
-    # start where the thickened face clears the top of the base's rear wall
-    zs = max(g["z_v"], B[1] + (POD_GAP_V + grow - POD_GAP_S / math.cos(RA)) / T(RA) + 0.3)
-    adds.append(x_extrude([(front(zs) - grow, zs), (front(zs), zs), (front(z_top), z_top),
-                           (front(z_top) - grow, z_top)], -rail_x, rail_x))
+    # Between the rails it comes to POD_FACE_GAP from the plate; outside them,
+    # to POD_FACE_GAP from the rails' lips (which stand SLIDE_LIP proud).
+    rail_x = back_rail_x()
+    for x0, x1, gap_to_plate in ((-rail_x, rail_x, POD_FACE_GAP),
+                                 (rail_x - 0.01, W / 2, POD_FACE_GAP + SLIDE_LIP),
+                                 (-W / 2, -rail_x + 0.01, POD_FACE_GAP + SLIDE_LIP)):
+        grow = (POD_GAP_S - gap_to_plate) / math.cos(RA)  # horizontal, at the slant
+        # start where the thickened face clears the top of the base's rear wall
+        zs = max(g["z_v"], B[1] + (POD_GAP_V + grow - POD_GAP_S / math.cos(RA)) / T(RA) + 0.3)
+        adds.append(x_extrude([(front(zs) - grow, zs), (front(zs), zs), (front(z_top), z_top),
+                               (front(z_top) - grow, z_top)], x0, x1))
     # Brick locators: a low rib in front of it and a short stop past its cable end.
     adds.append(box(xb0 + 6, xb1 - 6, yb0 - 3.0 - PSU_CLR, yb0 - PSU_CLR, zi0, zi0 + 5))
     # IEC socket in the back wall: the cutout, and the bores for the two
@@ -743,9 +745,6 @@ def power_pod():
                  (xb1 + 16, yb1 - 6)]:
         adds.append(box(x - 5, x + 5, y - 4, y + 4, zi0, zi0 + 6))
         cuts.append(box(x - 6, x + 6, y - 2, y + 2, zi0 + 1.2, zi0 + 3.8))
-    # USB-C cable exit: notch in the top of the front wall, closed by the lid.
-    nx = min(max(-USBC_X, xb1 + 8), W / 2 - 20)    # near the Pi's USB-C, clear of the brick
-    cuts.append(box(nx - 4, nx + 4, g["front"](z_top) - 5, fin(z_top) + 6, z_top - 7, z_top + 1))
     # Vent slots in the back wall above the cable coil (away from the mains side).
     for i in range(6):
         x = xb1 + 6 + i * 6
@@ -807,16 +806,33 @@ def socket_keeper():
     return frame - union(cuts)
 
 
-POD_LID_STOP = 3.0               # stop blocks at the pod's front corners
 POD_DETENT_X = -30.0            # click bump on the back wall's top
 
+def back_rail_x():
+    """Inside edge of the housing back plate's rail lips (world X)."""
+    return W / 2 - SLIDE_NECK - BACK_T - 0.4
+
+
+def plate_face_y(z, extra=0.0):
+    """World Y of the housing back plate's outer face at height z, plus a gap
+    `extra` measured square to the face."""
+    return B[0] + (z - B[1]) * T(RA) + extra / math.cos(RA)
+
+
 def pod_lid():
-    """Slides in from the back under the rails on the pod's side walls, stops
-    on two blocks at the front and clicks onto a bump on the back wall."""
+    """Slides in from the back under the rails on the pod's side walls until
+    its front edge meets the housing's back plate (its front face is cut at the
+    plate's angle, POD_FACE_GAP away), and clicks onto a bump on the back wall."""
     g = POD
-    y0, y1 = g["front"](g["z_top"]) + POD_LID_STOP + SLIDE_CLR, g["yb"]
-    lid = slide_panel(LID_T, y0, y1)
+    zt = g["z_top"]
+    y1 = g["yb"]
+    lid = slide_panel(LID_T, plate_face_y(zt) - 2, y1)
     cuts = [detent_dimple(POD_DETENT_X, y1 - POD_WALL / 2)]
+    rx = back_rail_x()
+    for x0, x1, gap in ((-rx, rx, POD_FACE_GAP), (rx - 0.01, W, POD_FACE_GAP + SLIDE_LIP),
+                        (-W, -rx + 0.01, POD_FACE_GAP + SLIDE_LIP)):
+        ya, yb_ = plate_face_y(zt - 1, gap), plate_face_y(zt + LID_T + 1, gap)
+        cuts.append(x_extrude([(ya - 20, -1), (ya, -1), (yb_, LID_T + 1), (ya - 20, LID_T + 1)], x0, x1))
     # Vent slots over the brick and cable coil only (never over the mains side).
     xb0, xb1, yb0, yb1, _, _ = g["brick"]
     for i in range(10):
