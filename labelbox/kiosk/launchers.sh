@@ -57,4 +57,19 @@ setkey desktop_bg "#1e1e1f1f2222"
 setkey desktop_shadow "#1e1e1f1f2222"
 pkill -f "[p]cmanfm --desktop" || true    # restarts itself with the new settings
 
-echo "Voice Labels added to the taskbar, the menu and the desktop, and set as the wallpaper."
+# No on-screen keyboard: squeekboard pops up over the app on every touch.
+# This per-user file overrides /etc/xdg/autostart/squeekboard.desktop
+# (delete it to get the keyboard back).
+mkdir -p "$HOME/.config/autostart"
+cat > "$HOME/.config/autostart/squeekboard.desktop" <<'EOF2'
+[Desktop Entry]
+Name=Squeekboard
+Comment=On-screen keyboard: turned off for Voice Labels (this file overrides /etc/xdg/autostart/squeekboard.desktop)
+Type=Application
+Exec=/bin/true
+Hidden=true
+X-GNOME-Autostart-enabled=false
+EOF2
+pkill -x squeekboard || true
+
+echo "Voice Labels added to the taskbar, the menu and the desktop, set as the wallpaper, and the on-screen keyboard turned off."

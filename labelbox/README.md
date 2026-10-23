@@ -97,6 +97,10 @@ If you would rather use CUPS (for example, to also print from other computers), 
 
 After the reboot, the app opens fullscreen.
 
+### On-screen keyboard
+
+Raspberry Pi OS shows an on-screen keyboard (squeekboard) when you touch a text field, which covers the app. The installer turns it off for your user (`kiosk/launchers.sh` adds `~/.config/autostart/squeekboard.desktop`); delete that file to bring it back. To turn it off for the whole system, including the login screen, run `sudo raspi-config nonint do_squeekboard S3`.
+
 ### Kiosk mode
 
 The Pi boots straight into Voice Labels with no desktop behind it. If the app crashes or closes, it restarts within a couple of seconds.
