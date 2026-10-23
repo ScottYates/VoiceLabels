@@ -153,8 +153,8 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under
 
 | Setting | What it does |
 |---|---|
-| **Date** (green with ✓ when on) and its text field | Print the date, or any text you type there. F2 also toggles it |
-| **QR** (green with ✓ when on) and its text field | Print a QR code of the field's text, or of the label text if the field is blank. F3 also toggles it |
+| **Date** (green with ✓ when on) and its text field | Print the date, or any text you type there. F2 also toggles it. On or off is remembered across restarts |
+| **QR** (green with ✓ when on) and its text field | Print a QR code of the field's text, or of the label text if the field is blank. F3 also toggles it. On or off and the QR text are remembered across restarts |
 | **Align Left / Center / Right** | Line the label text (and the date) up on the left, center or right. F5 cycles through them. Remembered across restarts |
 | **Copies − / +** | How many labels each PRINT makes |
 | **Brightness 25 / 50 / 75 / 100%** | Screen brightness. Remembered across restarts |

@@ -233,6 +233,15 @@ class App:
             self.icon_pos.set(saved["icon_pos"])
         if saved.get("icon_size") in self.ICON_SIZES:
             self.icon_size.set(saved["icon_size"])
+        # Date and QR on/off and the QR text are remembered too.
+        if "show_date" in saved:
+            self.show_date.set(bool(saved["show_date"]))
+        if "show_qr" in saved:
+            self.show_qr.set(bool(saved["show_qr"]))
+        if isinstance(saved.get("qr_text"), str):
+            self.qr_text.set(saved["qr_text"])
+        self.show_date.trace_add("write", lambda *_: self._save_settings(show_date=self.show_date.get()))
+        self.show_qr.trace_add("write", lambda *_: self._save_settings(show_qr=self.show_qr.get()))
         self._refresh_align_buttons()
         self._refresh_place_buttons()
         self._display_power(True)     # in case an earlier run left it blanked
@@ -1260,6 +1269,9 @@ class App:
         if hasattr(self, "network_panel"):
             self.close_network()
         self.setup_panel.place_forget()
+        qr = self.qr_text.get()
+        if qr != self._load_settings().get("qr_text", ""):
+            self._save_settings(qr_text=qr)               # saved once, not on every key
         self.text.focus_set()
         self.schedule_preview()
 
