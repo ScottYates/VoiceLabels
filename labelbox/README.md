@@ -178,6 +178,12 @@ With only an icon and no text, the icon is centered and fills the label.
 
 The search covers about twenty open-source icon sets chosen for single-colour, print-friendly icons, including plenty of computer and maker parts: USB, HDMI, Ethernet and power cables, network and graphics cards, RAM, CPUs, SSDs, NVMe, power supplies, motherboards, filament spools, 3D printers, screws and more. Common words are matched to what the icon sets call things, so saying "video card" also finds "graphics card" and "GPU", and "PLA" or "filament" finds spools. Thin, two-tone and crossed-out ("off") variants are left out because they print poorly. To add your own words, use `ICON_SYNONYMS` in `config.py`; the sets themselves are in `ICON_SETS`.
 
+### Spelling words out
+
+To get a name, code or part number exactly right, spell it: hold TALK and say the letters one by one, "S, M, I, T, H". The app notices a run of single letters and joins them with hyphens on the label: **S-M-I-T-H**. Numbers inside a spelled run are kept with it ("R J 45" gives R-J-45), and you can mix spelling with ordinary words ("Smith, spelled S M I T H" gives Smith, spelled S-M-I-T-H).
+
+Ordinary single letters are left alone: "Plan B", "vitamin C", "a", "I". It takes two or more spelled letters in a row (or three or more with letter names like "ess" between them). To join the letters without hyphens (SMITH), or to turn this off, change `SPELL_JOINER` in `config.py`.
+
 Tips for accuracy:
 - Hold the button a moment *before* you start talking, and release a beat after you finish.
 - Keep the mic 15–30cm from your mouth, away from fans and the printer.
@@ -203,6 +209,7 @@ Everything adjustable is in `config.py`, with comments. The most common changes:
 | `PRINT_HOLD_SECONDS`, `PRINT_HOLD_CHOICES` | Default PRINT hold time, and the choices on the Setup screen (0 = no hold) |
 | `TALK_BUTTON_PIN`, `PRINT_BUTTON_PIN`, `*_LED_PIN` | GPIO pins for the two buttons and their lights |
 | `MIC_NAME` | Text in the microphone's name. The app finds it on any USB port; `./run.sh stt.py --list` shows the names |
+| `SPELL_JOINER` | What goes between spelled-out letters: `"-"` for S-M-I-T-H, `""` for SMITH, `None` to leave them as heard |
 | `KEYTERMS` | Words the speech model should favor (part numbers, names, jargon), spelled as you want them printed |
 | `SCREEN_BLANK_SECONDS` | Seconds of inactivity before the screen goes dark (0 = never) |
 | `LONG_PRESS_BLANK_SECONDS` | How long to hold on the text box or preview to turn the screen off (0 = never) |
@@ -248,6 +255,7 @@ The window is 800×480 by default to match the Hosyond screen. Add `--size 720x1
 | `hardware.py` | The deck buttons and their lights |
 | `config.py` | All settings |
 | `icons.py` | The button icons, drawn with Pillow (run it to see them all on one sheet) |
+| `spelling.py` | Spots spelled-out words in the recognized text and joins the letters |
 | `iconlib.py` | Label icons: online search, download cache and the saved-icon library (`icon-library/`) |
 | `svgraster.py` | Draws SVG icons with Pillow and numpy, so no extra graphics library is needed |
 | `install.sh` | One-time setup on the Pi |

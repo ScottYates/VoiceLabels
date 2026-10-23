@@ -33,6 +33,7 @@ import icons
 import printer
 from hardware import Button
 import iconlib
+from spelling import hyphenate_spelling
 from render import LabelSpec, for_printer, render
 from stt import PushToTalk
 from zpl import image_to_zpl
@@ -1247,8 +1248,12 @@ class App:
 
     @staticmethod
     def _tidy(spoken: str) -> str:
-        """Speech recognition ends sentences with a period; labels don't want one."""
+        """Join spelled-out letters (S M I T H -> S-M-I-T-H) and drop the period
+        speech recognition puts at the end; labels don't want one."""
         spoken = spoken.strip()
+        joiner = getattr(config, "SPELL_JOINER", "-")
+        if joiner is not None:
+            spoken = hyphenate_spelling(spoken, joiner)
         while spoken.endswith(".") and not spoken.endswith("..."):
             spoken = spoken[:-1].rstrip()
         return spoken

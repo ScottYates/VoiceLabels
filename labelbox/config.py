@@ -81,6 +81,11 @@ MIC_NAME = "USB"
 RECORD_MODE = "replace"       # "replace" the text, or "append" to it
 TAIL_SECONDS = 0.35           # keep listening this long after release
 
+# Spelling: when you spell a word out ("S M I T H"), the letters are joined
+# with this between them: "-" gives S-M-I-T-H, "" gives SMITH. Set to None to
+# leave spelled letters as they were heard.
+SPELL_JOINER = "-"
+
 # Words the speech model should favor. Add part numbers, names and jargon you
 # say often, spelled and capitalized exactly as you want them on the label.
 # No commas inside a term. Restart the app after editing.
