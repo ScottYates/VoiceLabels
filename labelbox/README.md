@@ -150,6 +150,7 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under
 | Tap **Align**, or press F5 | Line the text up left, then center, then right. The button shows the current choice, and it's remembered across restarts (also on the Setup screen) |
 | Tap **Icon**, or press F6 | Add an icon (see Icons below). With an icon already on the label, it opens the icon placement screen |
 | Tap **Clear**, or press Esc | Clear the text and remove the icon |
+| **Double-tap** the text box | Clear the text (the icon stays) |
 | Tap **⚙ Setup** | Open the Setup screen (below) |
 | **Press and hold** on the text box or the label preview for 1.5 seconds | Turn the screen off now, like the screen saver. Tap to wake it |
 
@@ -196,7 +197,7 @@ The search covers about twenty open-source icon sets chosen for single-colour, p
 
 ### Spelling words out
 
-To get a name, code or part number exactly right, spell it: hold TALK and say the letters one by one, "S, M, I, T, H". The app notices a run of single letters and joins them with hyphens on the label: **S-M-I-T-H**. Numbers inside a spelled run are kept with it ("R J 45" gives R-J-45), and you can mix spelling with ordinary words ("Smith, spelled S M I T H" gives Smith, spelled S-M-I-T-H).
+To get a name, code or part number exactly right, spell it: hold TALK and say the letters one by one, "S, M, I, T, H". The app notices a run of single letters and joins them with hyphens on the label: **S-M-I-T-H**. Numbers inside a spelled run are kept with it ("R J 45" gives R-J-45), and you can mix spelling with ordinary words ("Smith, spelled S M I T H" gives Smith, spelled S-M-I-T-H). Letters the recognizer writes with periods or dashes ("S. M. I. T. H.", "S - M - I") come out the same way, and initials before a name stay with it ("J. R. R. Tolkien" gives J-R-R Tolkien).
 
 Ordinary single letters are left alone: "Plan B", "vitamin C", "a", "I". It takes two or more spelled letters in a row (or three or more with letter names like "ess" between them). To join the letters without hyphens (SMITH), or to turn this off, change `SPELL_JOINER` in `config.py`.
 

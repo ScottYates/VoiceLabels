@@ -89,12 +89,19 @@ def hyphenate_spelling(text: str, joiner: str = "-") -> str:
         # ending in . ! or ? (other than a dotted spelling) ends the run
         j, run = i, []
         while j < len(words):
+            if words[j] in ("-", "–", "—") and run and j + 1 < len(words) \
+                    and _classify(words[j + 1])[0] is not None:
+                j += 1                                # "S - M - I": spoken dashes between letters
+                continue
             k, cs = _classify(words[j])
             if k is None:
                 break
             run.append((words[j], k, cs))
             j += 1
-            if words[j - 1][-1:] in ".!?" and not _DOTTED.match(words[j - 1]) and len(run) >= 2:
+            prev = words[j - 1]
+            # "word." ends a sentence and the run; "S." (one letter) is just a spelled letter
+            if prev[-1:] in ".!?" and len(prev.strip(_PUNCT)) > 1 and not _DOTTED.match(prev) \
+                    and len(run) >= 2:
                 break
         # a run has to start and end on a real letter or digit, not a letter name
         start, popped = i, 0
@@ -110,6 +117,8 @@ def hyphenate_spelling(text: str, joiner: str = "-") -> str:
         if run and _is_spelling(run):
             last = run[-1][0]
             end = "" if _DOTTED.match(last) else last[len(last.rstrip(_PUNCT)):]
+            if end == "." and len(last.strip(_PUNCT)) == 1:
+                end = ""                              # "H." - the period belongs to the letter
             out.append(joiner.join(c for _, _, cs in run for c in cs) + end)
         else:
             out.extend(w for w, _, _ in run)

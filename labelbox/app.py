@@ -373,6 +373,12 @@ class App:
             w.bind("<ButtonPress-1>", self._long_press_start, add="+")
             w.bind("<B1-Motion>", self._long_press_move, add="+")
             w.bind("<ButtonRelease-1>", self._long_press_cancel, add="+")
+        # Double tap on the text box clears the text (touch taps land a few pixels
+        # apart, so this is checked by hand rather than with <Double-Button-1>).
+        self._last_tap = (0.0, 0, 0)
+        for w in (self.text, self.placeholder):
+            w.bind("<ButtonPress-1>", self._tap_check, add="+")
+        self.text.bind("<Double-Button-1>", lambda e: "break")   # no word select
         self.text.bind("<Configure>", lambda e: (
             self.placeholder.configure(wraplength=max(50, e.width - 30)),
             self.status.configure(wraplength=max(100, e.width - 4))))
@@ -1724,6 +1730,19 @@ class App:
     # --------------------------------------------------------------- misc
     def toggle_orientation(self):
         self.orientation.set("portrait" if self.orientation.get() == "landscape" else "landscape")
+
+    def _tap_check(self, e):
+        now = time.monotonic()
+        t, x, y = self._last_tap
+        if now - t < 0.4 and abs(e.x_root - x) < 40 and abs(e.y_root - y) < 40:
+            self._last_tap = (0.0, 0, 0)
+            self._long_press_cancel()
+            if not self.recording and not self.busy and self.text.get("1.0", "end-1c"):
+                self._set_text("")
+                self.set_status("Cleared", MUTED)
+            return "break"
+        self._last_tap = (now, e.x_root, e.y_root)
+        return None
 
     def clear(self):
         if self.recording:

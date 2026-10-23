@@ -184,7 +184,9 @@ class PushToTalk:
         with self._lock:
             self._listening = False
             parts = self._lines + ([self._partial] if self._partial.strip() else [])
-        self.on_final(_tidy(" ".join(parts)))
+        raw = " ".join(parts)
+        print(f"heard: {raw!r}", flush=True)   # raw text, for checking spelling in the log
+        self.on_final(_tidy(raw))
 
     def close(self):
         if self._mic is not None:
