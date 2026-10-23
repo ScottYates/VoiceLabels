@@ -8,3 +8,4 @@ case/out/
 *.zip
 labelbox/icon-library/
 labelbox/network.log
+labelbox/printer.log

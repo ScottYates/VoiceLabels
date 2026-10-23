@@ -1360,6 +1360,8 @@ class App:
                 self.events.put(("net_note", note))
             network.watch()
         threading.Thread(target=work, daemon=True).start()
+        if not self.dry_run:
+            printer.watch(on_change=lambda st, d: self.events.put(("printer_state", d)))
 
     def open_power(self):
         self._power_armed = None
@@ -2086,6 +2088,11 @@ class App:
             self._network_loaded(val)
         elif kind == "net_applied":
             self._network_applied(*val)
+        elif kind == "printer_state":
+            if val not in ("ready", "no answer") and not self.recording and not self.busy:
+                self.set_status(f"Printer: {val}", ACCENT)
+            elif val == "ready" and self.status.cget("text").startswith("Printer:"):
+                self.set_status(self._idle_hint(), FG)
         elif kind == "labels_note":
             self.busy = False
             self.labels_note.configure(text=val[0], fg=val[1])
