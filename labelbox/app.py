@@ -347,12 +347,8 @@ class App:
         tcap.grid(row=1, column=0, sticky="ew", padx=(0, pad))
         tk.Label(tcap, text="TEXT", bg=BG, fg=MUTED, font=cap_bold,
                  anchor="w").pack(side="left")
-        tk.Button(tcap, text=" Help", command=self.open_help, image=self.icon("help", FG, 16),
-                  compound="left", font=cap_bold, relief="flat", bd=0, highlightthickness=0,
-                  padx=round(12 * s), pady=round(3 * s), bg=PANEL, fg=FG, activebackground=PANEL,
-                  activeforeground=FG, cursor="hand2").pack(side="right")
-        tk.Label(tcap, text="type to edit", bg=BG, fg=MUTED, font=cap_font,
-                 anchor="e").pack(side="right", padx=(0, gap))
+        tk.Label(tcap, text="type here to edit", bg=BG, fg=MUTED, font=cap_font,
+                 anchor="e").pack(side="right")
 
         # Right box: the label drawn on its backing paper.
         self.canvas = tk.Canvas(body, bg=LINER, width=1, height=1, highlightthickness=2,
@@ -378,17 +374,17 @@ class App:
             w.bind("<ButtonPress-1>", self._long_press_start, add="+")
             w.bind("<B1-Motion>", self._long_press_move, add="+")
             w.bind("<ButtonRelease-1>", self._long_press_cancel, add="+")
-        # Double tap on the text box clears the text (touch taps land a few pixels
+        # Double tap on the text box or the preview clears the text and icon (touch taps land a few pixels
         # apart, so this is checked by hand rather than with <Double-Button-1>).
         self._last_tap = (0.0, 0, 0)
-        for w in (self.text, self.placeholder):
+        for w in (self.text, self.placeholder, self.canvas):
             w.bind("<ButtonPress-1>", self._tap_check, add="+")
         self.text.bind("<Double-Button-1>", lambda e: "break")   # no word select
         self.text.bind("<Configure>", lambda e: (
             self.placeholder.configure(wraplength=max(50, e.width - 30)),
             self.status.configure(wraplength=max(100, e.width - 4))))
 
-        # Bottom row: status message (left), Rotate / Clear / Setup (right).
+        # Bottom row: status message (left), Rotate / Align / Icon / Help / Setup (right).
         self.status = tk.Label(body, text="", bg=BG, fg=FG, font=font(22, True),
                                anchor="w", justify="left")
         self.status.grid(row=3, column=0, sticky="ew", padx=(0, pad), pady=(gap, 0))
@@ -402,7 +398,7 @@ class App:
                 ("rotate", "Rotate", "rotate", self.toggle_orientation),
                 ("align", "Align", "align-left", self.cycle_align),
                 ("icon", "Icon", "image", self.open_icons),
-                ("clear", "Clear", "clear", self.clear),
+                ("help", "Help", "help", self.open_help),
                 ("setup", "Setup", "gear", self.open_setup)]):
             row.columnconfigure(col, weight=1, uniform="b")
             b = tk.Button(row, text=label, command=cmd, image=self.icon(ic, FG, 17), **btn)
@@ -547,7 +543,7 @@ class App:
         ("Spelling", "Say the letters one by one: \u201cT R A E\u201d gives Trae"),
     ]
     HELP_TOUCH = [
-        ("Double-tap text", "Clears the text"),
+        ("Double-tap", "On the text or the label: clears the text and icon"),
         ("Tap Talk, then hold", "Starts over and listens again"),
         ("Hold text or label", "Turns the screen off (touch to wake)"),
         ("PRINT", "Hold to print. On other screens it means Done"),
@@ -1824,8 +1820,10 @@ class App:
         if now - t < 0.4 and abs(e.x_root - x) < 40 and abs(e.y_root - y) < 40:
             self._last_tap = (0.0, 0, 0)
             self._long_press_cancel()
-            if not self.recording and not self.busy and self.text.get("1.0", "end-1c"):
+            if not self.recording and not self.busy and (self.text.get("1.0", "end-1c")
+                                                          or self.icon_id.get()):
                 self._set_text("")
+                self.icon_id.set("")
                 self.set_status("Cleared", MUTED)
             return "break"
         self._last_tap = (now, e.x_root, e.y_root)
@@ -1956,6 +1954,21 @@ def main():
 
     root = tk.Tk()
     root.title("Voice Labels")
+
+    def repaint():
+        # Cover the whole window for a moment and take the cover away, so
+        # every widget is drawn again. After a resize, Xwayland can keep
+        # showing old pixels at the bottom (cut-off buttons) even though
+        # the layout itself is right.
+        try:
+            cover = tk.Frame(root, bg=BG)
+            cover.place(x=0, y=0, relwidth=1, relheight=1)
+            cover.lift()
+            root.update_idletasks()
+            root.after(60, cover.destroy)
+        except tk.TclError:
+            pass
+
     if config.FULLSCREEN and not args.windowed:
         screen = (root.winfo_screenwidth(), root.winfo_screenheight())
         root.geometry(f"{screen[0]}x{screen[1]}+0+0")
@@ -1992,6 +2005,8 @@ def main():
             root.geometry(f"{screen[0]}x{screen[1]}+0+0")
             root.after(80, lambda: (root.attributes("-fullscreen", True),
                                     root.lift(), root.focus_force()))
+            for ms in (400, 1200, 3000):
+                root.after(ms, repaint)
 
         fixes = {"n": 0}
 
@@ -2033,6 +2048,19 @@ def main():
             print(f"geom root at {root.winfo_rootx()},{root.winfo_rooty()} "
                   f"screen {root.winfo_screenwidth()}x{root.winfo_screenheight()}", flush=True)
             walk(root)
+        if os.path.exists("/tmp/labelbox-unfull"):      # test: knock it out of fullscreen
+            try:
+                os.remove("/tmp/labelbox-unfull")
+            except OSError:
+                pass
+            root.attributes("-fullscreen", False)
+            root.geometry("800x418+0+62")
+        if os.path.exists("/tmp/labelbox-repaint"):     # `touch` it to redraw the screen
+            try:
+                os.remove("/tmp/labelbox-repaint")
+            except OSError:
+                pass
+            repaint()
         root.after(2000, geometry_dump)
     root.after(2000, geometry_dump)
     if os.environ.get("LABELBOX_SHOW_SETUP"):      # for screenshots while testing

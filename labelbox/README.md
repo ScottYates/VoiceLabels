@@ -137,7 +137,7 @@ While protection is on, anything else you change is lost at the next restart: ap
 |---|---|
 | <img src="docs/screen.png?v=3" alt="Main screen" width="400"> | <img src="docs/setup.png?v=4" alt="Setup screen" width="400"> |
 
-The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words (with a **Help** button above it listing the voice commands and touch shortcuts), and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **Rotate**, **Align**, **Icon**, **Clear** and **Setup** sit under the preview. Every button has an icon beside its label.
+The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **Rotate**, **Align**, **Icon**, **Help** and **Setup** sit under the preview. **Help** lists the voice commands and touch shortcuts. Every button has an icon beside its label.
 
 | Do this | To |
 |---|---|
@@ -149,8 +149,8 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under
 | Tap **⟳ Rotate**, or press F4 | Switch landscape / portrait |
 | Tap **Align**, or press F5 | Line the text up left, then center, then right. The button shows the current choice, and it's remembered across restarts (also on the Setup screen) |
 | Tap **Icon**, or press F6 | Add an icon (see Icons below). With an icon already on the label, it opens the icon placement screen |
-| Tap **Clear**, or press Esc | Clear the text and remove the icon |
-| **Double-tap** the text box | Clear the text (the icon stays) |
+| Press Esc | Clear the text and remove the icon (to remove just the icon, tap **Icon**, then **No icon**) |
+| **Double-tap** the text box or the label preview | Clear the text and the icon |
 | Tap **⚙ Setup** | Open the Setup screen (below) |
 | **Press and hold** on the text box or the label preview for 1.5 seconds | Turn the screen off now, like the screen saver. Tap to wake it |
 
@@ -199,7 +199,7 @@ The search covers about twenty open-source icon sets chosen for single-colour, p
 
 ### Voice commands
 
-Say these while holding TALK. The **Help** button above the text box lists them on screen.
+Say these while holding TALK. The **Help** button under the preview lists them on screen.
 
 | Say | What it does |
 |---|---|
