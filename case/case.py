@@ -110,6 +110,7 @@ HOUSING_RAIL_Z = (1.0, 40.0)   # rail start (at its root) / end along the housin
 SEAT_RIB_W = 21.0              # solid rib inside each side wall carrying a slot
 DECK_LIP_H = 3.0               # lip on the deck's back edge, in front of the bezel
 DECK_LIP_D = 2.5
+DECK_LIP_REACH = 0.4           # the lip reaches this far past the deck's back end, up to the bezel
 
 # Lock pins: short printed pegs pushed in through the outside walls. Each one
 # crosses a dovetail through a groove in the rail, so the part can't slide.
@@ -163,6 +164,13 @@ def box(x0, x1, y0, y1, z0, z1):
 
 def cyl(r, h, x=0, y=0, z=0):
     return Manifold.cylinder(h, r, circular_segments=SEG).translate([x, y, z])
+
+def housing_outline():
+    """The housing's outline (print X across, Y up from its bottom edge):
+    rounded top corners, square bottom corners where it sits in the base."""
+    return (rrect(W, H, CORNER_R).translate([0, H / 2])
+            + CrossSection.square([W, H / 2]).translate([-W / 2, 0]))
+
 
 def rrect(w, h, r):
     """Rounded rectangle centred at the origin (X width, Y height)."""
@@ -242,7 +250,7 @@ def mic_port_yz():
 
 
 def housing():
-    outer = rrect(W, H, CORNER_R).translate([0, H / 2]).extrude(DEPTH)
+    outer = housing_outline().extrude(DEPTH)
     inner = box(-INNER_W / 2, INNER_W / 2, WALL, WALL + INNER_H, FRONT, DEPTH + 1)
     shell = outer - inner
 
@@ -270,7 +278,7 @@ def housing():
     # rounded outline), stop blocks at the bottom corners, and a small pad inside
     # the bottom wall carrying the click bump.
     ribs = []
-    outline = rrect(W, H, CORNER_R).translate([0, H / 2]).extrude(20).translate([0, 0, DEPTH - 1])
+    outline = housing_outline().extrude(20).translate([0, 0, DEPTH - 1])
     ribs.append(slide_rails(BACK_T, 0, H, DEPTH) ^ outline)
     for sx in (-1, 1):
         ribs.append(box(sx * (W / 2 - 14) - 5, sx * (W / 2 - 14) + 5, 0, BACK_STOP_Y,
@@ -362,7 +370,7 @@ def _pad_yz(x_center):
 def back_plate():
     """Slides down from the top of the housing under the rails on the side
     walls, stops on two blocks at the bottom, and clicks onto a bump."""
-    outline = rrect(W, H, CORNER_R).translate([0, H / 2]).extrude(BACK_T + 2).translate([0, 0, -1])
+    outline = housing_outline().extrude(BACK_T + 2).translate([0, 0, -1])
     plate = slide_panel(BACK_T, BACK_STOP_Y + SLIDE_CLR, H) ^ outline
     cut = [detent_dimple(BACK_DETENT_X, BACK_DETENT_Y)]
     # Notch at the top edge for the USB-C power cable (from the power pod up
@@ -414,8 +422,9 @@ PSU_CLR = 0.8                      # room around the brick
 POD_WALL = 2.4
 TONGUE_T = 3.0                     # base floor extension the pod stands on
 POD_RAIL_X = W / 2 - 14.0          # vertical dovetail rails on the base's back wall
-POD_GAP_V = 0.5                    # pod front to the base's rear wall
-POD_GAP_S = 3.0                    # pod front to the screen's back plate (screw heads)
+POD_GAP_V = 0.2                    # pod front to the base's rear wall (the dovetails locate it)
+POD_GAP_S = 3.0                    # pod's sloped front to the screen's back plate (at the side rails)
+POD_FACE_GAP = 0.4                 # ... and between the rails, where the face is thickened
 INLET_CUT = (47.6, 27.8)           # IEC socket panel cutout (W x H)
 INLET_SCREW_SPACING = 40.0         # its screw ears, above and below the cutout (unused: no screws)
 INLET_PLATE = (50.0, 48.0, 4.5)    # its front plate: width, height, thickness (estimated; measure yours)
@@ -711,6 +720,15 @@ def power_pod():
         adds.append(box(sx * (W / 2 - 14) - 5, sx * (W / 2 - 14) + 5, y_front, y_front + POD_LID_STOP,
                         z_top - 0.01, z_top + LID_T))
     adds.append(detent_bump(POD_DETENT_X, yb - w / 2, z_top))
+    # Close the slot between the pod's sloped front and the housing's back
+    # plate: thicken the sloped face towards the plate, between the plate's
+    # side rails, leaving POD_FACE_GAP.
+    rail_x = W / 2 - SLIDE_NECK - BACK_T - 0.4               # inside the rails' overhanging lips
+    grow = (POD_GAP_S - POD_FACE_GAP) / math.cos(RA)       # horizontal, at the slant
+    # start where the thickened face clears the top of the base's rear wall
+    zs = max(g["z_v"], B[1] + (POD_GAP_V + grow - POD_GAP_S / math.cos(RA)) / T(RA) + 0.3)
+    adds.append(x_extrude([(front(zs) - grow, zs), (front(zs), zs), (front(z_top), z_top),
+                           (front(z_top) - grow, z_top)], -rail_x, rail_x))
     # Brick locators: a low rib in front of it and a short stop past its cable end.
     adds.append(box(xb0 + 6, xb1 - 6, yb0 - 3.0 - PSU_CLR, yb0 - PSU_CLR, zi0, zi0 + 5))
     # IEC socket in the back wall: the cutout, and the bores for the two
@@ -877,7 +895,7 @@ def deck(deck_posts):
     # Lip along the back edge: it stands in front of the bottom of the screen
     # bezel and stops the housing sliding back out along its rails.
     xt = W / 2 - SLIDE_NECK - SLIDE_CLR - DECK_T          # the deck's top face reaches this far
-    plate = plate + box(-xt, xt, L - SLIDE_CLR - DECK_LIP_D, L - SLIDE_CLR, DECK_T - 0.01,
+    plate = plate + box(-xt, xt, L - SLIDE_CLR - DECK_LIP_D, L - SLIDE_CLR + DECK_LIP_REACH, DECK_T - 0.01,
                         DECK_T + DECK_LIP_H)
     # Trim the front end face vertical in world terms, flush with the front panel
     # below it (cut square to the slope, its top corner would stand 0.4 mm proud).
