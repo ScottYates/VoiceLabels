@@ -5,6 +5,7 @@
     "upper case"   EVERYTHING IN CAPITALS
     "lower case"   everything in small letters
     "title case"   Each Word Capitalized
+    "undo"         puts back the text and icon from before the last change
     "remove ..."   takes something out of the whole text: "remove comma" drops
                    every ",", "remove dash" every "-", "remove punctuation" all
                    of it; anything else is removed as words ("remove Johnson")
@@ -34,6 +35,7 @@ PHRASES = {                          # spoken (lowercase, no punctuation) -> com
     ("title-case",): "title",
     ("all", "caps"): "upper",
     ("space",): "space",
+    ("undo",): "undo",
 }
 _LONGEST = max(len(k) for k in PHRASES)
 
@@ -121,7 +123,7 @@ def apply_removals(text: str, removals) -> str:
 
 
 def parse(spoken: str):
-    """Return (text, case, cleared, commands_only, removals).
+    """Return (text, case, cleared, commands_only, removals, undo).
 
     text: what was said with the commands taken out, spoken "space" kept as
           SPACE markers (call finish() after other processing)
@@ -129,9 +131,10 @@ def parse(spoken: str):
     cleared: "start over" was said
     commands_only: nothing but commands was said
     removals: [("chars", ",.") or ("words", "Johnson"), ...] for apply_removals()
+    undo: "undo" was said (the caller ignores the rest and steps back)
     """
     toks = spoken.split()
-    out, case, cleared, removals, i = [], None, False, [], 0
+    out, case, cleared, removals, undo, i = [], None, False, [], False, 0
     while i < len(toks):
         if _norm(toks[i]) == "remove" and i + 1 < len(toks):
             # "remove <what>": up to the next command or the end of the sentence
@@ -155,7 +158,9 @@ def parse(spoken: str):
             key = tuple(_norm(t) for t in toks[i:i + n])
             if len(key) == n and key in PHRASES:
                 cmd = PHRASES[key]
-                if cmd == "clear":
+                if cmd == "undo":
+                    undo = True
+                elif cmd == "clear":
                     out, cleared = [], True
                 elif cmd == "space":
                     if out:                      # the period the recognizer put before
@@ -171,7 +176,7 @@ def parse(spoken: str):
             out.append(toks[i])
             i += 1
     words_only = [t for t in out if t != SPACE]
-    return " ".join(out), case, cleared, not words_only, removals
+    return " ".join(out), case, cleared, not words_only, removals, undo
 
 
 def finish(text: str) -> str:

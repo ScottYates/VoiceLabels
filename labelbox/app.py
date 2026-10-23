@@ -377,6 +377,8 @@ class App:
         # Double tap on the text box or the preview clears the text and icon (touch taps land a few pixels
         # apart, so this is checked by hand rather than with <Double-Button-1>).
         self._last_tap = (0.0, 0, 0)
+        self._history = []                        # (text, icon) states for "undo"
+        self._icon_before = ""
         for w in (self.text, self.placeholder, self.canvas):
             w.bind("<ButtonPress-1>", self._tap_check, add="+")
         self.text.bind("<Double-Button-1>", lambda e: "break")   # no word select
@@ -540,6 +542,7 @@ class App:
         ("\u201cupper case\u201d", "Makes everything UPPER CASE"),
         ("\u201clower case\u201d", "Makes everything lower case"),
         ("\u201ctitle case\u201d", "Capitalizes Each Word"),
+        ("\u201cundo\u201d", "Goes back to how it was before the last change"),
         ("\u201cremove \u2026\u201d", "Takes it out of the text: \u201cremove comma\u201d, \u201cremove dash\u201d,\n"
                                        "\u201cremove punctuation\u201d, or words: \u201cremove Johnson\u201d"),
         ("Spelling", "Say the letters one by one: \u201cT R A E\u201d gives Trae"),
@@ -816,6 +819,8 @@ class App:
             return
         if not self._icon_svgs.get(iid):
             return                                  # still downloading
+        if iid != self.icon_id.get():
+            self._remember()
         self.icon_id.set(iid)
         threading.Thread(target=lambda: self._save_icon(iid), daemon=True).start()
         self.icons_panel.place_forget()
@@ -828,6 +833,8 @@ class App:
             pass
 
     def remove_icon(self):
+        if self.icon_id.get():
+            self._remember()
         self.icon_id.set("")
         self.close_place()
         self.close_icons()
@@ -1520,10 +1527,12 @@ class App:
             self._query_before = self.icon_query.get()
             self._icons_note("Listening… say what the icon should show, then let go", REC)
         elif fresh:
+            self._remember()                       # so "undo" can bring it back
             self._set_text("")                     # start over: nothing to go back to
         self._status_before = (self.status.cget("text"), self.status.cget("fg"))
         self.recording = True
         self._before_recording = self.text.get("1.0", "end-1c")
+        self._icon_before = self.icon_id.get()
         self.stt.begin()
         self.button.led_on()
         self.talk_btn.configure(bg=REC, activebackground=REC, text=" Listening…")
@@ -1578,12 +1587,16 @@ class App:
         with the spoken commands (space, start over, upper / lower / title
         case) carried out."""
         self._cmd_note = None
+        self._undo_said = False
         if not getattr(config, "VOICE_COMMANDS", True):
             spoken = self._tidy(spoken)
             if config.RECORD_MODE == "append" and self._before_recording.strip():
                 return f"{self._before_recording.rstrip()} {spoken}"
             return spoken
-        text, case, cleared, only, removals = voicecmd.parse(spoken.strip())
+        text, case, cleared, only, removals, undo = voicecmd.parse(spoken.strip())
+        if undo:                                     # "undo": show what it would go back to
+            self._undo_said = True
+            return self._history[-1][0] if self._history else self._before_recording
         new = voicecmd.finish(self._tidy(text))
         before = "" if cleared else self._before_recording.rstrip("\n")
         if cleared:
@@ -1825,6 +1838,7 @@ class App:
             self._long_press_cancel()
             if not self.recording and not self.busy and (self.text.get("1.0", "end-1c")
                                                           or self.icon_id.get()):
+                self._remember()
                 self._set_text("")
                 self.icon_id.set("")
                 self.set_status("Cleared", MUTED)
@@ -1832,9 +1846,28 @@ class App:
         self._last_tap = (now, e.x_root, e.y_root)
         return None
 
+    def _remember(self, text=None, icon=None):
+        """Keep the text and icon so "undo" can put them back."""
+        state = (self.text.get("1.0", "end-1c") if text is None else text,
+                 self.icon_id.get() if icon is None else icon)
+        if not self._history or self._history[-1] != state:
+            self._history.append(state)
+            del self._history[:-30]
+
+    def undo(self):
+        if not self._history:
+            self.set_status("Nothing to undo", MUTED)
+            return
+        text, icon = self._history.pop()
+        self._set_text(text)
+        self.icon_id.set(icon)
+        self.set_status("Undone", OK)
+
     def clear(self):
         if self.recording:
             self.stop_recording(cancel=True)
+        if self.text.get("1.0", "end-1c") or self.icon_id.get():
+            self._remember()
         self._set_text("")
         self.icon_id.set("")
         self.set_status("Hold the button and speak", FG)
@@ -1902,8 +1935,15 @@ class App:
             self.busy = False
             if val:
                 self.button.led_flash(2)               # done
-                self._set_text(self._merge(val))
-                self.set_status(getattr(self, "_cmd_note", None) or "Edit if needed, then print", OK)
+                result = self._merge(val)
+                if self._undo_said:
+                    self._set_text(self._before_recording)
+                    self.undo()
+                else:
+                    if result != self._before_recording or False:
+                        self._remember(self._before_recording, self._icon_before)
+                    self._set_text(result)
+                    self.set_status(getattr(self, "_cmd_note", None) or "Edit if needed, then print", OK)
             else:
                 self.button.led_off()
                 self._set_text(self._before_recording)
