@@ -133,6 +133,13 @@ RIB_X = INNER_W / 2 - RIB / 2          # rib centres
 CLAMP_X = PCB_W / 2 + CLR + 6.0       # posts beside the board that guide the screen pins
 CLAMP_YS = [PCB_Y0 + 15.0, PCB_Y0 + 87.0]
 SCREEN_PIN_OVER = 3.5                  # how far each screen pin reaches over the board's back
+# The part of each screen pin over the board is a cam: round (CAM_D) with two
+# flats. It slides in with a flat towards the board (CAM_FLAT from the axis,
+# clear of it), and the quarter turn that locks the pin brings the round side
+# down onto the board, pressing it CAM_SQUEEZE into the bezel.
+CAM_D = 4.2                            # still passes the 4.3 mm hole
+CAM_FLAT = 1.45                        # axis to each flat
+CAM_SQUEEZE = 0.35                     # how far the round side reaches past the board's back
 HOUSING_RAIL_X = W / 2 - 12.0
 
 # ------------------------------------------------------------------ helpers
@@ -356,8 +363,15 @@ def screen_pin_len():
 
 
 def screen_pin_z():
-    """Screen pin axis depth: the pin just clears the back of the board."""
-    return PCB_BACK_Z + PIN_D / 2 + 0.15
+    """Screen pin axis depth: the cam's round side reaches CAM_SQUEEZE past the
+    back of the board, so a locked pin presses the board into the bezel."""
+    return PCB_BACK_Z + CAM_D / 2 - CAM_SQUEEZE
+
+
+def screen_pin_cam_from():
+    """Where the cam starts along a screen pin (local Z, head at 0): just past
+    the inside face of the post, before the board's edge."""
+    return PIN_HEAD_T + W / 2 - (CLAMP_X - 3.5 - 0.3)
 
 
 # ------------------------------------------------------------------ base (world frame)
@@ -697,7 +711,7 @@ def pod_lid():
             cuts.append(box(x, x + 2.5, yb0 + 4, yb1 - 4, -1, LID_T + 1))
     return lid - union(cuts)
 
-def lock_pin(length=None):
+def lock_pin(length=None, cam_from=None):
     """Quarter-turn lock pin, modelled as printed: wing head flat on the bed,
     shaft up. The lug (local +X) lines up with the head's long axis, so the
     head shows the lock state: along the slot = open, crosswise = locked.
@@ -705,8 +719,24 @@ def lock_pin(length=None):
     length = PIN_LEN if length is None else length
     L, Wd, T = PIN_HEAD_L, PIN_HEAD_W, PIN_HEAD_T
     head = rrect(L, Wd, Wd / 2 - 0.01).extrude(T)
-    shaft = cyl(PIN_D / 2, length - 0.6, 0, 0, T - 0.01)
-    tip = Manifold.cylinder(0.6, PIN_D / 2, PIN_D / 2 - 0.5, SEG).translate([0, 0, T + length - 0.61])
+    if cam_from is None:
+        shaft = cyl(PIN_D / 2, length - 0.6, 0, 0, T - 0.01)
+        tip = Manifold.cylinder(0.6, PIN_D / 2, PIN_D / 2 - 0.5, SEG).translate([0, 0, T + length - 0.61])
+    else:
+        # Screen pin: round shaft to the post, then the cam: round CAM_D with
+        # flats on the lug's sides (local X), so the round side (local Y) faces
+        # the board once the pin is turned to locked.
+        end = T + length
+        shaft = cyl(PIN_D / 2, cam_from - T + 0.01, 0, 0, T - 0.01)
+        cam = (Manifold.cylinder(end - cam_from, CAM_D / 2, CAM_D / 2, SEG)
+               .translate([0, 0, cam_from])
+               ^ box(-CAM_FLAT, CAM_FLAT, -CAM_D, CAM_D, cam_from, end))
+        # lead-in where it steps up from the shaft, and a rounded-off tip
+        step = Manifold.cylinder(0.4, PIN_D / 2, CAM_D / 2, SEG).translate([0, 0, cam_from - 0.4])
+        tip = (Manifold.cylinder(0.6, CAM_D / 2, CAM_D / 2 - 0.5, SEG).translate([0, 0, end - 0.6])
+               ^ box(-CAM_FLAT, CAM_FLAT, -CAM_D, CAM_D, end - 0.6, end))
+        cam = cam - box(-5, 5, -5, 5, end - 0.6, end + 1)
+        shaft = union([shaft, cam, step ^ box(-CAM_FLAT, CAM_FLAT, -CAM_D, CAM_D, 0, end)])
     z0 = T + PIN_WALL + LUG_GAP
     lug = box(PIN_D / 2 - 0.3, LUG_R, -LUG_W / 2, LUG_W / 2, z0, z0 + LUG_T)
     lug = lug ^ cyl(LUG_R, LUG_T + 1, 0, 0, z0 - 0.5)          # round its outer end
@@ -773,7 +803,8 @@ def build():
     parts = {
         "1_housing": h,                                   # face-down as modelled
         "2_back_plate": bp,
-        "3_screen_pin_x4": union([lock_pin(screen_pin_len()).translate([i * 12, 0, 0]) for i in range(4)]),
+        "3_screen_pin_x4": union([lock_pin(screen_pin_len(), screen_pin_cam_from()).translate([i * 12, 0, 0])
+                                   for i in range(4)]),
         "4_base": b,
         "5_deck": d,                                      # top face up: labels print last, crisp
         "8_lock_pin_x4": union([lock_pin().translate([i * 12, 0, 0]) for i in range(4)]),
