@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="800" height="480">
+<rect width="800" height="480" fill="#1e1f22"/>
+<g transform="translate(304 58) scale(0.8)"><g id="mark">
+  <!-- speech bubble that is also a label -->
+  <path d="M38 0 H202 A38 38 0 0 1 240 38 V122 A38 38 0 0 1 202 160 H92 L46 200 L56 160 H38 A38 38 0 0 1 0 122 V38 A38 38 0 0 1 38 0 Z" fill="#f0b232"/>
+  <!-- sound wave -->
+  <g stroke="#1e1f22" stroke-width="12" stroke-linecap="round" fill="none">
+    <line x1="40" y1="68" x2="40" y2="92"/>
+    <line x1="62" y1="50" x2="62" y2="110"/>
+    <line x1="84" y1="34" x2="84" y2="126"/>
+    <line x1="106" y1="54" x2="106" y2="106"/>
+  </g>
+  <!-- ...turning into lines of text -->
+  <g stroke="#1e1f22" stroke-width="12" stroke-linecap="round" fill="none">
+    <line x1="134" y1="54" x2="202" y2="54"/>
+    <line x1="134" y1="80" x2="190" y2="80"/>
+    <line x1="134" y1="106" x2="174" y2="106"/>
+  </g>
+  <!-- the two buttons -->
+  <circle cx="190" cy="132" r="0" fill="none"/>
+</g>
+</g>
+<text x="400" y="318" text-anchor="middle" font-family="'Inter Display','Inter','DejaVu Sans',sans-serif" font-weight="800" font-size="64" fill="#f2f3f5" letter-spacing="-1">Voice <tspan fill="#f0b232">Labels</tspan></text>
+<text x="400" y="366" text-anchor="middle" font-family="'Inter Display','Inter','DejaVu Sans',sans-serif" font-weight="600" font-size="24" fill="#9aa0a6">Speak it · Check it · Print it</text>
+</svg>
