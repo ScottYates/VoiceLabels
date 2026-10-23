@@ -81,12 +81,12 @@ MIC_NAME = "USB"
 RECORD_MODE = "replace"       # "replace" the text, or "append" to it
 TAIL_SECONDS = 0.35           # keep listening this long after release
 
-# Spelling: when you spell a word out ("T R A E", or the recognizer writes
-# T-R-A-E), the letters are joined back into one word: "" gives Trae.
-# "-" keeps them apart: T-R-A-E. Set to None to leave them as they were heard.
+# Spelling: when you spell a word out ("J A N E", or the recognizer writes
+# J-A-N-E), the letters are joined back into one word: "" gives Jane.
+# "-" keeps them apart: J-A-N-E. Set to None to leave them as they were heard.
 SPELL_JOINER = ""
-# How a joined word is capitalized: "name" gives Trae (and RJ45 when it has
-# digits), "upper" gives TRAE, "lower" gives trae.
+# How a joined word is capitalized: "name" gives Jane (and RJ45 when it has
+# digits), "upper" gives JANE, "lower" gives jane.
 SPELL_CASE = "name"
 
 # Spoken commands: "space", "start over", "upper case", "lower case",

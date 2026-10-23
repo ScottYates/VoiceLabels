@@ -203,22 +203,22 @@ Say these while holding TALK. The **Help** button under the preview lists them o
 
 | Say | What it does |
 |---|---|
-| "space" | Adds a space. Use it between spelled words: "T R A E space J O H N S O N" gives Trae Johnson |
+| "space" | Adds a space. Use it between spelled words: "J A N E space D O E" gives Jane Doe |
 | "start over" | Clears all the text. Anything said after it in the same recording is kept |
 | "upper case" | Makes everything UPPER CASE |
 | "lower case" | Makes everything lower case |
 | "title case" | Capitalizes Each Word |
 | "undo" | Goes back to how the label was before the last change: a recording, a voice command, a double-tap clear, Esc, or choosing or removing an icon. Say it again to step back further |
 | "change ... to ..." | Replaces one thing with another everywhere in the text. Punctuation by name: "change periods to dashes" turns this.is.a.test into this-is-a-test; "change dashes to spaces", "change spaces to underscores". Words too: "change red to blue" (capitals are kept). "To nothing" deletes |
-| "remove ..." | Takes something out of the whole text. Punctuation by name: "remove comma", "remove dash", "remove period", "remove question mark", "remove commas and periods", "remove punctuation" (all of it). Anything else is removed as words: "remove Johnson" |
+| "remove ..." | Takes something out of the whole text. Punctuation by name: "remove comma", "remove dash", "remove period", "remove question mark", "remove commas and periods", "remove punctuation" (all of it). Anything else is removed as words: "remove Doe" |
 
 The case commands change the whole label. Said on their own, they change the text already in the box instead of replacing it; said after some words ("blue cable upper case"), they apply to the new text. "Space", "undo" and "remove" are always taken as commands (and "change" when a "to" follows it), so a label that needs those words (REMOVE BEFORE FLIGHT) has to be typed. To turn the commands off, set `VOICE_COMMANDS = False` in `config.py`.
 
 ### Spelling words out
 
-To get a name, code or part number exactly right, spell it: hold TALK and say the letters one by one, "T, R, A, E". The app notices a run of single letters and joins them back into one word on the label: **Trae**. You can mix spelling with ordinary words ("T R A E Johnson" gives Trae Johnson). Numbers inside a spelled run are kept with it, in capitals ("R J 45" gives RJ45). The recognizer sometimes writes spelled letters with dashes or periods ("T-R-A-E.", "S. M. I. T. H."); those are joined the same way. Two or three initials with periods are left as initials ("J. R. R. Tolkien").
+To get a name, code or part number exactly right, spell it: hold TALK and say the letters one by one, "J, A, N, E". The app notices a run of single letters and joins them back into one word on the label: **Jane**. You can mix spelling with ordinary words ("J A N E Doe" gives Jane Doe). Numbers inside a spelled run are kept with it, in capitals ("R J 45" gives RJ45). The recognizer sometimes writes spelled letters with dashes or periods ("J-A-N-E.", "S. M. I. T. H."); those are joined the same way. Two or three initials with periods are left as initials ("J. R. R. Tolkien").
 
-Ordinary single letters are left alone: "Plan B", "vitamin C", "a", "I". It takes two or more spelled letters in a row (or three or more with letter names like "ess" between them). To get capitals (TRAE) set `SPELL_CASE = "upper"` in `config.py`; to keep the letters apart (T-R-A-E) set `SPELL_JOINER = "-"`; `SPELL_JOINER = None` turns this off.
+Ordinary single letters are left alone: "Plan B", "vitamin C", "a", "I". It takes two or more spelled letters in a row (or three or more with letter names like "ess" between them). To get capitals (JANE) set `SPELL_CASE = "upper"` in `config.py`; to keep the letters apart (J-A-N-E) set `SPELL_JOINER = "-"`; `SPELL_JOINER = None` turns this off.
 
 Tips for accuracy:
 - Hold the button a moment *before* you start talking, and release a beat after you finish.
@@ -245,8 +245,8 @@ Everything adjustable is in `config.py`, with comments. The most common changes:
 | `PRINT_HOLD_SECONDS`, `PRINT_HOLD_CHOICES` | Default PRINT hold time, and the choices on the Setup screen (0 = no hold) |
 | `TALK_BUTTON_PIN`, `PRINT_BUTTON_PIN`, `*_LED_PIN` | GPIO pins for the two buttons and their lights |
 | `MIC_NAME` | Text in the microphone's name. The app finds it on any USB port; `./run.sh stt.py --list` shows the names |
-| `SPELL_JOINER` | What goes between spelled-out letters: `""` for Trae, `"-"` for T-R-A-E, `None` to leave them as heard |
-| `SPELL_CASE` | Capitals for a joined word: `"name"` (Trae, RJ45), `"upper"` (TRAE) or `"lower"` |
+| `SPELL_JOINER` | What goes between spelled-out letters: `""` for Jane, `"-"` for J-A-N-E, `None` to leave them as heard |
+| `SPELL_CASE` | Capitals for a joined word: `"name"` (Jane, RJ45), `"upper"` (JANE) or `"lower"` |
 | `VOICE_COMMANDS` | `True` to act on "space", "start over", "upper case", "lower case", "title case", "undo", "change" and "remove"; `False` to keep them as words |
 | `KEYTERMS` | Words the speech model should favor (part numbers, names, jargon), spelled as you want them printed |
 | `SCREEN_BLANK_SECONDS` | Seconds of inactivity before the screen goes dark (0 = never) |

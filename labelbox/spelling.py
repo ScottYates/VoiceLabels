@@ -2,7 +2,7 @@
 
 With joiner "" (the default in config.py) and case "name":
     "my name is S M I T H"          -> "my name is Smith"
-    "T-R-A-E. Johnson."             -> "Trae Johnson."
+    "J-A-N-E. Doe."             -> "Jane Doe."
     "part A, B, C, 1, 2, 3."        -> "part ABC123"
     "S M eye T H"                   -> "Smith"
     "Plan B" / "vitamin C" / "I a"  -> unchanged
@@ -84,7 +84,7 @@ def _case(chars, joiner, case):
         return word.upper()
     if case == "lower":
         return word.lower()
-    return word[:1].upper() + word[1:].lower()       # "name": Trae
+    return word[:1].upper() + word[1:].lower()       # "name": Jane
 
 
 def _multi(tok):
@@ -138,7 +138,7 @@ def hyphenate_spelling(text: str, joiner: str = "-", case: str = "upper") -> str
             last = run[-1][0]
             end = "" if _DOTTED.match(last) else last[len(last.rstrip(_PUNCT)):]
             if end == ".":
-                end = ""                              # "H." / "T-R-A-E." - the recognizer's period
+                end = ""                              # "H." / "J-A-N-E." - the recognizer's period
             out.append(_case([c for _, _, cs in run for c in cs], joiner, case) + end)
         else:
             out.extend(w for w, _, _ in run)

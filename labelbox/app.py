@@ -537,7 +537,7 @@ class App:
     # ------------------------------------------------------------- help
     HELP_VOICE = [
         ("\u201cspace\u201d", "Adds a space. Say it between spelled words:\n"
-                                "\u201cT R A E space J O H N S O N\u201d gives Trae Johnson"),
+                                "\u201cJ A N E space D O E\u201d gives Jane Doe"),
         ("\u201cstart over\u201d", "Clears all the text (anything said after it is kept)"),
         ("\u201cupper case\u201d", "Makes everything UPPER CASE"),
         ("\u201clower case\u201d", "Makes everything lower case"),
@@ -546,8 +546,8 @@ class App:
         ("\u201cchange \u2026 to \u2026\u201d", "Replaces one thing with another everywhere:\n"
                                                   "\u201cchange periods to dashes\u201d, \u201cchange red to blue\u201d"),
         ("\u201cremove \u2026\u201d", "Takes it out of the text: \u201cremove comma\u201d, \u201cremove dash\u201d,\n"
-                                       "\u201cremove punctuation\u201d, or words: \u201cremove Johnson\u201d"),
-        ("Spelling", "Say the letters one by one: \u201cT R A E\u201d gives Trae"),
+                                       "\u201cremove punctuation\u201d, or words: \u201cremove Doe\u201d"),
+        ("Spelling", "Say the letters one by one: \u201cJ A N E\u201d gives Jane"),
     ]
     HELP_TOUCH = [
         ("Double-tap", "On the text or the label: clears the text and icon"),
@@ -1574,7 +1574,7 @@ class App:
 
     @staticmethod
     def _tidy(spoken: str) -> str:
-        """Join spelled-out letters (T R A E -> Trae) and drop the period
+        """Join spelled-out letters (J A N E -> Jane) and drop the period
         speech recognition puts at the end; labels don't want one."""
         spoken = spoken.strip()
         joiner = getattr(config, "SPELL_JOINER", "-")

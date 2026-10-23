@@ -1,6 +1,6 @@
 """Spoken commands inside a recording.
 
-    "space"        a space; also ends a spelled word ("T R A E space J O E" -> "Trae Joe")
+    "space"        a space; also ends a spelled word ("J A N E space D O E" -> "Jane Doe")
     "start over"   clears all the text; words after it are kept
     "upper case"   EVERYTHING IN CAPITALS
     "lower case"   everything in small letters
@@ -11,7 +11,7 @@
                    ("change red to blue"), and "space" names a space
     "remove ..."   takes something out of the whole text: "remove comma" drops
                    every ",", "remove dash" every "-", "remove punctuation" all
-                   of it; anything else is removed as words ("remove Johnson")
+                   of it; anything else is removed as words ("remove Doe")
 
 parse() pulls the commands out of what was heard. The case commands apply to
 the whole label, including text already in the box, so saying just "upper case"
@@ -185,7 +185,7 @@ def parse(spoken: str):
     case: "upper" / "lower" / "title" / None (the last one said wins)
     cleared: "start over" was said
     commands_only: nothing but commands was said
-    removals: [("chars", ",.") or ("words", "Johnson"), ...] for apply_removals()
+    removals: [("chars", ",.") or ("words", "Doe"), ...] for apply_removals()
     undo: "undo" was said (the caller ignores the rest and steps back)
     """
     toks = spoken.split()
