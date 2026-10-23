@@ -4,7 +4,7 @@ Run:  python3 case.py      -> writes STL files and preview PNGs in ./out
 
 Parts (each exported in its print orientation, no supports needed):
   1. housing      screen housing, printed face-down (best finish on the bezel)
-  2. back_plate   flat back of the housing, vents and cable notch
+  2. back_plate   flat back of the housing, with vents
   3. screen_pin x4  push-in pins that hold the screen board in the housing
   4. base         console with the button deck in front and the housing seat
   5. deck         flat button plate with TALK / PRINT labels
@@ -337,9 +337,6 @@ def housing():
             holes.append(box(hinge_in[0], hinge_in[1], y0, y1, z0 - 0.01, z0 + 1.2))
     return add_pin_bores(shell - union(holes), bores)
 
-USBC_X = 31.4                   # Pi USB-C port across the housing (print X)
-USBC_NOTCH_W = 7.5              # cable notch in the back plate (cable up to ~6.5 mm)
-USBC_NOTCH_D = 10.0             # notch depth below the inside top of the housing
 
 KO_W = 7.0                      # breakaway tab width (cable up to ~6 mm)
 KO_DEPTH = 10.0                 # how far the notch reaches in from the back rim
@@ -373,10 +370,6 @@ def back_plate():
     outline = housing_outline().extrude(BACK_T + 2).translate([0, 0, -1])
     plate = slide_panel(BACK_T, BACK_STOP_Y + SLIDE_CLR, H) ^ outline
     cut = [detent_dimple(BACK_DETENT_X, BACK_DETENT_Y)]
-    # Notch at the top edge for the USB-C power cable (from the power pod up
-    # the back to the Pi's USB-C port, which points up at the top of the case).
-    cut.append(box(USBC_X - USBC_NOTCH_W / 2, USBC_X + USBC_NOTCH_W / 2,
-                   WALL + INNER_H - USBC_NOTCH_D, H + 1, -1, BACK_T + 1))
     # Vent slots over the Pi.
     for i in range(9):
         y = PCB_Y0 + 22 + i * 7
