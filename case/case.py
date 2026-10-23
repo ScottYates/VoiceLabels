@@ -5,7 +5,7 @@ Run:  python3 case.py      -> writes STL files and preview PNGs in ./out
 Parts (each exported in its print orientation, no supports needed):
   1. housing      screen housing, printed face-down (best finish on the bezel)
   2. back_plate   flat back of the housing, vents and cable notch
-  3. clamp x4     small tabs that hold the screen board in the housing
+  3. screen_pin x4  push-in pins that hold the screen board in the housing
   4. base         console with the button deck in front and the housing seat
   5. deck         flat button plate with TALK / PRINT labels
   6. power_pod    closed box behind the base for the USB power brick, with a
@@ -116,8 +116,9 @@ PCB_Y0 = WALL + CLR                    # board bottom edge (print Y)
 PCB_BACK_Z = FRONT + STACK             # back face of the board
 RIB = 8.0                              # corner rib size
 RIB_X = INNER_W / 2 - RIB / 2          # rib centres
-CLAMP_X = PCB_W / 2 + CLR + 6.0
+CLAMP_X = PCB_W / 2 + CLR + 6.0       # posts beside the board that guide the screen pins
 CLAMP_YS = [PCB_Y0 + 15.0, PCB_Y0 + 87.0]
+SCREEN_PIN_OVER = 3.5                  # how far each screen pin reaches over the board's back
 HOUSING_RAIL_X = W / 2 - 12.0
 
 # ------------------------------------------------------------------ helpers
@@ -194,8 +195,9 @@ def housing():
         x0, x1 = sx * RIB_X - RIB / 2, sx * RIB_X + RIB / 2
         ribs.append(box(x0, x1, WALL, WALL + RIB, FRONT, DEPTH))
         ribs.append(box(x0, x1, WALL + INNER_H - RIB, WALL + INNER_H, FRONT, DEPTH))
-    # Clamp bosses beside the board.
-    bosses = [cyl(3.5, STACK, sx * CLAMP_X, y, FRONT) for sx in (-1, 1) for y in CLAMP_YS]
+    # Posts beside the board that carry the screen pins.
+    post_top = screen_pin_z() + PIN_D / 2 + 2.0
+    bosses = [cyl(3.5, post_top - FRONT, sx * CLAMP_X, y, FRONT) for sx in (-1, 1) for y in CLAMP_YS]
 
     # Dovetail rails under the bottom wall, running front to back. In the print
     # frame they hang off the Y=0 face and run along Z (straight up on the bed).
@@ -224,10 +226,16 @@ def housing():
     for sx in (-1, 1):
         for y in (WALL + RIB / 2, WALL + INNER_H - RIB / 2):
             holes.append(cyl(PILOT_R, 10.5, sx * RIB_X, y, DEPTH - 10))
-    # Clamp pilots.
+    # Screen pins: in through the side wall (snug), through the post (free),
+    # reaching over the back of the board's edge.
     for sx in (-1, 1):
         for y in CLAMP_YS:
-            holes.append(cyl(PILOT_R, 7.5, sx * CLAMP_X, y, FRONT + STACK - 7))
+            z = screen_pin_z()
+            def seg(x0, x1, d):
+                a, b = sorted((x0, x1))
+                return cyl(d / 2, b - a, 0, 0, 0).rotate([0, 90, 0]).translate([a, y, z])
+            holes.append(seg(sx * (W / 2 + 1), sx * (W / 2 - WALL), PIN_GRIP_D))
+            holes.append(seg(sx * (W / 2 - WALL + 0.01), sx * (CLAMP_X - 4.5), PIN_HOLE_D))
     # Wire pass-through in the bottom wall (button wires to the GPIO header).
     holes.append(box(-20, 20, -1, WALL + 1, 8, 30))
     # Breakaway cable tabs: a notch at the back rim of each side wall, filled
@@ -274,9 +282,15 @@ def back_plate():
         cut.append(box(-55, 45, y, y + 3, -1, BACK_T + 1))
     return plate - union(cut)
 
-def clamp():
-    tab = Manifold.cube([14, 8, 3]).translate([-4, -4, 0])
-    return tab - cyl(CLEAR_R, 5, 0, 0, -1)
+def screen_pin_len():
+    """From the outside of the side wall to SCREEN_PIN_OVER past the board edge."""
+    return W / 2 - (PCB_W / 2 - SCREEN_PIN_OVER)
+
+
+def screen_pin_z():
+    """Screen pin axis depth: the pin just clears the back of the board."""
+    return PCB_BACK_Z + PIN_D / 2 + 0.15
+
 
 # ------------------------------------------------------------------ base (world frame)
 T = math.tan
@@ -567,11 +581,12 @@ def pod_lid():
     ring = ring - union([cyl(5.5, 4, x, y, -3) for x, y in pod_lid_points()])   # clear the bosses
     return (lid + ring) - union(cuts)
 
-def lock_pin():
+def lock_pin(length=None):
     """Printed head down. A flat on the head gives a fingernail or pliers a grip."""
+    length = PIN_LEN if length is None else length
     head = cyl(PIN_HEAD_D / 2, PIN_HEAD_T)
-    shaft = cyl(PIN_D / 2, PIN_LEN - 0.6, 0, 0, PIN_HEAD_T - 0.01)
-    tip = Manifold.cylinder(0.6, PIN_D / 2, PIN_D / 2 - 0.5, SEG).translate([0, 0, PIN_HEAD_T + PIN_LEN - 0.61])
+    shaft = cyl(PIN_D / 2, length - 0.6, 0, 0, PIN_HEAD_T - 0.01)
+    tip = Manifold.cylinder(0.6, PIN_D / 2, PIN_D / 2 - 0.5, SEG).translate([0, 0, PIN_HEAD_T + length - 0.61])
     return union([head, shaft, tip]) - box(-10, 10, PIN_HEAD_D / 2 - 1.2, 10, -1, PIN_HEAD_T + 0.01)
 
 
@@ -626,13 +641,12 @@ def build():
     out.mkdir(exist_ok=True)
     h = housing()
     bp = back_plate()
-    cl = clamp()
     b, posts = base()
     d, s_mid = deck(posts)
     parts = {
         "1_housing": h,                                   # face-down as modelled
         "2_back_plate": bp,
-        "3_clamp_x4": union([cl.translate([i * 18, 0, 0]) for i in range(4)]),
+        "3_screen_pin_x4": union([lock_pin(screen_pin_len()).translate([i * 12, 0, 0]) for i in range(4)]),
         "4_base": b,
         "5_deck": d,                                      # top face up: labels print last, crisp
         "8_lock_pin_x4": union([lock_pin().translate([i * 12, 0, 0]) for i in range(4)]),
