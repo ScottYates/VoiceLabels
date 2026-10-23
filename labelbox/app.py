@@ -551,7 +551,7 @@ class App:
         for c_ in range(self.ICON_COLS):
             grid.columnconfigure(c_, weight=1, uniform="ic")
         for k in range(self.ICON_ROWS * self.ICON_COLS):
-            b = tk.Button(grid, image=self._blank_tile, bg=BG, activebackground="#e9e9e9",
+            b = tk.Button(grid, image=self._blank_tile, bg=BG, activebackground="#ffffff",
                           relief="flat", bd=0, highlightthickness=4, highlightbackground=BG,
                           width=1, height=1, cursor="hand2",
                           command=lambda k=k: self._icon_tile_tap(k))
@@ -579,7 +579,7 @@ class App:
         self.icons_status.configure(text=msg, fg=color)
 
     def _icons_hint(self):
-        talk = "hold TALK and say it" if self.button.available else "or press F1 and say it"
+        talk = "hold TALK and say it" if self.button.available else "press F1 and say it"
         return f"Type a word and tap Find, or {talk}"
 
     def open_icons(self, force_search=False):
@@ -617,8 +617,7 @@ class App:
         self._icon_svgs = {i: iconlib.local_svg(i) for i in self._icon_results}
         if self._icon_results:
             self.forget_btn.pack(side="right", padx=(self._gap, 0))
-            self._icons_note("Your saved icons: tap one to use it. To find a new one, "
-                             + self._icons_hint()[0].lower() + self._icons_hint()[1:], MUTED)
+            self._icons_note("Saved icons: tap one to use it, or find a new one above", MUTED)
         else:
             self.forget_btn.pack_forget()
             self._icons_note("No saved icons yet. " + self._icons_hint(), MUTED)
@@ -684,7 +683,7 @@ class App:
     def _render_icon_page(self):
         per = self.ICON_COLS * self.ICON_ROWS
         pages = max(1, -(-len(self._icon_results) // per))
-        px = max(40, round(84 * self._s))
+        px = max(40, round(108 * self._s))
         self._icon_photos = []
         cur = self.icon_id.get()
         for k, b in enumerate(self._icon_tiles):
