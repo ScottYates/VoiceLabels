@@ -33,6 +33,7 @@ import icons
 import printer
 from hardware import Button
 import iconlib
+import network
 from spelling import hyphenate_spelling
 from render import LabelSpec, for_printer, render
 from stt import PushToTalk
@@ -256,6 +257,7 @@ class App:
 
         self.set_status("Initializing…", MUTED)
         threading.Thread(target=self._load_model, daemon=True).start()
+        self._network_at_start()
 
         for var in (self.show_date, self.show_qr, self.date_text, self.qr_text, self.orientation,
                     self.align, self.icon_id, self.icon_pos, self.icon_size):
@@ -416,14 +418,17 @@ class App:
         self.net_label.pack(anchor="w")
         top = tk.Frame(p, bg=BG)
         top.grid(row=0, column=1, sticky="e", padx=pad, pady=(pad, gap))
-        self.protect_label = tk.Label(top, text="", bg=BG, font=font(15, True), justify="right")
-        self.protect_label.pack(side="left", padx=(0, pad))
+        self.protect_label = tk.Label(head, text="", bg=BG, font=font(15, True), justify="left",
+                                      anchor="w")
+        self.protect_label.pack(anchor="w")
+        tk.Button(top, text=" Network", command=self.open_network, image=self.icon("network", FG, 24),
+                  compound="left", **dict(big, padx=round(16 * s))).pack(side="left", padx=(0, gap))
         tk.Button(top, text=" Power", command=self.open_power, image=self.icon("power", FG, 24),
-                  compound="left", **dict(big, padx=round(26 * s))).pack(side="left", padx=(0, gap))
+                  compound="left", **dict(big, padx=round(16 * s))).pack(side="left", padx=(0, gap))
         tk.Button(top, text=" Done", command=self.close_setup, image=self.icon("check", "#000000", 24),
                   compound="left",
                   **dict(big, bg=ACCENT, fg="#000000", activebackground="#ffd36b",
-                         activeforeground="#000000", padx=round(30 * s))).pack(side="left")
+                         activeforeground="#000000", padx=round(22 * s))).pack(side="left")
 
         # Date and QR: a big on/off button plus the text to print.
         self._toggles = {}
@@ -497,6 +502,7 @@ class App:
             self._hold_btns[sec] = b
         self._refresh_toggles()
         self._build_power(big, pad, gap, font)
+        self._build_network(big, pad, gap, font)
 
     # ------------------------------------------------------------ icon search
     ICON_COLS, ICON_ROWS = 7, 3
@@ -890,6 +896,233 @@ class App:
             self._power_btns[key] = t
         self._power_armed = None
 
+    # ------------------------------------------------------------ network panel
+    def _build_network(self, big, pad, gap, font):
+        """Automatic (DHCP) or a fixed IP address, with an on-screen number pad."""
+        s = self._s
+        p = tk.Frame(self.root, bg=BG)
+        self.network_panel = p
+        p.columnconfigure(0, weight=1)
+        head = tk.Frame(p, bg=BG)
+        head.grid(row=0, column=0, sticky="ew", padx=pad, pady=(pad, gap // 2))
+        tk.Label(head, text="Network", bg=BG, fg=FG, font=font(30, True)).pack(side="left")
+        tk.Button(head, text=" Back", command=self.close_network, image=self.icon("back", FG, 24),
+                  compound="left", **dict(big, padx=round(24 * s))).pack(side="right")
+        self.net_save_btn = tk.Button(
+            head, text=" Save", command=self._network_save, image=self.icon("check", "#000000", 24),
+            compound="left", **dict(big, bg=ACCENT, fg="#000000", activebackground="#ffd36b",
+                                    activeforeground="#000000", padx=round(28 * s)))
+        self.net_save_btn.pack(side="right", padx=(0, gap))
+        self.net_status = tk.Label(p, text="", bg=BG, fg=MUTED, font=font(15, True), anchor="w",
+                                   justify="left")
+        self.net_status.grid(row=1, column=0, sticky="ew", padx=pad)
+
+        body = tk.Frame(p, bg=BG)
+        body.grid(row=2, column=0, sticky="nsew", padx=pad, pady=(gap // 2, pad))
+        p.rowconfigure(2, weight=1)
+        body.columnconfigure(0, weight=3, uniform="nb")
+        body.columnconfigure(1, weight=2, uniform="nb")
+        body.rowconfigure(0, weight=1)
+
+        left = tk.Frame(body, bg=BG)
+        left.grid(row=0, column=0, sticky="nsew", padx=(0, gap))
+        left.columnconfigure(1, weight=1)
+        modes = tk.Frame(left, bg=BG)
+        modes.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, gap))
+        modes.columnconfigure((0, 1), weight=1, uniform="nm")
+        self.net_mode = tk.StringVar(value="dhcp")
+        self._net_mode_btns = {}
+        for i, (key, lab) in enumerate((("dhcp", "Automatic"), ("static", "Fixed address"))):
+            b = tk.Button(modes, text=lab, command=lambda k=key: self._set_net_mode(k),
+                          **dict(big, font=font(20, True), padx=4))
+            b.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else gap, 0))
+            self._net_mode_btns[key] = b
+        self._net_entries = {}
+        for r_, (key, lab) in enumerate((("ip", "IP address"), ("gateway", "Router"),
+                                         ("dns", "DNS server")), start=1):
+            left.rowconfigure(r_, weight=1)
+            tk.Label(left, text=lab, bg=BG, fg=MUTED, font=font(17, True), anchor="w").grid(
+                row=r_, column=0, sticky="w", padx=(0, gap))
+            e = tk.Entry(left, font=font(24), relief="flat", width=1, justify="left",
+                         bg=INPUT_BG, fg=FG, insertbackground=FG, disabledbackground=PANEL,
+                         disabledforeground=MUTED, highlightthickness=2,
+                         highlightbackground=INPUT_EDGE, highlightcolor=ACCENT)
+            e.grid(row=r_, column=1, sticky="nsew", pady=(0, gap))
+            e.bind("<FocusIn>", lambda ev, k=key: setattr(self, "_net_focus", k))
+            e.bind("<Return>", lambda ev: (self._network_save(), "break")[1])
+            self._net_entries[key] = e
+        self._net_focus = "ip"
+        self.net_hint = tk.Label(left, text="", bg=BG, fg=MUTED, font=font(14), anchor="w",
+                                 justify="left")
+        self.net_hint.grid(row=4, column=0, columnspan=2, sticky="ew")
+        left.bind("<Configure>", lambda ev: self.net_hint.configure(wraplength=max(100, ev.width - 4)))
+
+        pad_f = tk.Frame(body, bg=BG)                 # number pad
+        pad_f.grid(row=0, column=1, sticky="nsew")
+        keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "back"]
+        self._net_keys = []
+        for i, k in enumerate(keys):
+            r_, c_ = divmod(i, 3)
+            pad_f.rowconfigure(r_, weight=1, uniform="kp")
+            pad_f.columnconfigure(c_, weight=1, uniform="kp")
+            kw = dict(big, font=font(24, True), padx=2, pady=2)
+            if k == "back":
+                b = tk.Button(pad_f, image=self.icon("backspace", FG, 22), command=self._net_backspace, **kw)
+            else:
+                b = tk.Button(pad_f, text=k, command=lambda k=k: self._net_type(k), **kw)
+            b.grid(row=r_, column=c_, sticky="nsew", padx=(0 if c_ == 0 else gap // 2, 0),
+                   pady=(0 if r_ == 0 else gap // 2, 0))
+            self._net_keys.append(b)
+        self._net_busy = False
+
+    def open_network(self):
+        self.network_panel.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self.network_panel.lift()
+        saved = self._load_settings().get("network") or {}
+        self.net_status.configure(text="Reading the network…", fg=MUTED)
+        self._set_net_mode(saved.get("mode", "dhcp"), refresh_only=True)
+
+        def work():
+            try:
+                st = network.status()
+            except network.NetError as e:
+                st = {"error": str(e)}
+            self.events.put(("net_status", st))
+        threading.Thread(target=work, daemon=True).start()
+
+    def close_network(self):
+        self.network_panel.place_forget()
+        if hasattr(self, "net_label"):
+            self.net_label.configure(text=self.network_text())
+
+    def _net_status_text(self, st):
+        if st.get("error"):
+            return st["error"], REC
+        if not st.get("connection"):
+            return "Not connected to a network", ACCENT
+        how = {"static": "fixed address", "dhcp": "automatic address"}.get(st.get("method"), st.get("method") or "")
+        return (f"{st.get('type') or 'Network'} “{st['connection']}” · {st.get('ip') or 'no address'}"
+                f" · {how}"), MUTED
+
+    def _network_loaded(self, st):
+        self._net_current = st
+        text, color = self._net_status_text(st)
+        self.net_status.configure(text=text, fg=color)
+        saved = self._load_settings().get("network") or {}
+        mode = saved.get("mode") or st.get("method") or "dhcp"
+        vals = {"ip": saved.get("ip") or st.get("ip") or "",
+                "gateway": saved.get("gateway") or st.get("gateway") or "",
+                "dns": " ".join(saved.get("dns") or []) or (st.get("dns") or [st.get("gateway") or ""])[0] or ""}
+        for k, e in self._net_entries.items():
+            e.configure(state="normal")
+            e.delete(0, "end")
+            e.insert(0, vals[k])
+        self._set_net_mode("static" if mode == "static" else "dhcp")
+
+    def _set_net_mode(self, mode, refresh_only=False):
+        self.net_mode.set(mode)
+        for k, b in self._net_mode_btns.items():
+            on = k == mode
+            col = "#000000" if on else FG
+            b.configure(bg=OK if on else PANEL, activebackground=OK if on else PANEL,
+                        fg=col, activeforeground=col)
+        fixed = mode == "static"
+        for e in self._net_entries.values():
+            e.configure(state="normal" if fixed else "disabled")
+        for b in self._net_keys:
+            b.configure(state="normal" if fixed else "disabled")
+        if fixed and not refresh_only:
+            e = self._net_entries.get(self._net_focus) or self._net_entries["ip"]
+            e.focus_set()
+            e.icursor("end")
+        self.net_hint.configure(text=(
+            "Pick an address your router doesn't hand out to other devices (outside its "
+            "DHCP range), or reserve it in the router. The Pi uses it every time it starts."
+            if fixed else
+            "The router gives the Pi an address each time it connects. It can change "
+            "after a restart; the Setup screen always shows the current one."))
+
+    def _net_entry(self):
+        return self._net_entries.get(self._net_focus) or self._net_entries["ip"]
+
+    def _net_type(self, ch):
+        e = self._net_entry()
+        if str(e.cget("state")) != "normal":
+            return
+        e.insert("insert", ch)
+        e.focus_set()
+
+    def _net_backspace(self):
+        e = self._net_entry()
+        if str(e.cget("state")) != "normal":
+            return
+        i = e.index("insert")
+        if i > 0:
+            e.delete(i - 1)
+        e.focus_set()
+
+    def _network_save(self):
+        if self._net_busy:
+            return
+        mode = self.net_mode.get()
+        cur = getattr(self, "_net_current", {}) or {}
+        if mode == "static":
+            ip = self._net_entries["ip"].get().strip()
+            gw = self._net_entries["gateway"].get().strip()
+            dns = self._net_entries["dns"].get().replace(",", " ").split()
+            problem = network.check_static(ip, gw, cur.get("prefix") or 24, dns)
+            if problem:
+                self.net_status.configure(text=problem, fg=REC)
+                return
+            choice = {"mode": "static", "ip": ip, "gateway": gw, "dns": dns or [gw],
+                      "prefix": cur.get("prefix") or 24}
+        else:
+            choice = {"mode": "dhcp"}
+        self._net_busy = True
+        self.net_save_btn.configure(state="disabled")
+        self.net_status.configure(
+            text="Applying… the network drops for a few seconds while it reconnects", fg=ACCENT)
+
+        def work():
+            try:
+                if choice["mode"] == "static":
+                    st = network.apply("static", choice["ip"], choice["gateway"], choice["dns"],
+                                       choice["prefix"])
+                else:
+                    st = network.apply("dhcp")
+                self.events.put(("net_applied", (True, choice, st)))
+            except network.NetError as e:
+                self.events.put(("net_applied", (False, choice, str(e))))
+            except Exception as e:  # noqa: BLE001
+                self.events.put(("net_applied", (False, choice, f"Failed: {e}")))
+        threading.Thread(target=work, daemon=True).start()
+
+    def _network_applied(self, ok, choice, result):
+        self._net_busy = False
+        self.net_save_btn.configure(state="normal")
+        if not ok:
+            self.net_status.configure(text=result, fg=REC)
+            return
+        self._save_settings(network=choice)
+        self._net_current = result
+        text, _ = self._net_status_text(result)
+        self.net_status.configure(text="Saved. " + text, fg=OK)
+        if hasattr(self, "net_label"):
+            self.net_label.configure(text=self.network_text())
+
+    def _network_at_start(self):
+        """Put the saved network choice back at start-up (needed with power-off
+        protection on, which resets the system's own network files)."""
+        saved = self._load_settings().get("network")
+        if not saved:
+            return
+
+        def work():
+            note = network.ensure(saved)
+            if note:
+                self.events.put(("net_note", note))
+        threading.Thread(target=work, daemon=True).start()
+
     def open_power(self):
         self._power_armed = None
         self._refresh_power_buttons()
@@ -990,9 +1223,9 @@ class App:
         self._refresh_hold_buttons()
         text, color = {
             "on": ("Safe to unplug", OK),
-            "pending": ("Safe to unplug\nafter a restart", MUTED),
-            "ending": ("Unplug protection\nends at restart", ACCENT),
-            "off": ("Shut down before\nunplugging", MUTED),
+            "pending": ("Safe to unplug after a restart", MUTED),
+            "ending": ("Unplug protection ends at restart", ACCENT),
+            "off": ("Shut down before unplugging", MUTED),
         }[self.protection_state()]
         self.protect_label.configure(text=text, fg=color)
         self.net_label.configure(text=self.network_text())
@@ -1024,6 +1257,8 @@ class App:
     def close_setup(self):
         if hasattr(self, "power_panel"):
             self.close_power()
+        if hasattr(self, "network_panel"):
+            self.close_network()
         self.setup_panel.place_forget()
         self.text.focus_set()
         self.schedule_preview()
@@ -1529,6 +1764,12 @@ class App:
                 self.button.led_off()
                 self.icon_query.set(getattr(self, "_query_before", ""))
                 self._icons_note("Didn't catch that. Try again", ACCENT)
+        elif kind == "net_status":
+            self._network_loaded(val)
+        elif kind == "net_applied":
+            self._network_applied(*val)
+        elif kind == "net_note":
+            self.set_status(val, ACCENT if "not applied" in val else MUTED)
         elif kind == "icons_found":
             self._icons_loaded(*val)
         elif kind == "icons_page":
@@ -1624,6 +1865,8 @@ def main():
     app = App(root, dry_run=args.dry_run, screen=screen)
     if os.environ.get("LABELBOX_SHOW_SETUP"):      # for screenshots while testing
         root.after(300, app.open_setup)
+    if os.environ.get("LABELBOX_SHOW_NETWORK"):
+        root.after(400, lambda: (app.open_setup(), app.open_network()))
     if os.environ.get("LABELBOX_SHOW_POWER"):
         root.after(400, lambda: (app.open_setup(), app.open_power()))
     if os.environ.get("LABELBOX_ICON"):            # pre-chosen icon, for screenshots

@@ -161,6 +161,14 @@ def icon_image(name: str, size: int, color: str, w: float = 2.2) -> Image.Image:
         rot = lambda x, y: (12 + (x - 12) * ca - (y - 12) * sa, 12 + (x - 12) * sa + (y - 12) * ca)  # noqa: E731
         _line(d, k, [rot(4, 12), rot(19.5, 12)], c, w)
         _line(d, k, [rot(13.5, 6), rot(19.5, 12), rot(13.5, 18)], c, w)
+    elif name == "network":                          # Wi-Fi fan
+        for r in (3.5, 7.5, 11.5):
+            _arc(d, k, 12, 19.5, r, 225, 315, c, w)
+        _dot(d, k, 12, 19.5, 1.6, c)
+    elif name == "backspace":
+        _line(d, k, [(8, 5), (21, 5), (21, 19), (8, 19), (2.5, 12), (8, 5)], c, w)
+        _line(d, k, [(11, 9), (17, 15)], c, w)
+        _line(d, k, [(17, 9), (11, 15)], c, w)
     elif name in ("align-left", "align-center", "align-right"):
         for y, half in ((5, 8.5), (9.7, 5.5), (14.3, 8.5), (19, 5.5)):
             if name == "align-left":
@@ -177,7 +185,7 @@ def icon_image(name: str, size: int, color: str, w: float = 2.2) -> Image.Image:
 
 NAMES = ["mic", "printer", "rotate", "clear", "gear", "power", "check", "back", "monitor",
          "calendar", "qr", "sun", "timer", "copies", "align-left", "align-center", "align-right",
-         "search", "bookmark", "image", "trash", "arrow-left", "arrow-up", "arrow-right", "arrow-down"]
+         "network", "backspace", "search", "bookmark", "image", "trash", "arrow-left", "arrow-up", "arrow-right", "arrow-down"]
 
 
 if __name__ == "__main__":       # contact sheet for checking the set

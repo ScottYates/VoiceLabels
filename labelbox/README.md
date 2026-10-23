@@ -131,7 +131,7 @@ While protection is on, anything else you change is lost at the next restart: ap
 
 | Main screen | Setup screen |
 |---|---|
-| <img src="docs/screen.png?v=3" alt="Main screen" width="400"> | <img src="docs/setup.png?v=3" alt="Setup screen" width="400"> |
+| <img src="docs/screen.png?v=3" alt="Main screen" width="400"> | <img src="docs/setup.png?v=4" alt="Setup screen" width="400"> |
 
 The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **Rotate**, **Align**, **Icon**, **Clear** and **Setup** sit under the preview. Every button has an icon beside its label.
 
@@ -159,8 +159,20 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under
 | **Copies − / +** | How many labels each PRINT makes |
 | **Brightness 25 / 50 / 75 / 100%** | Screen brightness. Remembered across restarts |
 | **Print hold Off / 1 / 2 / 3 / 5 s** | How long PRINT must be held. Off prints on a tap. Remembered across restarts |
-| **Power** | Opens three tiles: **Restart**, **Shut down**, and **Desktop** (leave the app for the Raspberry Pi desktop). Tap a tile once and it turns red; tap it again to go ahead. The top line says whether it's safe to just unplug. Kiosk mode sets up the permission for Restart and Shut down; without kiosk mode, run `sudo bash kiosk/allow-power.sh` once |
-| Under the title | The Pi's name and current IP address, for connecting to it over the network |
+| **Power** | Opens three tiles: **Restart**, **Shut down**, and **Desktop** (leave the app for the Raspberry Pi desktop). Tap a tile once and it turns red; tap it again to go ahead. Kiosk mode sets up the permission for Restart and Shut down; without kiosk mode, run `sudo bash kiosk/allow-power.sh` once |
+| **Network** | Choose how the Pi gets its IP address (see below) |
+| Under the title | The Pi's name and current IP address, for connecting to it over the network, and whether it's safe to just unplug it |
+
+**Network screen.** Tap **Network** on the Setup screen.
+
+<p align="center"><img src="docs/network.png?v=1" alt="Network screen: Automatic and Fixed address buttons, IP address, router and DNS fields, and a number pad" width="420"></p>
+
+- **Automatic** (the default): the router hands the Pi an address each time it connects (DHCP). It can change after a restart; the Setup screen always shows the current one.
+- **Fixed address**: type the IP address, the router's address and a DNS server (usually the router again) with the number pad or a keyboard, then tap **Save**. The Pi uses that address every time it starts. Pick one your router doesn't hand out to other devices (outside its DHCP range), or reserve it in the router's settings.
+
+The fields start filled in with the current address, router and DNS, so for a fixed address you often only need to change the last number. **Save** checks the numbers first (and that nothing else on the network already uses the address), applies them to the Wi-Fi or Ethernet connection in use, and waits for the Pi to reach the router. The connection drops for a few seconds while it does. If the Pi can't reach the router with the new settings, the old ones are put back, so a typo can't cut it off the network. The choice is saved with the other settings and put back at every start, so it holds with power-off protection on too.
+
+Changing the network needs the same permission as Restart and Shut down: kiosk mode sets it up; otherwise run `sudo bash kiosk/allow-power.sh` once (run it again if you set it up before the Network screen existed).
 
 The screen goes dark after 5 minutes with no touch, key or button press. Tap it to wake it; that first tap only wakes the screen and never presses a button. Pressing TALK while the screen is dark wakes it and starts recording; PRINT wakes it and starts the hold. The screen comes back at the brightness you chose.
 
@@ -255,6 +267,7 @@ The window is 800×480 by default to match the Hosyond screen. Add `--size 720x1
 | `hardware.py` | The deck buttons and their lights |
 | `config.py` | All settings |
 | `icons.py` | The button icons, drawn with Pillow (run it to see them all on one sheet) |
+| `network.py` | Reads and sets the IP address (automatic or fixed) through NetworkManager |
 | `spelling.py` | Spots spelled-out words in the recognized text and joins the letters |
 | `iconlib.py` | Label icons: online search, download cache and the saved-icon library (`icon-library/`) |
 | `svgraster.py` | Draws SVG icons with Pillow and numpy, so no extra graphics library is needed |
