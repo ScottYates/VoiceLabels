@@ -417,7 +417,7 @@ TONGUE_T = 3.0                     # base floor extension the pod stands on
 POD_RAIL_X = W / 2 - 14.0          # vertical dovetail rails on the base's back wall
 POD_GAP_V = 0.2                    # pod front to the base's rear wall (the dovetails locate it)
 POD_GAP_S = 3.0                    # pod's sloped front to the screen's back plate (at the side rails)
-POD_FACE_GAP = 0.4                 # ... and between the rails, where the face is thickened
+POD_FACE_GAP = 0.0                 # ... where the face is built out to meet it: touching
 POD_LID_GAP = 0.0                  # pod lid's front edge touches the housing's back (the housing is its stop)
 INLET_CUT = (47.6, 27.8)           # IEC socket panel cutout (W x H)
 INLET_SCREW_SPACING = 40.0         # its screw ears, above and below the cutout (unused: no screws)
@@ -722,13 +722,14 @@ def power_pod():
                       (yf, zc)], -W / 2, W / 2)
     shift = [0, POD_FACE_GAP * DOWN_BACK[0], POD_FACE_GAP * DOWN_BACK[1]]
     hous = union([housing_world(housing()), housing_world(back_plate().translate([0, 0, DEPTH]))])
-    # sweep the housing through the gap, so undercuts (the rails' lips) are covered too
+    # sweep the housing through the gap (if any), so undercuts (the rails' lips) are covered too
     # (and 0.3 mm down along the face, so nothing touches the housing's bottom edge)
     down = [0, -0.3 * UP_FACE[0], -0.3 * UP_FACE[1]]
     # and 8 mm along its way off (forward and up), so the rails' undercut lips
     # can't catch the pod as the housing starts to slide.
     moves = [[v * k + d * j for v, d in zip(shift, down)] for k in (0, 0.25, 0.5, 0.75, 1.0) for j in (0, 1)]
-    moves += [[-v * k / POD_FACE_GAP for v in shift] for k in (0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5, 6, 8)]
+    off = [0, -DOWN_BACK[0], -DOWN_BACK[1]]                  # the housing's way off, per mm
+    moves += [[v * k for v in off] for k in (0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5, 6, 8)]
     swept = union([hous.translate(m) for m in moves])
     adds.append(fill - swept)
     adds.append(lid_rails - swept)
