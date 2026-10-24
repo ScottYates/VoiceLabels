@@ -708,8 +708,8 @@ def power_pod():
         bores.append(pin_hole(sx, pod_pin_yz(), POD_RAIL_X))
     # Lid: slide rails along the side walls' tops (the lid slides in from the
     # back until it meets the housing's back) and a click bump on the back wall.
-    y_front = front(z_top)
-    adds.append(slide_rails(LID_T, y_front, yb, z_top))
+    # (the rails run forward to the housing; they're trimmed with the front fill below)
+    lid_rails = slide_rails(LID_T, plate_face_y(z_top) - 3, yb, z_top)
     adds.append(detent_bump(POD_DETENT_X, yb - w / 2, z_top))
     # Fill the space in front of the pod's sloped face, then cut away
     # everything within POD_FACE_GAP of the housing and its back plate. The
@@ -725,11 +725,13 @@ def power_pod():
     # sweep the housing through the gap, so undercuts (the rails' lips) are covered too
     # (and 0.3 mm down along the face, so nothing touches the housing's bottom edge)
     down = [0, -0.3 * UP_FACE[0], -0.3 * UP_FACE[1]]
-    # and 1 mm along its way off (forward and up), so the rails' undercut lips
+    # and 8 mm along its way off (forward and up), so the rails' undercut lips
     # can't catch the pod as the housing starts to slide.
     moves = [[v * k + d * j for v, d in zip(shift, down)] for k in (0, 0.25, 0.5, 0.75, 1.0) for j in (0, 1)]
-    moves += [[-v * k / POD_FACE_GAP for v in shift] for k in (0.25, 0.5, 0.75, 1.0)]
-    adds.append(fill - union([hous.translate(m) for m in moves]))
+    moves += [[-v * k / POD_FACE_GAP for v in shift] for k in (0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5, 6, 8)]
+    swept = union([hous.translate(m) for m in moves])
+    adds.append(fill - swept)
+    adds.append(lid_rails - swept)
     # Brick locators: a low rib in front of it and a short stop past its cable end.
     adds.append(box(xb0 + 6, xb1 - 6, yb0 - 3.0 - PSU_CLR, yb0 - PSU_CLR, zi0 - 0.01, zi0 + 5))
     # IEC socket in the back wall: the cutout, and the bores for the two
@@ -750,7 +752,8 @@ def power_pod():
         if x + 2.5 < W / 2 - 14:
             cuts.append(box(x, x + 2.5, yb - w - 1, yb + 1, z_top - 30, z_top - 8))
     pod = add_pin_bores(union([pod] + adds) - union(cuts), bores)
-    return pod
+    # drop any zero-volume slivers the trimming leaves behind; the pod is one piece
+    return max(pod.decompose(), key=lambda m: m.volume())
 
 def inlet_zc():
     """Height of the power socket's centre: its front plate clears the pod's floor."""
