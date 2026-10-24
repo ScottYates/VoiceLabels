@@ -418,7 +418,7 @@ POD_RAIL_X = W / 2 - 14.0          # vertical dovetail rails on the base's back 
 POD_GAP_V = 0.2                    # pod front to the base's rear wall (the dovetails locate it)
 POD_GAP_S = 3.0                    # pod's sloped front to the screen's back plate (at the side rails)
 POD_FACE_GAP = 0.4                 # ... and between the rails, where the face is thickened
-POD_LID_GAP = 0.15                 # pod lid's front edge to the housing's back (the housing is its stop)
+POD_LID_GAP = 0.0                  # pod lid's front edge touches the housing's back (the housing is its stop)
 INLET_CUT = (47.6, 27.8)           # IEC socket panel cutout (W x H)
 INLET_SCREW_SPACING = 40.0         # its screw ears, above and below the cutout (unused: no screws)
 INLET_PLATE = (50.0, 48.0, 4.5)    # its front plate: width, height, thickness (estimated; measure yours)
@@ -710,7 +710,7 @@ def power_pod():
     # back until it meets the housing's back) and a click bump on the back wall.
     # (the rails run forward to the housing; they're trimmed with the front fill below)
     lid_rails = slide_rails(LID_T, plate_face_y(z_top) - 3, yb, z_top)
-    adds.append(detent_bump(POD_DETENT_X, yb - w / 2, z_top))
+    adds.append(detent_bump(POD_DETENT_X, yb - w / 2 - 0.4, z_top))
     # Fill the space in front of the pod's sloped face, then cut away
     # everything within POD_FACE_GAP of the housing and its back plate. The
     # front then follows the plate and its rails 0.4 mm away, and stays
@@ -829,7 +829,7 @@ def pod_lid():
     zt = g["z_top"]
     y1 = g["yb"]
     lid = slide_panel(LID_T, plate_face_y(zt) - 2, y1)
-    cuts = [detent_dimple(POD_DETENT_X, y1 - POD_WALL / 2)]
+    cuts = [detent_dimple(POD_DETENT_X, y1 - POD_WALL / 2 - 0.4)]
     rx = back_rail_x()
     for x0, x1, gap in ((-rx, rx, POD_LID_GAP), (rx - 0.01, W, POD_LID_GAP + SLIDE_LIP),
                         (-W, -rx + 0.01, POD_LID_GAP + SLIDE_LIP)):
