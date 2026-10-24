@@ -84,7 +84,7 @@ If you would rather use CUPS (for example, to also print from other computers), 
 
 ### Label sizes and calibration
 
-The app prints on 3 × 2", 3 × 1" and 2 × 1" labels. Tap the size above the label preview (it reads "3 × 2 in ▾") to open the **Labels** screen:
+The app prints on 3 × 2", 3 × 1" and 2 × 1" labels. Tap **Labels** at the bottom of the Setup screen (or the size above the label preview, "3 × 2 in ▾") to open the **Labels** screen:
 
 - **Size**: pick the roll that's loaded. The preview and the text sizes follow it, and the choice is remembered.
 - **Measure labels**: the printer feeds a few blank labels and learns their length and the gap between them. Do this every time you load a different size. (Holding the printer's feed button until its light flashes twice does the same.)

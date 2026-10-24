@@ -521,9 +521,9 @@ class App:
         p.rowconfigure(7, weight=1, uniform="rows")
         tk.Label(p, text=" Print hold", image=self.icon("timer", MUTED, 20), compound="left",
                  **label).grid(row=7, column=0, sticky="w",
-                                                    padx=(pad, gap), pady=(0, pad))
+                                                    padx=(pad, gap), pady=(0, gap))
         ph = tk.Frame(p, bg=BG)
-        ph.grid(row=7, column=1, sticky="nsew", padx=(0, pad), pady=(0, pad))
+        ph.grid(row=7, column=1, sticky="nsew", padx=(0, pad), pady=(0, gap))
         ph.rowconfigure(0, weight=1)
         self._hold_btns = {}
         for i, sec in enumerate(config.PRINT_HOLD_CHOICES):
@@ -532,6 +532,14 @@ class App:
                           command=lambda sec=sec: self.set_print_hold(sec), **big)
             b.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else gap, 0))
             self._hold_btns[sec] = b
+        # Labels: the size loaded, opening the Labels screen (size, position, test print).
+        p.rowconfigure(8, weight=1, uniform="rows")
+        tk.Label(p, text=" Labels", image=self.icon("printer", MUTED, 20), compound="left",
+                 **label).grid(row=8, column=0, sticky="w", padx=(pad, gap), pady=(0, pad))
+        self.setup_labels_btn = tk.Button(p, text="", command=self.open_labels,
+                                          image=self.icon("arrow-right", FG, 22), compound="right",
+                                          **dict(big, padx=round(20 * s)))
+        self.setup_labels_btn.grid(row=8, column=1, sticky="nsew", padx=(0, pad), pady=(0, pad))
         self._refresh_toggles()
         self._build_power(big, pad, gap, font)
         self._build_network(big, pad, gap, font)
@@ -640,6 +648,9 @@ class App:
             b.configure(bg=OK if on else PANEL, activebackground=OK if on else PANEL,
                         fg=col, activeforeground=col)
         dx, dy = self.offsets.get(self.label_size, [0.0, 0.0])
+        if hasattr(self, "setup_labels_btn"):
+            self.setup_labels_btn.configure(
+                text=f"{labels.name(self.label_size)}   size, position, test print  ")
         self.offset_title.configure(text=f"Position\n{labels.name(self.label_size)}")
         self._offset_vals[0].configure(text=("centered" if dx == 0 else
                                              f"{abs(dx):.1f} mm {'right' if dx > 0 else 'left'}"))
