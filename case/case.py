@@ -425,8 +425,8 @@ INLET_SCREW_SPACING = 40.0         # its screw ears, above and below the cutout 
 # thickness) and the raised face on it (width, height) around the switch,
 # fuse and plug. From a photo of the real part, scaled by the pin spacing:
 # the plate just clears the two pin holes. Measure yours and adjust.
-INLET_PLATE = (57.5, 50.0, 2.0)
-INLET_FACE = (55.0, 31.0)
+INLET_PLATE = (59.1, 50.0, 2.0)
+INLET_FACE = (56.6, 31.0)      # 1/16" wider than the photo estimate, after a test fit
 KEEPER_FACE = 4.5                  # keeper frame: thickness in front of the plate (6.2 mm in all, as the pins expect)
 KEEPER_SQUEEZE = 0.3               # how much the keeper presses the plate into the wall
 KEEPER_PIN_DX = 31.0               # keeper pins: this far either side of the socket centre
@@ -808,9 +808,16 @@ def socket_keeper():
                 izc - ph / 2 - 0.5, izc + ph / 2 + 0.5),
             box(INLET_X - INLET_FACE[0] / 2 - 0.25, INLET_X + INLET_FACE[0] / 2 + 0.25, yb - 1, yb + kt + 1,
                 izc - INLET_FACE[1] / 2 - 0.4, izc + INLET_FACE[1] / 2 + 0.4)]
+    win_half = INLET_FACE[0] / 2 + 0.25
     for dx in (-KEEPER_PIN_DX, KEEPER_PIN_DX):
         x = INLET_X + dx
         cuts.append(cyl(PIN_HOLE_D / 2, kt + 2, 0, 0, 0).rotate([-90, 0, 0]).translate([x, yb - 1, izc]))
+        # if the window comes within 1 mm of the pin hole, open it right into the
+        # hole rather than leave a sliver too thin to print
+        if KEEPER_PIN_DX - PIN_HOLE_D / 2 - win_half < 1.0:
+            sgn = 1 if dx > 0 else -1
+            a, b = sorted((INLET_X + sgn * (win_half - 0.5), x))
+            cuts.append(box(a, b, yb - 1, yb + kt + 1, izc - PIN_HOLE_D / 2, izc + PIN_HOLE_D / 2))
         cuts.append(box(x - KEYWAY_W / 2, x + KEYWAY_W / 2, yb - 1, yb + kt + 1, izc, izc + KEYWAY_R))
     return frame - union(cuts)
 
