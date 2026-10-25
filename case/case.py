@@ -421,8 +421,13 @@ POD_FACE_GAP = 0.0                 # ... where the face is built out to meet it:
 POD_LID_GAP = 0.0                  # pod lid's front edge touches the housing's back (the housing is its stop)
 INLET_CUT = (47.6, 27.8)           # IEC socket panel cutout (W x H)
 INLET_SCREW_SPACING = 40.0         # its screw ears, above and below the cutout (unused: no screws)
-INLET_PLATE = (50.0, 48.0, 4.5)    # its front plate: width, height, thickness (estimated; measure yours)
-KEEPER_FACE = 2.0                  # keeper frame: thickness in front of the plate
+# The socket's flat mounting plate (width, height from ear tip to ear tip,
+# thickness) and the raised face on it (width, height) around the switch,
+# fuse and plug. From a photo of the real part, scaled by the pin spacing:
+# the plate just clears the two pin holes. Measure yours and adjust.
+INLET_PLATE = (57.5, 50.0, 2.0)
+INLET_FACE = (55.0, 31.0)
+KEEPER_FACE = 4.5                  # keeper frame: thickness in front of the plate (6.2 mm in all, as the pins expect)
 KEEPER_SQUEEZE = 0.3               # how much the keeper presses the plate into the wall
 KEEPER_PIN_DX = 31.0               # keeper pins: this far either side of the socket centre
 INLET_DEPTH = 38.0                 # body + terminals behind the panel
@@ -791,8 +796,9 @@ def keeper_pin_len():
 
 def socket_keeper():
     """Frame over the power socket's front plate, in world coordinates. A
-    pocket in its back fits the plate, a window lets the plug, switch and fuse
-    drawer through, and two lock pins clamp it to the back wall."""
+    pocket in its back fits the plate, a window lets the raised face (plug,
+    switch and fuse drawer) through, and two lock pins clamp it to the back
+    wall: it presses on the plate around the face, mostly above and below it."""
     yb, izc, kt = POD["yb"], inlet_zc(), keeper_t()
     pw, ph, pt = INLET_PLATE
     hw, hh = KEEPER_PIN_DX + 6.0, ph / 2 + 4.0
@@ -800,8 +806,8 @@ def socket_keeper():
              .rotate([-90, 0, 0]).translate([INLET_X, yb, izc]))
     cuts = [box(INLET_X - pw / 2 - 0.5, INLET_X + pw / 2 + 0.5, yb - 1, yb + pt - KEEPER_SQUEEZE,
                 izc - ph / 2 - 0.5, izc + ph / 2 + 0.5),
-            box(INLET_X - INLET_CUT[0] / 2 - 0.4, INLET_X + INLET_CUT[0] / 2 + 0.4, yb - 1, yb + kt + 1,
-                izc - INLET_CUT[1] / 2 - 0.4, izc + INLET_CUT[1] / 2 + 0.4)]
+            box(INLET_X - INLET_FACE[0] / 2 - 0.25, INLET_X + INLET_FACE[0] / 2 + 0.25, yb - 1, yb + kt + 1,
+                izc - INLET_FACE[1] / 2 - 0.4, izc + INLET_FACE[1] / 2 + 0.4)]
     for dx in (-KEEPER_PIN_DX, KEEPER_PIN_DX):
         x = INLET_X + dx
         cuts.append(cyl(PIN_HOLE_D / 2, kt + 2, 0, 0, 0).rotate([-90, 0, 0]).translate([x, yb - 1, izc]))
