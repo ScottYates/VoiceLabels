@@ -11,7 +11,9 @@ Parts (each exported in its print orientation, no supports needed):
   6. power_pod    closed box behind the base for the USB power brick, with a
                   switched, fused IEC power socket in its back wall
   7. pod_lid      sliding lid for the power pod
- 11. front_panel  the base's front wall: slides up from underneath once the deck is in
+ 11. front_panel  the base's front wall: slides up from underneath once the deck is in;
+                  the logo is inlaid flush in its front face (11a-11d: the same
+                  panel split by colour for a multi-colour printer)
   8. lock_pin x4  quarter-turn pins that lock the housing and pod to the base
   9. socket_keeper  frame that clamps the power socket's front plate to the pod
  10. socket_pin x2  quarter-turn pins that hold the keeper on
@@ -909,6 +911,36 @@ def front_panel():
     return panel - union(dimples)
 
 
+LOGO_SCALE = 0.9                # front panel logo, relative to the logo3d plaque (144 x 36 mm)
+LOGO_DEPTH = 0.8                # how deep the coloured logo sits into the front face
+
+
+def front_logo():
+    """The logo inlaid flush into the front panel's front face, by colour:
+    {"yellow": ..., "white": ..., "gray": ...} in world coordinates."""
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "logo3d"))
+    from make_logo import logo_2d
+    shapes = logo_2d()
+    allc = shapes["yellow"] + shapes["white"] + shapes["gray"]
+    (u0, v0), (u1, v1) = allc.bounds()[:2], allc.bounds()[2:]
+    cu, cv = (u0 + u1) / 2, (v0 + v1) / 2
+    zc = FRONT_H / 2 - 0.5
+    out = {}
+    for colour, cs in shapes.items():
+        m = cs.translate([-cu, -cv]).scale([LOGO_SCALE, LOGO_SCALE]).extrude(LOGO_DEPTH + 0.01)
+        # (u, v, w) -> (u, -w, v): u = user-right, v = up, into the face along +y
+        out[colour] = m.rotate([90, 0, 0]).translate([0, LOGO_DEPTH, zc])
+    return out
+
+
+def front_panel_parts():
+    """The front panel split by colour: {"dark": panel minus logo, "yellow", "white", "gray"}."""
+    panel = front_panel()
+    logo = {k: v ^ panel for k, v in front_logo().items()}
+    return {"dark": panel - union(list(logo.values())), **logo}
+
+
 def deck(deck_posts):
     """Slides in from the front under the rails on the base's side walls,
     stops against the seat ribs, and clicks onto a bump on a post."""
@@ -979,14 +1011,23 @@ def build():
         "11_front_panel": front_panel().rotate([-90, 0, 0]),   # inside face down, front face up
         "8_lock_pin_x4": union([lock_pin().translate([i * 12, 0, 0]) for i in range(4)]),
     }
+    # The front panel split by colour: all four keep the same placement, so they
+    # load together as one multi-part object (one filament per part).
+    fpp = {k: v.rotate([-90, 0, 0]) for k, v in front_panel_parts().items()}
+    x0, y0, z0, x1, y1, z1 = fpp["dark"].bounding_box()
+    shift = [-(x0 + x1) / 2, -(y0 + y1) / 2, -z0]
+    aligned = {}
+    for key, tag in (("dark", "11a_front_panel_dark"), ("yellow", "11b_front_logo_yellow"),
+                     ("white", "11c_front_logo_white"), ("gray", "11d_front_logo_gray")):
+        aligned[tag] = fpp[key].translate(shift)
     if POWER_POD:
         parts["6_power_pod"] = power_pod()                # as modelled: floor down
         parts["7_pod_lid"] = pod_lid().mirror([0, 0, 1])  # top face down, lip up
         parts["9_socket_keeper"] = socket_keeper().rotate([-90, 0, 0])  # outer face down, pocket up
         parts["10_socket_pin_x2"] = union([keeper_pin().translate([i * 12, 0, 0]) for i in range(2)])
     report = {}
-    for name, m in parts.items():
-        m = place_on_bed(m)
+    for name, m in list(parts.items()) + list(aligned.items()):
+        m = place_on_bed(m) if name in parts else m
         x0, y0, z0, x1, y1, z1 = m.bounding_box()
         report[name] = (round(x1 - x0, 1), round(y1 - y0, 1), round(z1 - z0, 1),
                         m.status().name, m.genus())
@@ -995,7 +1036,10 @@ def build():
     hw = housing_world(h)
     bpw = housing_world(bp.translate([0, 0, DEPTH]))
     dw = deck_world(d)
-    asm = {"housing": hw, "back_plate": bpw, "base": b, "deck": dw, "front_panel": front_panel()}
+    fpw = front_panel_parts()
+    asm = {"housing": hw, "back_plate": bpw, "base": b, "deck": dw, "front_panel": fpw["dark"],
+           "front_logo_yellow": fpw["yellow"], "front_logo_white": fpw["white"],
+           "front_logo_gray": fpw["gray"]}
     if POWER_POD:
         asm["power_pod"] = power_pod()
         asm["pod_lid"] = pod_lid().translate([0, 0, POD["z_top"]])

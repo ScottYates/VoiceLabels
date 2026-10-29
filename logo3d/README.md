@@ -19,3 +19,5 @@ The logo as a 3D-printable plaque, **190 × 60 × 4 mm**: a 3 mm dark plate with
 Print flat as exported, 0.2 mm layers (0.1 mm for the top millimetre makes the lettering crisper). The tagline's strokes are 0.5–0.8 mm wide, fine for a 0.4 mm nozzle with the slicer's thin-wall handling (Arachne, the default in current slicers).
 
 To change the size or heights, edit `MM` (mm per logo unit; 0.25 gives 190 mm wide), `BASE_T` and `RAISE` in `make_logo.py` and run `python3 make_logo.py` (needs manifold3d, trimesh and fontTools, and the Inter Display font).
+
+The same logo, at 90% size, is inlaid in the case's front panel: see `case/stl/11a…11d` in the [case README](../case/README.md). `logo_2d()` in `make_logo.py` gives the coloured shapes for that.

@@ -129,8 +129,9 @@ def mark():
     return bubble - CrossSection.batch_boolean(holes, __import__("manifold3d").OpType.Add)
 
 
-def build():
-    plate = rrect(*P(0, 240), 760 * MM, 240 * MM, 28 * MM)
+def logo_2d():
+    """The logo's coloured areas as 2D shapes (mm, plaque coordinates):
+    {"yellow": bubble + "Labels", "white": "Voice", "gray": tagline}."""
     voice = text("Voice ", TITLE_FONT, 72, 270, 128, spacing=-1.5)
     # "Labels" starts where "Voice " ends
     font = TTFont(str(TITLE_FONT))
@@ -138,13 +139,19 @@ def build():
     adv = sum(font["hmtx"][font.getBestCmap()[ord(c)]][0] * k - 1.5 for c in "Voice ")
     labels = text("Labels", TITLE_FONT, 72, 270 + adv, 128, spacing=-1.5)
     tag = text("Speak it · Check it · Print it", TAG_FONT, 24, 274, 174)
+    return {"yellow": mark() + labels, "white": voice, "gray": tag}
+
+
+def build():
+    plate = rrect(*P(0, 240), 760 * MM, 240 * MM, 28 * MM)
     up = lambda cs: cs.extrude(RAISE).translate([0, 0, RAISE_Z])
     base = plate.extrude(BASE_T)
+    logo = logo_2d()
     parts = {
         "logo_1_base_dark": base,
-        "logo_2_yellow": up(mark() + labels),
-        "logo_3_white": up(voice),
-        "logo_4_gray": up(tag),
+        "logo_2_yellow": up(logo["yellow"]),
+        "logo_3_white": up(logo["white"]),
+        "logo_4_gray": up(logo["gray"]),
     }
     parts["logo_plaque"] = Manifold.batch_boolean(list(parts.values()), __import__("manifold3d").OpType.Add)
     return parts
