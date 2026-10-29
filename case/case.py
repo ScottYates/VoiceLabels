@@ -935,7 +935,8 @@ def front_logo():
 
 
 def front_panel_parts():
-    """The front panel split by colour: {"dark": panel minus logo, "yellow", "white", "gray"}."""
+    """The front panel split by colour: {"dark": panel minus logo (case colour),
+    "yellow": bubble + "Labels", "white": "Voice", "gray": tagline}."""
     panel = front_panel()
     logo = {k: v ^ panel for k, v in front_logo().items()}
     return {"dark": panel - union(list(logo.values())), **logo}
@@ -1017,8 +1018,8 @@ def build():
     x0, y0, z0, x1, y1, z1 = fpp["dark"].bounding_box()
     shift = [-(x0 + x1) / 2, -(y0 + y1) / 2, -z0]
     aligned = {}
-    for key, tag in (("dark", "11a_front_panel_dark"), ("yellow", "11b_front_logo_yellow"),
-                     ("white", "11c_front_logo_white"), ("gray", "11d_front_logo_gray")):
+    for key, tag in (("dark", "11a_front_panel_main"), ("yellow", "11b_front_logo_yellow"),
+                     ("white", "11c_front_logo_voice"), ("gray", "11d_front_logo_tagline")):
         aligned[tag] = fpp[key].translate(shift)
     if POWER_POD:
         parts["6_power_pod"] = power_pod()                # as modelled: floor down
