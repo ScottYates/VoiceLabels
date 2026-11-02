@@ -298,7 +298,7 @@ class App:
 
     # ------------------------------------------------------------------ UI
     def _build_ui(self):
-        """Main screen: Hold to talk (top left) and PRINT (top right) side by
+        """Main screen: Hold to listen (top left) and PRINT (top right) side by
         side at the same size; below them the label preview and status on the
         left, the text box and Rotate / Clear / Setup on the right. Date, QR,
         copies and brightness live on a separate Setup screen with big buttons.
@@ -327,7 +327,7 @@ class App:
         # Top row: the two main actions, same height and font.
         big = dict(font=font(30, True), relief="flat", bd=0, highlightthickness=0,
                    pady=round(30 * s), cursor="hand2")
-        self.talk_btn = tk.Button(body, text=" Hold to talk", bg=PANEL, fg=FG,
+        self.talk_btn = tk.Button(body, text=" Hold to listen", bg=PANEL, fg=FG,
                                   image=self.icon("mic", FG, 30), compound="left",
                                   activebackground=PANEL, activeforeground=FG, **big)
         self.talk_btn.grid(row=0, column=0, sticky="nsew", padx=(0, pad), pady=(0, gap))
@@ -1720,7 +1720,7 @@ class App:
         if not self.recording:
             return
         self.recording = False
-        self.talk_btn.configure(bg=PANEL, activebackground=PANEL, text=" Hold to talk")
+        self.talk_btn.configure(bg=PANEL, activebackground=PANEL, text=" Hold to listen")
         if cancel:
             self.stt.cancel()
             self.button.led_off()

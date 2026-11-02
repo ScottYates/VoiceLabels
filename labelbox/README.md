@@ -86,6 +86,8 @@ If you would rather use CUPS (for example, to also print from other computers), 
 
 The app prints on 3 × 2", 3 × 1" and 2 × 1" labels. Tap **Labels** at the bottom of the Setup screen (or the size above the label preview, "3 × 2 in ▾") to open the **Labels** screen:
 
+<p align="center"><img src="docs/labels.png?v=1" alt="Labels screen: size buttons for 3 by 2, 3 by 1 and 2 by 1 inch, Left, Right, Up and Down position buttons with Reset, and Measure labels and Print test label" width="420"></p>
+
 - **Size**: pick the roll that's loaded. The preview and the text sizes follow it, and the choice is remembered.
 - **Measure labels**: the printer feeds a few blank labels and learns their length and the gap between them. Do this every time you load a different size. (Holding the printer's feed button until its light flashes twice does the same.)
 - **Print test label**: a calibration label for the chosen size, with a solid border 1 mm in from every edge, a dashed one 2 mm in, a notch at the middle of each edge, ruler ticks every ¼" and the size and position printed in the middle.
@@ -145,13 +147,13 @@ While protection is on, anything else you change is lost at the next restart: ap
 
 | Main screen | Setup screen |
 |---|---|
-| <img src="docs/screen.png?v=3" alt="Main screen" width="400"> | <img src="docs/setup.png?v=4" alt="Setup screen" width="400"> |
+| <img src="docs/screen.png?v=4" alt="Main screen: Hold to listen and PRINT across the top, the text box, the label preview with a screw icon, and Rotate, Left, Icon, Help and Setup" width="400"> | <img src="docs/setup.png?v=5" alt="Setup screen: Network, Power and Done, Date and QR, align, copies, brightness, print hold, and Labels" width="400"> |
 
-The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **Rotate**, **Align**, **Icon**, **Help** and **Setup** sit under the preview. **Help** lists the voice commands and touch shortcuts. Every button has an icon beside its label.
+The main screen has **Hold to listen** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **Rotate**, **Align**, **Icon**, **Help** and **Setup** sit under the preview. **Help** lists the voice commands and touch shortcuts. Every button has an icon beside its label.
 
 | Do this | To |
 |---|---|
-| **Hold** the TALK button (or **Hold to talk** on screen), speak, release | Record. The words appear without a closing period, since labels don't need one. The TALK light stays on while it listens and works out the words, then blinks twice when the text is in (it also blinks twice when the app is ready at startup). F1 starts and stops recording from the keyboard |
+| **Hold** the TALK button (or **Hold to listen** on screen), speak, release | Record. The words appear without a closing period, since labels don't need one. The TALK light stays on while it listens and works out the words, then blinks twice when the text is in (it also blinks twice when the app is ready at startup). F1 starts and stops recording from the keyboard |
 | **Tap** TALK, then straight away **press and hold** it again (screen or deck button), speak, release | Clear the text and start over. The status says "Cleared. Listening…" |
 | Type in the text box | Fix any words. The preview updates as you type |
 | **Hold** the PRINT button (on screen or on the deck) for 3 seconds | Print. A green bar sweeps across PRINT and counts down; let go early to cancel. The PRINT light blinks while you hold, stays on while printing, then blinks twice when done. Ctrl+P or Ctrl+Enter print straight away |
@@ -178,9 +180,13 @@ The main screen has **Hold to talk** (top left) and **PRINT** (top right). Under
 | **Network** | Choose how the Pi gets its IP address (see below) |
 | Under the title | The Pi's name and current IP address, for connecting to it over the network, and whether it's safe to just unplug it |
 
+**Power screen.** Tap **Power** on the Setup screen.
+
+<p align="center"><img src="docs/power.png?v=1" alt="Power screen: Restart, Shut down and Desktop tiles, and a Back button" width="420"></p>
+
 **Network screen.** Tap **Network** on the Setup screen.
 
-<p align="center"><img src="docs/network.png?v=1" alt="Network screen: Automatic and Fixed address buttons, IP address, router and DNS fields, and a number pad" width="420"></p>
+<p align="center"><img src="docs/network.png?v=2" alt="Network screen: Automatic and Fixed address buttons, IP address, router and DNS fields, and a number pad" width="420"></p>
 
 - **Automatic** (the default): the router hands the Pi an address each time it connects (DHCP). It can change after a restart; the Setup screen always shows the current one.
 - **Fixed address**: type the IP address, the router's address and a DNS server (usually the router again) with the number pad or a keyboard, then tap **Save**. The Pi uses that address every time it starts. Pick one your router doesn't hand out to other devices (outside its DHCP range), or reserve it in the router's settings.
@@ -203,6 +209,10 @@ Tap **Icon** to put a black-and-white picture on the label. Icons come from [Ico
 
 On the placement screen, **Change** picks a different icon and **Remove** takes it off the label. On the icon screen, **Remove saved** lets you tap saved icons to delete them. The side and size you pick are remembered for the next icon.
 
+| Icon screen | Placement screen |
+|---|---|
+| <img src="docs/icons.png?v=1" alt="Icon screen: a search box with screw typed in, Find, Saved and Back buttons, and a grid of screw and screwdriver icons with Prev and Next" width="400"> | <img src="docs/place.png?v=1" alt="Placement screen: the label shown large with a screw icon on the left of the text, Top, Bottom, Left and Right buttons around it, Icon size buttons, Change and Remove" width="400"> |
+
 With only an icon and no text, the icon is centered and fills the label.
 
 The search covers about twenty open-source icon sets chosen for single-colour, print-friendly icons, including plenty of computer and maker parts: USB, HDMI, Ethernet and power cables, network and graphics cards, RAM, CPUs, SSDs, NVMe, power supplies, motherboards, filament spools, 3D printers, screws and more. Common words are matched to what the icon sets call things, so saying "video card" also finds "graphics card" and "GPU", and "PLA" or "filament" finds spools. Thin, two-tone and crossed-out ("off") variants are left out because they print poorly. To add your own words, use `ICON_SYNONYMS` in `config.py`; the sets themselves are in `ICON_SETS`.
@@ -210,6 +220,8 @@ The search covers about twenty open-source icon sets chosen for single-colour, p
 ### Voice commands
 
 Say these while holding TALK. The **Help** button under the preview lists them on screen.
+
+<p align="center"><img src="docs/help.png?v=1" alt="Help screen: the voice commands, spelling, and the touch shortcuts" width="420"></p>
 
 | Say | What it does |
 |---|---|
