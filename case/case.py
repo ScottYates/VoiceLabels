@@ -17,7 +17,7 @@ Parts (each exported in its print orientation, no supports needed):
   8. lock_pin x4  quarter-turn pins that lock the housing and pod to the base
   9. socket_keeper  frame that clamps the power socket's front plate to the pod
  10. socket_pin x2  quarter-turn pins that hold the keeper on
- 12. panel_pin x2   quarter-turn pins that lock the pod lid and the deck in place
+ 12. panel_pin x3   quarter-turn pins that lock the pod lid, the deck and the front panel in place
 
 How the big parts join (no screws carry them):
   housing -> base   two dovetail rails under the housing slide down its seat
@@ -291,6 +291,12 @@ def housing():
     # Posts beside the board that carry the screen pins.
     post_top = screen_pin_z() + PIN_D / 2 + 2.0
     bosses = [cyl(3.5, post_top - FRONT, sx * CLAMP_X, y, FRONT) for sx in (-1, 1) for y in CLAMP_YS]
+    # ... each braced by two triangular ribs along Y (clear of the board and the pin's path)
+    for sx in (-1, 1):
+        for y in CLAMP_YS:
+            for sy in (-1, 1):
+                tri = [(y + sy * 3.0, FRONT - 0.01), (y + sy * 10.0, FRONT - 0.01), (y + sy * 3.0, post_top - 3.0)]
+                bosses.append(x_extrude(tri if sy > 0 else tri[::-1], sx * CLAMP_X - 1.0, sx * CLAMP_X + 1.0))
 
     # Dovetail rails under the bottom wall, running front to back. In the print
     # frame they hang off the Y=0 face and run along Z (straight up on the bed).
@@ -433,9 +439,9 @@ INLET_FACE = (56.6, 31.0)      # 1/16" wider than the photo estimate, after a te
 KEEPER_FACE = 4.5                  # keeper frame: thickness in front of the plate (6.2 mm in all, as the pins expect)
 KEEPER_SQUEEZE = 0.3               # how much the keeper presses the plate into the wall
 KEEPER_WINDOW_CLR = 1.0            # room around the socket's raised face in the keeper's window, each side
-KEEPER_PIN_DX = 31.0               # keeper pins: this far either side of the socket centre
+KEEPER_PIN_DX = 35.0               # keeper pins: this far either side of the socket centre (closed holes, solid all round)
 INLET_DEPTH = 38.0                 # body + terminals behind the panel
-INLET_X = -68.0                    # socket centre across the pod (world X, user-right +)
+INLET_X = -64.0                    # socket centre across the pod (world X, user-right +): keeps the outer keeper pin clear of the side wall
 BRICK_X0 = -5.0                    # brick's prong end (world X); prongs face -X
 LID_T = 2.4
 
@@ -578,6 +584,31 @@ def pod_pin_yz():
     return B[0] + DOVE_H + DOVE_CLR, PIN_POD_Z
 
 
+POST_FLARE = 6.0               # tall posts: extra radius at the floor, tapering out over POST_FLARE_H
+POST_FLARE_H = 14.0
+POST_GUSSET_H = 24.0           # free-standing posts: four ribs this tall, reaching POST_GUSSET_R from the axis
+POST_GUSSET_R = 12.0
+POST_RIB_T = 3.0               # ribs from posts to the walls, and gussets
+
+
+def post_support(x, y, r, wall_x=None):
+    """Bracing for a tall post standing on the base's floor: a flared foot and,
+    beside a side wall, a full-height web to the wall (trimmed to the deck
+    underside with everything else); otherwise four triangular gussets."""
+    z0 = BASE_WALL - 0.01
+    adds = [Manifold.cylinder(POST_FLARE_H, r + POST_FLARE, r, SEG).translate([x, y, z0])]
+    if wall_x is not None:
+        a, b = sorted((x, wall_x))
+        adds.append(box(a, b, y - POST_RIB_T / 2, y + POST_RIB_T / 2, z0, 200))
+    else:
+        tri = [(0, 0), (POST_GUSSET_R, 0), (0, POST_GUSSET_H)]
+        for ang in (0, 90, 180, 270):
+            g = (x_extrude([(u, v) for u, v in tri], -POST_RIB_T / 2, POST_RIB_T / 2)   # (y, z) profile, thin in X
+                 .rotate([0, 0, ang]).translate([x, y, z0]))
+            adds.append(g)
+    return union(adds)
+
+
 def base():
     if POWER_POD:   # straight rear wall under the housing; the pod sits behind it
         prof = [(0, 0), (0, FRONT_H), (DECK_LEN, FRONT_H + DECK_LEN * T(DA)),
@@ -621,10 +652,13 @@ def base():
     for x, y in deck_posts:                       # supports under the deck
         ztop = FRONT_H + y * T(DA)
         adds.append(cyl(4.5, ztop + 5, x, y, 0))
+        adds.append(post_support(x, y, 4.5, wall_x=math.copysign(W / 2 - BASE_WALL + 0.01, x)))
     # A post near the back of the deck carries the deck's click bump.
     adds.append(cyl(4.0, FRONT_H + DECK_DETENT_Y * T(DA) + 5, DECK_DETENT_X, DECK_DETENT_Y, 0))
     # ... and a post at the front middle takes the deck's lock pin.
     adds.append(cyl(DECK_PIN_POST_R, FRONT_H + DECK_PIN_Y * T(DA) + 5, DECK_PIN_X, DECK_PIN_Y, 0))
+    adds.append(post_support(DECK_DETENT_X, DECK_DETENT_Y, 4.0))
+    adds.append(post_support(DECK_PIN_X, DECK_PIN_Y, DECK_PIN_POST_R))
     body = union([body] + adds)
     # Trim everything to the outside profile.
     body = body ^ solid
@@ -636,6 +670,9 @@ def base():
     cuts.append(housing_slots())
     bores = [pin_hole(sx, housing_pin_yz(), HOUSING_RAIL_X) for sx in (-1, 1)]
     bores.append(deck_pin_bore())
+    fp_block, fp_cut, fp_add = front_pin_bore()
+    body = body + fp_block
+    bores.append((fp_cut, fp_add))
     rear_feet_y = BASE_LEN - 22
     if POWER_POD:
         # Floor tongue the pod stands on, and the vertical dovetail rails on the
@@ -903,6 +940,39 @@ def _pin_local(m, locked):
     return pin_place(m, 1, 0.0, 0.0, locked)
 
 
+FRONT_PIN_X, FRONT_PIN_Z = 66.0, 8.0   # front panel pin: low on the right, clear of the logo
+FRONT_PIN_BLOCK = (14.0, 10.0, 14.0)  # block behind the panel it locks into: width, depth, top height
+
+
+def _back_frame(px, pz, yface):
+    """Transform for a pin bore built by pin_bore(1, 0, 0, ...) so that it
+    points straight back (+Y) at (px, pz), its outside face at y = yface,
+    keyway pointing up."""
+    return lambda m: m.transform([[0, 1, 0, px], [-1, 0, 0, yface + W / 2], [0, 0, 1, pz]])
+
+
+def front_pin_bore():
+    """Block on the base's floor right behind the front panel, with the bore.
+    The bore's 2.4 mm 'wall' starts at the panel's back face (y = FP_T); the
+    block starts 0.25 mm behind it (the panel's sliding clearance), so the
+    lock has that much play."""
+    bw, bd, bt = FRONT_PIN_BLOCK
+    block = box(FRONT_PIN_X - bw / 2, FRONT_PIN_X + bw / 2, FP_T + FP_CLR, FP_T + FP_CLR + bd, BASE_WALL - 0.01, bt)
+    cut, add = _panel_bore(_back_frame(FRONT_PIN_X, FRONT_PIN_Z, FP_T))
+    return block, cut, add
+
+
+def front_pin_hole():
+    return union([cyl(PIN_HOLE_D / 2, FP_T + 2, 0, 0, 0).rotate([-90, 0, 0]).translate([FRONT_PIN_X, -1, FRONT_PIN_Z]),
+                  box(FRONT_PIN_X - KEYWAY_W / 2, FRONT_PIN_X + KEYWAY_W / 2, -1, FP_T + 1,
+                      FRONT_PIN_Z, FRONT_PIN_Z + KEYWAY_R)])
+
+
+def front_pin_place(m, locked=True):
+    """Front panel pin in place: head on the panel's front face."""
+    return _back_frame(FRONT_PIN_X, FRONT_PIN_Z, 0.0)(_pin_local(m, locked))
+
+
 def deck_pin_local():
     """Deck pin position in the deck's own frame (x, along the slope)."""
     return DECK_PIN_X, DECK_PIN_Y / math.cos(DA)
@@ -1001,7 +1071,7 @@ def front_panel():
     panel = union([panel] + tongues) ^ top
     dimples = [Manifold.cylinder(DETENT_H + 0.3, DETENT_R + 0.3, 0.6, SEG).rotate([90, 0, 0])
                .translate([sx * (iw - FP_CLR - FP_TONGUE / 2), FP_T + 0.01, FP_DETENT_Z]) for sx in (-1, 1)]
-    return panel - union(dimples)
+    return panel - union(dimples) - front_pin_hole()
 
 
 LOGO_SCALE = 0.9                # front panel logo, relative to the logo3d plaque (144 x 36 mm)
@@ -1104,7 +1174,7 @@ def build():
         "5_deck": d,                                      # top face up: labels print last, crisp
         "11_front_panel": front_panel().rotate([-90, 0, 0]),   # inside face down, front face up
         "8_lock_pin_x4": union([lock_pin().translate([i * 12, 0, 0]) for i in range(4)]),
-        "12_panel_pin_x2": union([panel_pin().translate([i * 12, 0, 0]) for i in range(2)]),
+        "12_panel_pin_x3": union([panel_pin().translate([i * 12, 0, 0]) for i in range(3)]),
     }
     # The front panel split by colour: all four keep the same placement, so they
     # load together as one multi-part object (one filament per part).
