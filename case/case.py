@@ -17,6 +17,7 @@ Parts (each exported in its print orientation, no supports needed):
   8. lock_pin x4  quarter-turn pins that lock the housing and pod to the base
   9. socket_keeper  frame that clamps the power socket's front plate to the pod
  10. socket_pin x2  quarter-turn pins that hold the keeper on
+ 12. panel_pin x2   quarter-turn pins that lock the pod lid and the deck in place
 
 How the big parts join (no screws carry them):
   housing -> base   two dovetail rails under the housing slide down its seat
@@ -621,6 +622,8 @@ def base():
         adds.append(cyl(4.5, ztop + 5, x, y, 0))
     # A post near the back of the deck carries the deck's click bump.
     adds.append(cyl(4.0, FRONT_H + DECK_DETENT_Y * T(DA) + 5, DECK_DETENT_X, DECK_DETENT_Y, 0))
+    # ... and a post at the front middle takes the deck's lock pin.
+    adds.append(cyl(DECK_PIN_POST_R, FRONT_H + DECK_PIN_Y * T(DA) + 5, DECK_PIN_X, DECK_PIN_Y, 0))
     body = union([body] + adds)
     # Trim everything to the outside profile.
     body = body ^ solid
@@ -631,6 +634,7 @@ def base():
     body = body + deck_world(detent_bump(DECK_DETENT_X, DECK_DETENT_Y / math.cos(DA), 0))
     cuts.append(housing_slots())
     bores = [pin_hole(sx, housing_pin_yz(), HOUSING_RAIL_X) for sx in (-1, 1)]
+    bores.append(deck_pin_bore())
     rear_feet_y = BASE_LEN - 22
     if POWER_POD:
         # Floor tongue the pod stands on, and the vertical dovetail rails on the
@@ -673,7 +677,9 @@ def base():
         for y in (16, rear_feet_y):
             cuts.append(cyl(6.5, 1.2, x, y, -0.2))
     body = union([body - union(cuts)] + late_adds)
-    return add_pin_bores(body, bores), deck_posts
+    body = add_pin_bores(body, bores)
+    # drop zero-volume slivers the deck pin's tilted ramps leave behind; the base is one piece
+    return max(body.decompose(), key=lambda m: m.volume()), deck_posts
 
 
 def power_pod():
@@ -718,6 +724,10 @@ def power_pod():
     # (the rails run forward to the housing; they're trimmed with the front fill below)
     lid_rails = slide_rails(LID_T, plate_face_y(z_top) - 3, yb, z_top)
     adds.append(detent_bump(POD_DETENT_X, yb - w / 2 - 0.4, z_top))
+    # Block for the lid's lock pin, on the inside of the back wall.
+    lp_block, lp_cut, lp_add = lid_pin_bore()
+    adds.append(lp_block)
+    bores.append((lp_cut, lp_add))
     # Fill the space in front of the pod's sloped face, then cut away
     # everything within POD_FACE_GAP of the housing and its back plate. The
     # front then follows the plate and its rails 0.4 mm away, and stays
@@ -826,6 +836,87 @@ def socket_keeper():
 
 POD_DETENT_X = -30.0            # click bump on the back wall's top
 
+# Panel pins: one quarter-turn pin each through the pod lid and the button deck,
+# straight down into a block under it, so neither can slide out. Same pin for
+# both: it grips 5.4 mm (deck 3.0 + a 2.4 mm shelf; lid 2.4 + a 3.0 mm shelf).
+PANEL_PIN_GRIP = DECK_T + PIN_WALL
+LID_PIN_X = -25.0               # lid pin: across (world X), clear of the brick and the socket
+LID_PIN_IN = 5.5                # ... this far in from the back wall's inside face
+LID_BLOCK_W = 14.0              # the block it locks into, on the back wall's inside
+DECK_PIN_X, DECK_PIN_Y = 0.0, 14.0   # deck pin: front middle, between the buttons
+DECK_PIN_POST_R = 6.0
+
+
+def _down_frame(px, py, zface):
+    """Transform for a pin bore built by pin_bore(1, 0, 0, ...) (axis along X,
+    outside at x = W/2, keyway along +Z) so that it points straight down at
+    (px, py), its outside face at height zface, keyway towards -Y."""
+    return lambda m: m.transform([[0, -1, 0, px], [0, 0, -1, py], [1, 0, 0, zface - W / 2]])
+
+
+def panel_pin_len():
+    return PANEL_PIN_GRIP + LUG_GAP + LUG_T + 1.2
+
+
+def panel_pin():
+    return lock_pin(panel_pin_len(), grip=PANEL_PIN_GRIP)
+
+
+def _panel_bore(frame):
+    cut, add = pin_bore(1, 0.0, 0.0, W / 2 - 7.5)
+    return frame(cut), frame(add)
+
+
+def _panel_hole(px, py, t):
+    """Hole and keyway through a panel t thick (its own frame, bottom z = 0)."""
+    return union([cyl(PIN_HOLE_D / 2, t + 2, px, py, -1),
+                  box(px - KEYWAY_W / 2, px + KEYWAY_W / 2, py - KEYWAY_R, py, -1, t + 1)])
+
+
+def lid_pin_xy():
+    return LID_PIN_X, POD["yb"] - POD_WALL - LID_PIN_IN
+
+
+def lid_pin_bore():
+    """Shelf block on the inside of the pod's back wall (45-degree underside),
+    top flush with the walls, with the bore whose 2.4 mm 'wall' sits 0.6 mm
+    below the top (so the grip matches the deck's)."""
+    px, py = lid_pin_xy()
+    zt, yw = POD["z_top"], POD["yb"] - POD_WALL
+    d = LID_PIN_IN * 2
+    block = x_extrude([(yw + 0.01, zt), (yw - d, zt), (yw - d, zt - 8), (yw + 0.01, zt - 8 - d)],
+                      px - LID_BLOCK_W / 2, px + LID_BLOCK_W / 2)
+    cut, add = _panel_bore(_down_frame(px, py, zt - (PANEL_PIN_GRIP - LID_T - PIN_WALL)))
+    return block, cut, add
+
+
+def lid_pin_place(m, locked=True):
+    """Lid pin in place: head on the lid's top."""
+    px, py = lid_pin_xy()
+    return _down_frame(px, py, POD["z_top"] + LID_T)(_pin_local(m, locked))
+
+
+def _pin_local(m, locked):
+    """A pin as pin_place puts it on side +1 at (y, z) = (0, 0): head outside x = W/2."""
+    return pin_place(m, 1, 0.0, 0.0, locked)
+
+
+def deck_pin_local():
+    """Deck pin position in the deck's own frame (x, along the slope)."""
+    return DECK_PIN_X, DECK_PIN_Y / math.cos(DA)
+
+
+def deck_pin_bore():
+    x, s = deck_pin_local()
+    cut, add = _panel_bore(_down_frame(x, s, 0.0))
+    return deck_world(cut), deck_world(add)
+
+
+def deck_pin_place(m, locked=True):
+    """Deck pin in place: head on the deck's top."""
+    x, s = deck_pin_local()
+    return deck_world(_down_frame(x, s, DECK_T)(_pin_local(m, locked)))
+
 def back_rail_x():
     """Inside edge of the housing back plate's rail lips (world X)."""
     return W / 2 - SLIDE_NECK - BACK_T - 0.4
@@ -845,7 +936,7 @@ def pod_lid():
     zt = g["z_top"]
     y1 = g["yb"]
     lid = slide_panel(LID_T, plate_face_y(zt) - 2, y1)
-    cuts = [detent_dimple(POD_DETENT_X, y1 - POD_WALL / 2 - 0.4)]
+    cuts = [detent_dimple(POD_DETENT_X, y1 - POD_WALL / 2 - 0.4), _panel_hole(*lid_pin_xy(), LID_T)]
     rx = back_rail_x()
     for x0, x1, gap in ((-rx, rx, POD_LID_GAP), (rx - 0.01, W, POD_LID_GAP + SLIDE_LIP),
                         (-W, -rx + 0.01, POD_LID_GAP + SLIDE_LIP)):
@@ -947,7 +1038,7 @@ def deck(deck_posts):
     stops against the seat ribs, and clicks onto a bump on a post."""
     L = DECK_LEN / math.cos(DA)               # length along the slope
     plate = slide_panel(DECK_T, 0, L - SLIDE_CLR)
-    cuts = [detent_dimple(DECK_DETENT_X, DECK_DETENT_Y / math.cos(DA))]
+    cuts = [detent_dimple(DECK_DETENT_X, DECK_DETENT_Y / math.cos(DA)), _panel_hole(*deck_pin_local(), DECK_T)]
     s_mid = L / 2 + 4
     for sx, label in ((-1, "TALK"), (1, "PRINT")):
         cuts.append(cyl(BUTTON_HOLE / 2, DECK_T + 2, sx * BUTTON_SPACING / 2, s_mid, -1))
@@ -1011,6 +1102,7 @@ def build():
         "5_deck": d,                                      # top face up: labels print last, crisp
         "11_front_panel": front_panel().rotate([-90, 0, 0]),   # inside face down, front face up
         "8_lock_pin_x4": union([lock_pin().translate([i * 12, 0, 0]) for i in range(4)]),
+        "12_panel_pin_x2": union([panel_pin().translate([i * 12, 0, 0]) for i in range(2)]),
     }
     # The front panel split by colour: all four keep the same placement, so they
     # load together as one multi-part object (one filament per part).

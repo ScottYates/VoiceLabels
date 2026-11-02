@@ -7,7 +7,7 @@
 
 A desk console for the voice label printer: the 7" screen (with the Pi on its back) sits in a housing reclined 20°. In front of it is a sloped deck with the **TALK** (left) and **PRINT** (right) buttons. The mic plugs straight into one of the Pi's USB ports through a tall opening in the right side wall. Cables leave through snap-out tabs on either side. Behind the base, tucked under the screen's lean, a closed **power pod** holds the USB power brick, with a switched, fused mains socket in its back wall. A 30 mm round hole on the right side joins the pod to the space under the buttons, for cables.
 
-The big parts join with **sliding dovetails**, not screws: the screen housing slides down into slots in the base, and the power pod drops onto rails on the back of the base. Quarter-turn **lock pins** hold them there: a twist of the pin's wing head locks or frees it. The back plate, the pod lid and the button deck are **sliding panels** that click into place, and the power socket is clamped by a printed frame held by two more pins. There are no screws anywhere.
+The big parts join with **sliding dovetails**, not screws: the screen housing slides down into slots in the base, and the power pod drops onto rails on the back of the base. Quarter-turn **lock pins** hold them there: a twist of the pin's wing head locks or frees it. The back plate, the pod lid and the button deck are **sliding panels** that click into place (the lid and the deck are also locked by a pin each), and the power socket is clamped by a printed frame held by two more pins. There are no screws anywhere.
 
 Assembled size: about **215 W × 161 D × 173 H mm**. Every part fits the Snapmaker U1's 270 mm bed and prints **without supports**.
 
@@ -38,6 +38,7 @@ The viewer is one self-contained file, [`viewer/index.html`](viewer/index.html),
 | `stl/7_pod_lid.stl` | As exported: flat, wide face down | 211 × 41 × 2.4 | PETG. Slides into the top of the pod from the back until its front edge touches the back of the screen housing; that edge is cut at the housing's 20° (and stepped around the back plate's rails) so the two meet all the way across, and its back end is flush with the back of the pod |
 | `stl/9_socket_keeper.stl` | As exported: outer face down | 74 × 58 × 6.2 | PETG. Clamps the power socket's front plate to the pod's back wall. The pocket in its back fits the plate; if your socket's plate is a different size, set `INLET_PLATE` and reprint just this part |
 | `stl/10_socket_pin_x2.stl` | As exported: heads down | two pins, Ø4 × 11 mm | Hold the keeper on. Same quarter-turn lock as the other pins, shorter. 100% infill, PETG |
+| `stl/12_panel_pin_x2.stl` | As exported: heads down | two pins, Ø4 × 8 mm | Lock the pod lid and the deck so they can't slide out. Same quarter-turn lock as the other pins, short. 100% infill, PETG |
 | `stl/8_lock_pin_x4.stl` | As exported: heads down | four pins, Ø4 × 21 mm | Print at 100% infill, in PETG if you have it (it's tougher for the click). The small lug near each head is a 1.4 mm overhang, which prints fine |
 
 Suggested settings: PLA or PETG, 0.4 mm nozzle, 0.2 mm layers, 3 walls, 15–20% gyroid infill, no supports.
@@ -70,6 +71,7 @@ No screws are needed: the big parts are held by the printed lock pins, the panel
 <p align="center"><img src="docs/panels-slide.gif" alt="The deck sliding out of the front, the back plate sliding up off the housing, and the pod lid sliding out of the back, each sliding back in" width="480"></p>
 
 - **Sliding panels:** the back plate, the pod lid and the deck each have their two long edges bevelled at 45°, and slide under matching lips along the top of the side walls they sit on, like a pencil-box lid. A stop ends the travel (for the pod lid, the back of the screen housing), and a small bump clicks into a dimple under the panel to hold it. The back plate slides **down** from the top of the housing (the screen's lean also lets gravity hold it), the pod lid slides in **from the back**, and the deck slides in **from the front** until it meets the base. To take one off, push it the other way past the click.
+- **Panel pins:** the click alone could let the pod lid or the deck work loose, so each is also locked by one quarter-turn pin pushed straight down through it. The deck's pin sits at the front middle, between the buttons, and goes into a post in the base. The lid's pin sits near the lid's back end, left of centre, and goes into a block on the inside of the pod's back wall (clear of the brick and the power socket). Both are the same pin (`12_panel_pin_x2`). Pull the pin before sliding either panel.
 - **Cable hole:** a 30 mm round hole on the right side, through the pod's front wall and the base's back wall, lines up when the pod is on its rails. Its bottom is level with the pod floor and its top stays below where the pod's front starts to slope, so it never opens into a gap.
 
 ### The quarter-turn lock pins
@@ -86,7 +88,7 @@ The pin can't come out while it's crosswise, and it can't turn back by itself: g
 
 If a pin is too stiff to turn, lower `RAMP_H` (0.4 mm) in `case.py`. If it doesn't click firmly, raise it a little, or print the pins in PETG.
 
-Taking it apart is the same steps in reverse: pull the front panel down out of the base, slide the deck forward and off, unlock and pull the two housing pins, and slide the housing forward and up out of its slots. Then unlock and pull the two pod pins and lift the pod off (it can't lift while the housing is on: the housing's lower back edge overhangs the pod). To take the screen out of the housing, slide the back plate up and off, unlock and pull the four screen pins, and lift the screen and Pi out of the back.
+Taking it apart is the same steps in reverse: pull the front panel down out of the base, pull the deck pin and slide the deck forward and off, unlock and pull the two housing pins, and slide the housing forward and up out of its slots. Then unlock and pull the two pod pins and lift the pod off (it can't lift while the housing is on: the housing's lower back edge overhangs the pod). To take the screen out of the housing, slide the back plate up and off, unlock and pull the four screen pins, and lift the screen and Pi out of the back.
 
 The joints are sized with 0.25 mm of play on each side (`DOVE_CLR`). Print the deck first if you like, but it's worth test-sliding the housing into the base before wiring anything: it should slide with a firm push and no wobble. If it's too tight, sand the rails lightly or raise `DOVE_CLR` to 0.3–0.35 and reprint the base.
 
@@ -105,8 +107,8 @@ The joints are sized with 0.25 mm of play on each side (`DOVE_CLR`). Print the d
 7. **Slide the housing in.** Hold it above the front of the base, screen facing you, with the rails under it lined up with the slots at the front of the seat. Slide it down and back along the seat until it stops. As it goes in, feed the button wires up through the slot in the housing's floor, and any cables from the pod through the cable hole. Push a lock pin into the hole near the top of each side of the base and turn it to lock.
 8. **Connect inside.** Connect the button wires to the GPIO header. Then, from outside, push the mic's plug through the opening in the right wall into the Pi's USB port behind it. Coil the spare cable. Plug in the printer cable and the keyboard's receiver.
 9. **Route the USB-C cable.** Through the cable hole into the base and up through the slot in the housing's floor. Plug it into the Pi.
-10. **Fit the deck and the front panel.** With the front panel out of the base (the buttons hang below the deck and need the front open), set the deck's back edge in the rails at the front of the base and slide it back, under the rails, until it stops against the base and clicks. Then tip the base up at the front, or stand it at the edge of the table, and push the front panel up into the slots in the two front corner posts, rebated edges inwards, until it meets the deck and clicks.
-11. **Close up.** Lay the cables in their notches. Slide the back plate down into the rails at the top of the housing's back until it stops and clicks, then slide the pod lid into the top of the pod from the back until it meets the back of the housing and clicks (fit it after the housing: the housing is its stop). Stick on the feet.
+10. **Fit the deck and the front panel.** With the front panel out of the base (the buttons hang below the deck and need the front open), set the deck's back edge in the rails at the front of the base and slide it back, under the rails, until it stops against the base and clicks. Push a panel pin down through the hole at the front middle of the deck, into the post below, and turn it crosswise to lock. Then tip the base up at the front, or stand it at the edge of the table, and push the front panel up into the slots in the two front corner posts, rebated edges inwards, until it meets the deck and clicks.
+11. **Close up.** Lay the cables in their notches. Slide the back plate down into the rails at the top of the housing's back until it stops and clicks, then slide the pod lid into the top of the pod from the back until it meets the back of the housing and clicks (fit it after the housing: the housing is its stop), and lock it with the other panel pin through the hole near its back. Stick on the feet.
 
 ## Power pod wiring
 
@@ -128,7 +130,7 @@ The power socket in the pod's back wall has a fuse and a lighted rocker switch b
 
 4. **Swap the fuse** in the socket's drawer for a **2 A time-delay** fuse.
 5. **Mount the parts.** Push the power socket into the back-wall opening from outside, so its front plate sits flat on the wall. Put the keeper frame over it (pocket side towards the wall; the plug, switch and fuse drawer show through the window), push the two short socket pins through the frame and the wall, head upright, and turn each a quarter turn to lock. The frame presses the plate against the wall; you don't need the socket's screws. Zip-tie the cord socket to the anchor next to the brick and the Wagos to the anchor near the front. Plug the brick into the cord socket, stand it on edge against the back wall (prongs toward the power socket), and coil the spare USB-C cable in the space beyond its cable end.
-6. **Check before closing:** no bare copper visible anywhere, every lever down, nothing pulled tight. Slide the lid on.
+6. **Check before closing:** no bare copper visible anywhere, every lever down, nothing pulled tight. Slide the lid on and lock its pin.
 
 Turning the switch off cuts power to everything. With power-off protection turned on in the software (see the main README), that's safe to do at any time.
 
