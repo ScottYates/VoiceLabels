@@ -1,8 +1,8 @@
 # Voice Labels case
 
 <p align="center">
-  <img src="docs/case-front.png?v=6" alt="Front: reclined screen housing above the button deck" width="420">
-  <img src="docs/case-back.png?v=6" alt="Back: the power pod under the screen's lean, with the switched power socket in its back wall" width="400">
+  <img src="docs/case-front.png?v=7" alt="Front: reclined screen housing above the button deck" width="420">
+  <img src="docs/case-back.png?v=7" alt="Back: the power pod under the screen's lean, with the switched power socket held by its keeper frame in the back wall" width="400">
 </p>
 
 A desk console for the voice label printer: the 7" screen (with the Pi on its back) sits in a housing reclined 20°. In front of it is a sloped deck with the **TALK** (left) and **PRINT** (right) buttons. The mic plugs straight into one of the Pi's USB ports through a tall opening in the right side wall. Cables leave through snap-out tabs on either side. Behind the base, tucked under the screen's lean, a closed **power pod** holds the USB power brick, with a switched, fused mains socket in its back wall. A 30 mm round hole on the right side joins the pod to the space under the buttons, for cables.
@@ -16,7 +16,7 @@ Assembled size: about **215 W × 161 D × 173 H mm**. Every part fits the Snapma
 **[Open the 3D viewer](https://scottyates.github.io/VoiceLabels/)**: turn the case, zoom, see through the shell, and take it apart by clicking. Click a pin to turn it and pull it out (click again to push it in and lock it), a panel to slide it off or on, a button to press it, and the housing, screen or pod to take it off once whatever holds it is out of the way; the viewer tells you what has to come off first. **Put it all back** reassembles it. You can also spread the parts apart, or tap **Slide the panels** to watch the deck, back plate and pod lid slide out of their rails and back in. Below the model, an animated close-up shows how the quarter-turn pins lock.
 
 <p align="center">
-  <a href="https://scottyates.github.io/VoiceLabels/"><img src="docs/case-spin.gif" alt="The assembled case turning slowly in the 3D viewer" width="420"></a>
+  <a href="https://scottyates.github.io/VoiceLabels/"><img src="docs/case-spin.gif?v=2" alt="The assembled case turning slowly in the 3D viewer" width="420"></a>
   <a href="https://scottyates.github.io/VoiceLabels/"><img src="docs/pin-lock.gif" alt="Close-up of a lock pin: pushed in with its head upright, turned a quarter turn to lock, turned back and pulled out" width="440"></a>
 </p>
 
@@ -68,7 +68,7 @@ No screws are needed: the big parts are held by the printed lock pins, the panel
 - **Pod lock pins:** one pin goes in through each side wall of the pod, low down, across a groove in the tip of the base's rail. With the pins in, the pod can't lift off.
 - **Front panel:** the base's front wall is a separate panel. The arcade buttons hang about 34 mm under the deck, so with a fixed front wall they couldn't pass it as the deck slides in. The panel's side edges are rebated and run in slots in two posts inside the front corners; a 1.2 mm lip on each post covers the rebate, so the front face stays flush. The panel slides up from underneath until its top meets the deck's front edge (its top follows the deck's slope), and a small bump in each slot clicks into a dimple in its edge so it doesn't drop out when you lift the case. To take it out, pull it down past the click.
 - **Deck lip:** the lip along the deck's back edge stands in front of the bottom of the bezel, reaching to within 0.4 mm of it, and hides the joint line. It also stops the housing sliding forward while the deck is on.
-<p align="center"><img src="docs/panels-slide.gif" alt="The deck sliding out of the front, the back plate sliding up off the housing, and the pod lid sliding out of the back, each sliding back in" width="480"></p>
+<p align="center"><img src="docs/panels-slide.gif?v=2" alt="The front panel sliding down, the deck sliding out of the front, the back plate sliding up off the housing, and the pod lid sliding out of the back, each sliding back in" width="480"></p>
 
 - **Sliding panels:** the back plate, the pod lid and the deck each have their two long edges bevelled at 45°, and slide under matching lips along the top of the side walls they sit on, like a pencil-box lid. A stop ends the travel (for the pod lid, the back of the screen housing), and a small bump clicks into a dimple under the panel to hold it. The back plate slides **down** from the top of the housing (the screen's lean also lets gravity hold it), the pod lid slides in **from the back**, and the deck slides in **from the front** until it meets the base. To take one off, push it the other way past the click.
 - **Panel pins:** the clicks alone could let the pod lid, the deck or the front panel work loose, so each is also locked by one quarter-turn pin. The lid's and the deck's go straight down through them. The deck's pin sits at the front middle, between the buttons, and goes into a post in the base. The lid's pin sits near the lid's back end, left of centre, and goes into a block on the inside of the pod's back wall (clear of the brick and the power socket). The front panel's pin goes straight back through the panel, low on the right (clear of the logo), into a block on the base's floor just behind it. All three are the same pin (`12_panel_pin_x3`). Pull the pin before sliding a panel.
@@ -95,7 +95,7 @@ The joints are sized with 0.25 mm of play on each side (`DOVE_CLR`). Print the d
 
 ## Assembly
 
-<p align="center"><img src="docs/case-exploded.png?v=3" alt="Exploded view: the deck lifted off the front, the housing slid forward and up out of its slots, the pod lifted off its rails" width="520"></p>
+<p align="center"><img src="docs/case-exploded.png?v=4" alt="Exploded view: the front panel, deck, housing, back plate, pod and pins spread apart" width="520"></p>
 
 1. **Test the fit first.** Print the deck and push a button into one hole. Check that the mic's plug passes through the opening in the housing's right wall. If the holes are tight or loose, see Adjusting below.
 2. **Snap out cable tabs.** The housing has four tabs on its back edge, a high and a low one on each side. Snap out the ones you need with pliers: a high tab for the power cable on whichever side you prefer, and the middle tab on the right side for the printer cable.
@@ -103,7 +103,7 @@ The joints are sized with 0.25 mm of play on each side (`DOVE_CLR`). Print the d
 4. **Fit the pod.** Hold it above the back of the base and lower it so the slots in its front wall catch the base's two vertical rails, then let it slide down until it sits on the floor tongue. The cable holes line up on the right side. Push a lock pin into the hole low on each side of the pod, head upright, and turn it crosswise to lock.
 5. **Fit the screen.** Remove the black corner stands from the screen if they're still attached. With the housing face down on a soft cloth, lower the screen and Pi face-first into it. The two side rails centre it, and the glass sits against the bezel. Push the four screen pins (the longer ones) in through the holes in the housing's side walls, two on each side, and turn each a quarter turn to lock. Each passes through a post beside the board and reaches 3.5 mm over the back of the board's edge. The end of each screen pin is a cam, round with two flats: it slides in with a flat towards the board, and the quarter turn that locks it brings the round side down onto the board, pressing it snugly against the bezel (0.35 mm of squeeze), so the screen can't rattle. The last part of the turn takes a little more force than on the other pins; that's the board being clamped.
 
-   <p align="center"><img src="docs/screen-pins.png?v=2" alt="Inside the housing from behind: four gold pins pass through posts beside the screen board and over its edges" width="520"></p>
+   <p align="center"><img src="docs/screen-pins.png?v=3" alt="Inside the housing from behind: the Pi on the back of the screen board, and four orange pins passing through braced posts beside the board and over its edges" width="520"></p>
 6. **Fit the buttons.** Push each button down through its hole in the deck from the top until its clips snap under the plate (TALK on the left, PRINT on the right). If your buttons came with a plastic nut instead, screw it on from underneath; the thinned area leaves room for it. Wire them as described in the main README ("Wiring the buttons").
 7. **Slide the housing in.** Hold it above the front of the base, screen facing you, with the rails under it lined up with the slots at the front of the seat. Slide it down and back along the seat until it stops. As it goes in, feed the button wires up through the slot in the housing's floor, and any cables from the pod through the cable hole. Push a lock pin into the hole near the top of each side of the base and turn it to lock.
 8. **Connect inside.** Connect the button wires to the GPIO header. Then, from outside, push the mic's plug through the opening in the right wall into the Pi's USB port behind it. Coil the spare cable. Plug in the printer cable and the keyboard's receiver.
@@ -115,7 +115,7 @@ The joints are sized with 0.25 mm of play on each side (`DOVE_CLR`). Print the d
 
 **This is mains voltage. Do all of it unplugged, and if you've never wired a plug or a light fitting, have someone who has check it before you plug in.**
 
-<p align="center"><img src="docs/case-open.png?v=4" alt="Looking down into the power pod with its lid off: the brick stands on edge against the back wall" width="420"></p>
+<p align="center"><img src="docs/case-open.png?v=5" alt="Looking down into the power pod with its lid off: the brick plugged into the cord socket, its cable coiled beside it, and the cord wired to the power socket" width="420"></p>
 
 The power socket in the pod's back wall has a fuse and a lighted rocker switch built in. It has spade terminals on its back; the extension cord's two wires clip straight onto them. Inside the pod:
 
