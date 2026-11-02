@@ -432,6 +432,7 @@ INLET_PLATE = (59.1, 50.0, 2.0)
 INLET_FACE = (56.6, 31.0)      # 1/16" wider than the photo estimate, after a test fit
 KEEPER_FACE = 4.5                  # keeper frame: thickness in front of the plate (6.2 mm in all, as the pins expect)
 KEEPER_SQUEEZE = 0.3               # how much the keeper presses the plate into the wall
+KEEPER_WINDOW_CLR = 1.0            # room around the socket's raised face in the keeper's window, each side
 KEEPER_PIN_DX = 31.0               # keeper pins: this far either side of the socket centre
 INLET_DEPTH = 38.0                 # body + terminals behind the panel
 INLET_X = -68.0                    # socket centre across the pod (world X, user-right +)
@@ -818,9 +819,10 @@ def socket_keeper():
              .rotate([-90, 0, 0]).translate([INLET_X, yb, izc]))
     cuts = [box(INLET_X - pw / 2 - 0.5, INLET_X + pw / 2 + 0.5, yb - 1, yb + pt - KEEPER_SQUEEZE,
                 izc - ph / 2 - 0.5, izc + ph / 2 + 0.5),
-            box(INLET_X - INLET_FACE[0] / 2 - 0.25, INLET_X + INLET_FACE[0] / 2 + 0.25, yb - 1, yb + kt + 1,
-                izc - INLET_FACE[1] / 2 - 0.4, izc + INLET_FACE[1] / 2 + 0.4)]
-    win_half = INLET_FACE[0] / 2 + 0.25
+            box(INLET_X - INLET_FACE[0] / 2 - KEEPER_WINDOW_CLR, INLET_X + INLET_FACE[0] / 2 + KEEPER_WINDOW_CLR,
+                yb - 1, yb + kt + 1,
+                izc - INLET_FACE[1] / 2 - KEEPER_WINDOW_CLR, izc + INLET_FACE[1] / 2 + KEEPER_WINDOW_CLR)]
+    win_half = INLET_FACE[0] / 2 + KEEPER_WINDOW_CLR
     for dx in (-KEEPER_PIN_DX, KEEPER_PIN_DX):
         x = INLET_X + dx
         cuts.append(cyl(PIN_HOLE_D / 2, kt + 2, 0, 0, 0).rotate([-90, 0, 0]).translate([x, yb - 1, izc]))
