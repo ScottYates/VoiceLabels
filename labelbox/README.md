@@ -147,13 +147,13 @@ While protection is on, anything else you change is lost at the next restart: ap
 
 | Main screen | Setup screen |
 |---|---|
-| <img src="docs/screen.png?v=4" alt="Main screen: Hold to listen and PRINT across the top, the text box, the label preview with a screw icon, and Rotate, Left, Icon, Help and Setup" width="400"> | <img src="docs/setup.png?v=5" alt="Setup screen: Network, Power and Done, Date and QR, align, copies, brightness, print hold, and Labels" width="400"> |
+| <img src="docs/screen.png?v=5" alt="Main screen: Hold and speak and PRINT across the top, the text box, the label preview with a screw icon, and Rotate, Left, Icon, Help and Setup" width="400"> | <img src="docs/setup.png?v=5" alt="Setup screen: Network, Power and Done, Date and QR, align, copies, brightness, print hold, and Labels" width="400"> |
 
-The main screen has **Hold to listen** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **Rotate**, **Align**, **Icon**, **Help** and **Setup** sit under the preview. **Help** lists the voice commands and touch shortcuts. Every button has an icon beside its label.
+The main screen has **Hold and speak** (top left) and **PRINT** (top right). Under them, the dark **text box** on the left is where you edit the words, and the **label preview** on the right shows the label exactly as it will print, drawn on its backing paper. The status message sits under the text box, and **Rotate**, **Align**, **Icon**, **Help** and **Setup** sit under the preview. **Help** lists the voice commands and touch shortcuts. Every button has an icon beside its label.
 
 | Do this | To |
 |---|---|
-| **Hold** the TALK button (or **Hold to listen** on screen), speak, release | Record. The words appear without a closing period, since labels don't need one. The TALK light stays on while it listens and works out the words, then blinks twice when the text is in (it also blinks twice when the app is ready at startup). F1 starts and stops recording from the keyboard |
+| **Hold** the TALK button (or **Hold and speak** on screen), speak, release | Record. The words appear without a closing period, since labels don't need one. The TALK light stays on while it listens and works out the words, then blinks twice when the text is in (it also blinks twice when the app is ready at startup). F1 starts and stops recording from the keyboard |
 | **Tap** TALK, then straight away **press and hold** it again (screen or deck button), speak, release | Clear the text and start over. The status says "Cleared. Listening…" |
 | Type in the text box | Fix any words. The preview updates as you type |
 | **Hold** the PRINT button (on screen or on the deck) for 3 seconds | Print. A green bar sweeps across PRINT and counts down; let go early to cancel. The PRINT light blinks while you hold, stays on while printing, then blinks twice when done. Ctrl+P or Ctrl+Enter print straight away |
