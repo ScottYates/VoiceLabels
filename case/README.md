@@ -50,7 +50,7 @@ Suggested settings: PLA or PETG, 0.4 mm nozzle, 0.2 mm layers, 3 walls, 15–20%
 | 4 | Rubber feet, up to 13 mm across | Recesses in the base floor |
 | 1 | Switched, fused IEC C14 power socket, 47 × 27.4 mm cutout (e.g. Amazon B0C2GHJGW2) | Back of the pod, clamped by the printed keeper frame (no screws; its screw ears just sit under the frame). Comes with pre-crimped wires |
 | 1 | 1 ft 2-prong extension cord (e.g. Amazon B08R63X8RZ) | Its socket end feeds the brick inside the pod |
-| 2–3 | Wago 221 lever connectors | Joining the cord's wires to the socket's wires |
+| 2 | Fully insulated 6.3 mm (1/4") female spade connectors, sized for the cord's wire | Clipping the cord's two wires straight onto the power socket's terminals |
 | 1 | 2 A time-delay (slow-blow) 5 × 20 mm fuse | Replaces the 10 A fuse that comes in the socket. It protects the small brick much better |
 | 3 | Small zip ties | Cord socket and cables to the anchors in the pod |
 | 1 | IEC C13 power cord (a standard PC cord) | Wall to the pod |
@@ -117,21 +117,21 @@ The joints are sized with 0.25 mm of play on each side (`DOVE_CLR`). Print the d
 
 <p align="center"><img src="docs/case-open.png?v=4" alt="Looking down into the power pod with its lid off: the brick stands on edge against the back wall" width="420"></p>
 
-The power socket in the pod's back wall has a fuse and a lighted rocker switch built in. It comes with short wires already crimped onto its back. Inside the pod:
+The power socket in the pod's back wall has a fuse and a lighted rocker switch built in. It has spade terminals on its back; the extension cord's two wires clip straight onto them. Inside the pod:
 
-1. **Prepare the cord.** Cut the plug off the 1 ft extension cord, keeping the **socket end** with about 15 cm of cord. Split the two wires apart for 4 cm and strip 11 mm of insulation from each.
+1. **Prepare the cord.** Cut the plug off the 1 ft extension cord, keeping the **socket end** with about 15 cm of cord. Split the two wires apart for about 6 cm, strip the ends, and crimp an insulated female spade connector onto each.
 2. **Identify the wires.** On a polarized US cord, the wire with **ridges or a stripe** on its insulation goes to the **wide** slot (neutral). The **smooth** wire goes to the **narrow** slot (live).
-3. **Connect, with Wago 221 lever connectors:**
+3. **Connect** (push each spade fully onto its terminal; the terminals are marked on the socket):
 
-   | Power socket wire | Goes to |
+   | Power socket terminal | Goes to |
    |---|---|
-   | **L** (live, switched and fused; usually brown or black) | the cord's **smooth** wire |
-   | **N** (neutral; usually blue or white) | the cord's **ridged/striped** wire |
-   | **Earth** (green/yellow) | nothing: the brick has two prongs. Put it alone in its own Wago so its end is covered, or leave it off the socket |
+   | **L** (live, switched and fused) | the cord's **smooth** wire |
+   | **N** (neutral) | the cord's **ridged/striped** wire |
+   | **Earth** | nothing: the cord and the brick are 2-prong. If the socket came with a wire already on this terminal, take it off |
 
 4. **Swap the fuse** in the socket's drawer for a **2 A time-delay** fuse.
-5. **Mount the parts.** Push the power socket into the back-wall opening from outside, so its front plate sits flat on the wall. Put the keeper frame over it (pocket side towards the wall; the plug, switch and fuse drawer show through the window), push the two short socket pins through the frame and the wall, head upright, and turn each a quarter turn to lock. The frame presses the plate against the wall; you don't need the socket's screws. Zip-tie the cord socket to the anchor next to the brick and the Wagos to the anchor near the front. Plug the brick into the cord socket, stand it on edge against the back wall (prongs toward the power socket), and coil the spare USB-C cable in the space beyond its cable end.
-6. **Check before closing:** no bare copper visible anywhere, every lever down, nothing pulled tight. Slide the lid on and lock its pin.
+5. **Mount the parts.** Push the power socket into the back-wall opening from outside, so its front plate sits flat on the wall. Put the keeper frame over it (pocket side towards the wall; the plug, switch and fuse drawer show through the window), push the two short socket pins through the frame and the wall, head upright, and turn each a quarter turn to lock. The frame presses the plate against the wall; you don't need the socket's screws. Zip-tie the cord socket to the anchor next to the brick, and run its cord over the top of the power socket's body to the terminals. Plug the brick into the cord socket, stand it on edge against the back wall (prongs toward the power socket), and coil the spare USB-C cable in the space beyond its cable end.
+6. **Check before closing:** no bare copper or bare spade visible anywhere, both spades pushed fully home, nothing pulled tight. Slide the lid on and lock its pin.
 
 Turning the switch off cuts power to everything. With power-off protection turned on in the software (see the main README), that's safe to do at any time.
 
