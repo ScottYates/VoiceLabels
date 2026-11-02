@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import datetime as dt
 import os
+import select
 import subprocess
 import threading
 import time
@@ -64,6 +65,15 @@ def _talk(data: bytes, wait: float = 0.0) -> bytes:
                 if time.monotonic() > deadline:
                     raise PrintError("The printer stopped taking data")
                 time.sleep(0.02)
+        # The kernel's printer driver sends the last chunk after write() returns,
+        # and closing the device too soon cuts it off: the printer then sits on
+        # half a label ("partial format") and prints nothing. Wait until it's out.
+        p = select.poll()
+        p.register(fd, select.POLLOUT)
+        end = time.monotonic() + 30
+        while not p.poll(100):
+            if time.monotonic() > end:
+                raise PrintError("The printer stopped taking data")
         out, end = b"", time.monotonic() + wait
         while time.monotonic() < end:
             try:
@@ -97,6 +107,7 @@ def status() -> dict | None:
         return {
             "paper_out": a[1] == "1", "paused": a[2] == "1", "label_length": int(a[3]),
             "formats_waiting": int(a[4]), "buffer_full": a[5] == "1",
+            "partial_format": a[7] == "1",
             "under_temp": a[10] == "1", "over_temp": a[11] == "1",
             "head_up": b[2] == "1", "ribbon_out": b[3] == "1",
             "labels_remaining": int(b[8]) if b[8].isdigit() else 0,
@@ -111,6 +122,8 @@ def describe(st: dict | None) -> str:
         return "no answer"
     bits = [k.replace("_", " ") for k in ("paused", "paper_out", "head_up", "buffer_full",
                                           "under_temp", "over_temp") if st.get(k)]
+    if st.get("partial_format"):
+        bits.append("holding part of a label")
     if st.get("formats_waiting"):
         bits.append(f"{st['formats_waiting']} label(s) waiting")
     return ", ".join(bits) or "ready"
@@ -170,6 +183,9 @@ def send(zpl: bytes, dry_run: bool = False, preview_png=None) -> str:
     # A label still sitting in the buffer a few seconds later means it isn't printing.
     time.sleep(2.5)
     after = status()
+    if after and after.get("partial_format"):
+        log(f"label only partly received: {describe(after)} [{after.get('raw')}]")
+        raise PrintError("Only part of the label reached the printer. Try printing again")
     if after and after.get("formats_waiting") and not after.get("labels_remaining"):
         log(f"label sent but still waiting: {describe(after)} [{after.get('raw')}]")
         raise PrintError("The printer got the label but isn't printing it ("
